@@ -172,6 +172,12 @@ include Makefile.d/platform.mk
 include Makefile.d/features.mk
 include Makefile.d/versions.mk
 
+ifdef HAVE_DISCORDRPC
+LIBS+=-ldiscord-rpc
+CFLAGS+=-DHAVE_DISCORDRPC
+OBJS+=$(OBJDIR)/discord.o
+endif
+
 ifdef DEBUGMODE
 makedir:=$(makedir)/debug
 endif

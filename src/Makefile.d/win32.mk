@@ -13,6 +13,8 @@ ifdef MSYSTEM
 libs+=-Wl,--disable-dynamicbase
 endif
 
+HAVE_DISCORDRPC=1
+
 sources+=win32/Srb2win.rc
 opts+=-DSTDC_HEADERS
 libs+=-ladvapi32 -lkernel32 -lmsvcrt -luser32

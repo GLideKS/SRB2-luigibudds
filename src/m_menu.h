@@ -483,6 +483,8 @@ typedef struct menucolor_s {
 
 extern menucolor_t *menucolorhead, *menucolortail;
 
+// void M_RefreshPauseMenu(void);
+
 void M_AddMenuColor(UINT16 color);
 void M_MoveColorBefore(UINT16 color, UINT16 targ);
 void M_MoveColorAfter(UINT16 color, UINT16 targ);

@@ -26,6 +26,11 @@
 // Called by main loop.
 void ST_Ticker(boolean run);
 
+#ifdef HAVE_DISCORDRPC
+// Called when you have Discord asks
+void ST_AskToJoinEnvelope(void);
+#endif
+
 // Called by main loop.
 void ST_Drawer(void);
 void ST_MovieInfoDrawer(void);

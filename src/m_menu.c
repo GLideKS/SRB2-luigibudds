@@ -85,6 +85,11 @@
 #define FIXUPO0
 #endif
 
+#ifdef HAVE_DISCORDRPC
+//#include "discord_rpc.h"
+#include "discord.h"
+#endif
+
 #define SKULLXOFF -32
 #define LINEHEIGHT 16
 #define STRINGHEIGHT 8
@@ -207,6 +212,12 @@ static void M_RoomMenu(INT32 choice);
 // ==========================================================================
 
 menu_t SPauseDef;
+
+#ifdef HAVE_DISCORDRPC
+menu_t MISC_DiscordRequestsDef;
+static void M_HandleDiscordRequests(INT32 choice);
+static void M_DrawDiscordRequests(void);
+#endif
 
 // Level Select
 static levelselect_t levelselect = {0, NULL};
@@ -341,6 +352,9 @@ menu_t OP_SoundAdvancedDef;
 
 //Misc
 menu_t OP_DataOptionsDef, OP_ScreenshotOptionsDef, OP_EraseDataDef;
+#ifdef HAVE_DISCORDRPC
+menu_t OP_DiscordOptionsDef;
+#endif
 menu_t OP_ServerOptionsDef;
 menu_t OP_MonitorToggleDef;
 static void M_ScreenshotOptions(INT32 choice);
@@ -555,7 +569,11 @@ static menuitem_t MPauseMenu[] =
 	{IT_STRING | IT_CALL,    NULL, "Local Add-ons...",          M_LocalAddons,          8},
 	{IT_STRING | IT_SUBMENU, NULL, "Scramble Teams...",         &MISC_ScrambleTeamDef, 16},
 	{IT_STRING | IT_CALL,    NULL, "Emblem Hints...",           M_EmblemHints,         24},
-	{IT_STRING | IT_CALL,    NULL, "Switch Gametype/Level...",  M_MapChange,           32},
+	// romoney5 TODO
+	//{IT_STRING | IT_CALL,    NULL, "Switch Gametype/Level...",  M_MapChange,           32},
+#ifdef HAVE_DISCORDRPC
+	{IT_STRING | IT_SUBMENU,  NULL, "Ask To Join Requests...", &MISC_DiscordRequestsDef, 32},
+#endif
 
 	{IT_STRING | IT_CALL,    NULL, "Continue",                  M_SelectableClearMenus,48},
 
@@ -580,6 +598,9 @@ typedef enum
 	mpause_scramble,
 	mpause_hints,
 	mpause_switchmap,
+#ifdef HAVE_DISCORDRPC
+	mpause_discordrequests,
+#endif
 
 	mpause_continue,
 	mpause_psetupsplit,
@@ -625,6 +646,13 @@ typedef enum
 	spause_title,
 	spause_quit
 } spause_e;
+
+#ifdef HAVE_DISCORDRPC
+static menuitem_t MISC_DiscordRequestsMenu[] =
+{
+	{IT_KEYHANDLER|IT_NOTHING, NULL, "", M_HandleDiscordRequests, 0},
+};
+#endif
 
 // -----------------
 // Misc menu options
@@ -1471,6 +1499,17 @@ static menuitem_t OP_SoundOptionsMenu[] =
 	{IT_STRING | IT_SUBMENU, NULL, "Advanced Settings...", &OP_SoundAdvancedDef, 87},
 };
 
+// romoney5 TODO: in data options
+/*
+#ifdef HAVE_DISCORDRPC
+	{IT_STRING | IT_SUBMENU,	NULL, "Discord Options...",		&OP_DiscordOptionsDef,	 40},
+
+	{IT_STRING | IT_SUBMENU,	NULL, "Erase Data...",			&OP_EraseDataDef,		 60},
+#else
+	{IT_STRING | IT_SUBMENU,	NULL, "Erase Data...",			&OP_EraseDataDef,		 50},
+#endif
+*/
+
 #ifdef HAVE_OPENMPT
 #define OPENMPT_MENUOFFSET 32
 #else
@@ -1513,6 +1552,19 @@ static menuitem_t OP_DataOptionsMenu[] =
 
 	{IT_STRING | IT_SUBMENU, NULL, "\x85" "Erase Data...",  &OP_EraseDataDef,    40},
 };
+
+#ifdef HAVE_DISCORDRPC
+static menuitem_t OP_DiscordOptionsMenu[] =
+{
+	{IT_STRING | IT_CVAR,		NULL, "Rich Presence",			&cv_discordrp,			 10},
+
+	{IT_HEADER,					NULL, "Rich Presence Settings",	NULL,					 30},
+	{IT_STRING | IT_CVAR,		NULL, "Streamer Mode",			&cv_discordstreamer,	 40},
+
+	{IT_STRING | IT_CVAR,		NULL, "Allow Ask To Join",		&cv_discordasks,		 60},
+	{IT_STRING | IT_CVAR,		NULL, "Allow Invites",			&cv_discordinvites,		 70},
+};
+#endif
 
 //Banpyura Options
 
@@ -1761,6 +1813,19 @@ menu_t MISC_ChangeLevelDef =
 };
 
 menu_t MISC_HelpDef = IMAGEDEF(MISC_HelpMenu);
+
+#ifdef HAVE_DISCORDRPC
+menu_t MISC_DiscordRequestsDef = {
+	NULL,
+	sizeof (MISC_DiscordRequestsMenu)/sizeof (menuitem_t),
+	&MPauseDef,
+	MISC_DiscordRequestsMenu,
+	M_DrawDiscordRequests,
+	0, 0,
+	0,
+	NULL
+};
+#endif
 
 static INT32 highlightflags, recommendedflags, warningflags;
 
@@ -2314,6 +2379,10 @@ menu_t OP_AddonsOptionsDef = DEFAULTMENUSTYLE(
 menu_t OP_EraseDataDef = DEFAULTMENUSTYLE(
 	MTREE3(MN_OP_MAIN, MN_OP_DATA, MN_OP_ERASEDATA),
 	"M_DATA", OP_EraseDataMenu, &OP_DataOptionsDef, 60, 30);
+
+#ifdef HAVE_DISCORDRPC
+menu_t OP_DiscordOptionsDef = DEFAULTMENUSTYLE(NULL, OP_DiscordOptionsMenu, &OP_DataOptionsDef, 30, 30);
+#endif
 
 // ==========================================================================
 // CVAR ONCHANGE EVENTS GO HERE
@@ -4960,6 +5029,25 @@ static void M_DrawPauseMenu(void)
 			V_DrawRightAlignedString(284, 44 + (i*8), V_MONOSPACE, emblem_text[i]);
 		}
 	}
+
+#ifdef HAVE_DISCORDRPC
+	// kind of hackily baked in here
+	if (currentMenu == &MPauseDef && discordRequestList != NULL)
+	{
+		const tic_t freq = TICRATE/2;
+
+		if ((leveltime % freq) >= freq/2)
+		{
+			V_DrawFixedPatch(204 * FRACUNIT,
+				(currentMenu->y + MPauseMenu[mpause_discordrequests].alphaKey - 1) * FRACUNIT,
+				FRACUNIT,
+				0,
+				W_CachePatchName("K_REQUE2", PU_CACHE),
+				NULL
+			);
+		}
+	}
+#endif
 
 	M_DrawGenericMenu();
 }
@@ -14398,3 +14486,162 @@ static void M_QuitSRB2(INT32 choice)
 	(void)choice;
 	M_StartMessage(quitmsg[M_RandomKey(NUM_QUITMESSAGES)], M_QuitResponse, MM_YESNO);
 }
+
+// discord rpc stuff
+
+#ifdef HAVE_DISCORDRPC
+static const tic_t confirmLength = 3*TICRATE/4;
+static tic_t confirmDelay = 0;
+static boolean confirmAccept = false;
+
+static void M_HandleDiscordRequests(INT32 choice)
+{
+	if (confirmDelay > 0)
+		return;
+
+	switch (choice)
+	{
+		case KEY_ENTER:
+			Discord_Respond(discordRequestList->userID, DISCORD_REPLY_YES);
+			confirmAccept = true;
+			confirmDelay = confirmLength;
+			S_StartSound(NULL, sfx_s3k63);
+			break;
+
+		case KEY_ESCAPE:
+			Discord_Respond(discordRequestList->userID, DISCORD_REPLY_NO);
+			confirmAccept = false;
+			confirmDelay = confirmLength;
+			S_StartSound(NULL, sfx_s3kb2);
+			break;
+	}
+}
+
+static const char *M_GetDiscordName(discordRequest_t *r)
+{
+	if (r == NULL)
+		return "";
+
+	if (cv_discordstreamer.value)
+		return r->username;
+
+	return va("%s#%s", r->username, r->discriminator);
+}
+
+static void M_DrawSticker(INT32 x, INT32 y, INT32 width, INT32 flags, boolean small)
+{
+	patch_t *stickerEnd;
+	INT32 height;
+	
+	if (small == true)
+	{
+		stickerEnd = W_CachePatchName("K_STIKE2", PU_CACHE);
+		height = 6;
+	}
+	else
+	{
+		stickerEnd = W_CachePatchName("K_STIKEN", PU_CACHE);
+		height = 11;
+	}
+
+	V_DrawFixedPatch(x*FRACUNIT, y*FRACUNIT, FRACUNIT, flags, stickerEnd, NULL);
+	V_DrawFill(x, y, width, height, 24|flags);
+	V_DrawFixedPatch((x + width)*FRACUNIT, y*FRACUNIT, FRACUNIT, flags|V_FLIP, stickerEnd, NULL);
+}
+
+static void M_DrawDiscordRequests(void)
+{
+	discordRequest_t *curRequest = discordRequestList;
+	UINT8 *colormap;
+	patch_t *hand = NULL;
+	boolean removeRequest = false;
+
+	const char *wantText = "...would like to join!";
+	const char *controlText = "\x82" "ENTER" "\x80" " - Accept    " "\x82" "ESC" "\x80" " - Decline";
+
+	INT32 x = 100;
+	INT32 y = 133;
+
+	INT32 slide = 0;
+	INT32 maxYSlide = 18;
+
+	if (confirmDelay > 0)
+	{
+		if (confirmAccept == true)
+		{
+			colormap = R_GetTranslationColormap(TC_DEFAULT, SKINCOLOR_GREEN, GTC_MENUCACHE);
+			hand = W_CachePatchName("K_LAPH02", PU_CACHE);
+		}
+		else
+		{
+			colormap = R_GetTranslationColormap(TC_DEFAULT, SKINCOLOR_RED, GTC_MENUCACHE);
+			hand = W_CachePatchName("K_LAPH03", PU_CACHE);
+		}
+
+		slide = confirmLength - confirmDelay;
+
+		confirmDelay--;
+
+		if (confirmDelay == 0)
+			removeRequest = true;
+	}
+	else
+	{
+		colormap = R_GetTranslationColormap(TC_DEFAULT, SKINCOLOR_GREY, GTC_MENUCACHE);
+	}
+
+	V_DrawFixedPatch(56*FRACUNIT, 150*FRACUNIT, FRACUNIT, 0, W_CachePatchName("K_LAPE01", PU_CACHE), colormap);
+
+	if (hand != NULL)
+	{
+		fixed_t handoffset = (4 - abs((signed)(skullAnimCounter - 4))) * FRACUNIT;
+		V_DrawFixedPatch(56*FRACUNIT, 150*FRACUNIT + handoffset, FRACUNIT, 0, hand, NULL);
+	}
+
+	M_DrawSticker(x + (slide * 32), y - 1, V_ThinStringWidth(M_GetDiscordName(curRequest), V_ALLOWLOWERCASE|V_6WIDTHSPACE), 0, false);
+	V_DrawThinString(x + (slide * 32), y, V_ALLOWLOWERCASE|V_6WIDTHSPACE|V_YELLOWMAP, M_GetDiscordName(curRequest));
+
+	M_DrawSticker(x, y + 12, V_ThinStringWidth(wantText, V_ALLOWLOWERCASE|V_6WIDTHSPACE), 0, true);
+	V_DrawThinString(x, y + 10, V_ALLOWLOWERCASE|V_6WIDTHSPACE, wantText);
+
+	M_DrawSticker(x, y + 26, V_ThinStringWidth(controlText, V_ALLOWLOWERCASE|V_6WIDTHSPACE), 0, true);
+	V_DrawThinString(x, y + 24, V_ALLOWLOWERCASE|V_6WIDTHSPACE, controlText);
+
+	y -= 18;
+
+	while (curRequest->next != NULL)
+	{
+		INT32 ySlide = min(slide * 4, maxYSlide);
+
+		curRequest = curRequest->next;
+
+		M_DrawSticker(x, y - 1 + ySlide, V_ThinStringWidth(M_GetDiscordName(curRequest), V_ALLOWLOWERCASE|V_6WIDTHSPACE), 0, false);
+		V_DrawThinString(x, y + ySlide, V_ALLOWLOWERCASE|V_6WIDTHSPACE, M_GetDiscordName(curRequest));
+
+		y -= 12;
+		maxYSlide = 12;
+	}
+
+	if (removeRequest == true)
+	{
+		DRPC_RemoveRequest(discordRequestList);
+
+		if (discordRequestList == NULL)
+		{
+			// No other requests
+			MPauseMenu[mpause_discordrequests].status = IT_GRAYEDOUT;
+
+			if (currentMenu->prevMenu)
+			{
+				M_SetupNextMenu(currentMenu->prevMenu);
+				if (currentMenu == &MPauseDef)
+					itemOn = mpause_continue;
+			}
+			else
+				M_ClearMenus(true);
+
+			return;
+		}
+	}
+}
+#endif

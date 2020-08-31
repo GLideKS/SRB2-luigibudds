@@ -2849,6 +2849,22 @@ static void ST_overlayDrawer(void)
 	ST_drawDebugInfo();
 }
 
+#ifdef HAVE_DISCORDRPC
+void ST_AskToJoinEnvelope(void)
+{
+	const tic_t freq = TICRATE/2;
+
+	if (menuactive)
+		return;
+
+	if ((leveltime % freq) < freq/2)
+		return;
+
+	V_DrawFixedPatch(296*FRACUNIT, 2*FRACUNIT, FRACUNIT, V_SNAPTOTOP|V_SNAPTORIGHT, envelope, NULL);
+	// maybe draw number of requests with V_DrawPingNum ?
+}
+#endif
+
 void ST_Drawer(void)
 {
 	if (cv_seenames.value && cv_allowseenames.value && displayplayer == consoleplayer && seenplayer && seenplayer->mo)
