@@ -1568,6 +1568,19 @@ static void DedicatedIdleUpdate(INT32 *realtics)
 	dedicatedidletimeprev = dedicatedidletime;
 }
 
+static void RenewHolePunch(void)
+{
+	static time_t past;
+
+	const time_t now = time(NULL);
+
+	if ((now - past) > 20)
+	{
+		I_NetRegisterHolePunch();
+		past = now;
+	}
+}
+
 // Handle timeouts to prevent definitive freezes from happenning
 static void HandleNodeTimeouts(void)
 {
@@ -1605,6 +1618,11 @@ void NetKeepAlive(void)
 #ifdef MASTERSERVER
 	MasterClient_Ticker();
 #endif
+
+	if (netgame && serverrunning)
+	{
+		RenewHolePunch();
+	}
 
 	if (client)
 	{
@@ -1668,6 +1686,11 @@ void NetUpdate(void)
 #ifdef MASTERSERVER
 	MasterClient_Ticker(); // Acking the Master Server
 #endif
+
+	if (netgame && serverrunning)
+	{
+		RenewHolePunch();
+	}
 
 	if (client)
 	{

@@ -70,6 +70,7 @@ extern consvar_t cv_masterserver_room_id;
 extern consvar_t cv_masterserver_timeout;
 extern consvar_t cv_masterserver_debug;
 extern consvar_t cv_masterserver_token;
+extern consvar_t cv_rendezvousserver;
 
 extern int           ms_QueryId;
 extern I_mutex       ms_QueryId_mutex;
