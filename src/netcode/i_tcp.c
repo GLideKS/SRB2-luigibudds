@@ -622,7 +622,7 @@ static boolean SOCK_Get(void)
 		{
 			if (hole_punch(c))
 			{
-				return false;
+				break;
 			}
 
 			// find remote node number
