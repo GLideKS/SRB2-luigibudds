@@ -173,6 +173,8 @@ static size_t broadcastaddresses = 0;
 static boolean nodeconnected[MAXNETNODES+1];
 static mysockaddr_t *banned;
 static UINT8 *bannedmask;
+/* See ../doc/Holepunch-Protocol.txt */
+static const INT32 hole_punch_magic = MSBF_LONG (0x52eb11);
 
 static size_t numbans = 0;
 static boolean SOCK_bannednode[MAXNETNODES+1]; /// \note do we really need the +1?
@@ -620,6 +622,55 @@ void Command_Numnodes(void)
 }
 #endif
 
+/* not one of the reserved "local" addresses */
+static boolean
+is_external_address (UINT32 p)
+{
+	UINT8 a = (p & 255);
+	UINT8 b = ((p >> 8) & 255);
+
+	if (p == (UINT32)~0)/* 255.255.255.255 */
+		return 0;
+
+	switch (a)
+	{
+		case 0:
+		case 10:
+		case 127:
+			return false;
+		case 172:
+			return (b & ~15) != 16;/* 16 - 31 */
+		case 192:
+			return b != 168;
+		default:
+			return true;
+	}
+}
+
+static boolean hole_punch(ssize_t c)
+{
+	/* See ../doc/Holepunch-Protocol.txt */
+	if (cv_rendezvousserver.string[0] &&
+			c == 10 && holepunchpacket->magic == hole_punch_magic &&
+			is_external_address(ntohl(holepunchpacket->addr)))
+	{
+		mysockaddr_t addr;
+		addr.ip4.sin_family      = AF_INET;
+		addr.ip4.sin_addr.s_addr = holepunchpacket->addr;
+		addr.ip4.sin_port        = holepunchpacket->port;
+		sendto(mysockets[0], NULL, 0, 0, &addr.any, sizeof addr.ip4);
+
+		CONS_Debug(DBG_NETPLAY,
+				"hole punching request from %s\n", SOCK_AddrToStr(&addr));
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 // Returns true if a packet was received from a new node, false in all other cases
 static boolean SOCK_Get(void)
 {
@@ -634,7 +685,7 @@ static boolean SOCK_Get(void)
 		fromlen = (socklen_t)sizeof(fromaddress);
 		c = recvfrom(mysockets[n], (char *)&doomcom->data, MAXPACKETLENGTH, 0,
 			(void *)&fromaddress, &fromlen);
-		if (c != ERRSOCKET)
+		if (c > 0)
 		{
 			// find remote node number
 			for (j = 1; j <= MAXNETNODES; j++) //include LAN
@@ -644,7 +695,7 @@ static boolean SOCK_Get(void)
 					doomcom->remotenode = (INT16)j; // good packet from a game player
 					doomcom->datalength = (INT16)c;
 					nodesocket[j] = mysockets[n];
-					return false;
+					break;
 				}
 			}
 			// not found
@@ -660,6 +711,12 @@ static boolean SOCK_Get(void)
 				doomcom->remotenode = (INT16)j; // good packet from a game player
 				doomcom->datalength = (INT16)c;
 
+				if (hole_punch(c))
+				{
+					break;
+				}
+
+
 				// check if it's a banned dude so we can send a refusal later
 				for (i = 0; i < numbans; i++)
 				{
@@ -672,7 +729,7 @@ static boolean SOCK_Get(void)
 				}
 				if (i == numbans)
 					SOCK_bannednode[j] = false;
-				return true;
+				break;
 			}
 			else
 				DEBFILE("New node detected: No more free slots\n");
@@ -1169,9 +1226,8 @@ void I_ShutdownTcpDriver(void)
 	init_tcp_driver = false;
 }
 
-static SINT8 SOCK_NetMakeNodewPort(const char *address, const char *port)
+static boolean SOCK_GetAddr(struct sockaddr_in *sin, const char *address, const char *port, boolean test)
 {
-	SINT8 newnode = -1;
 	struct my_addrinfo *ai = NULL, *runp, hints;
 	int gaie;
 	size_t i;
@@ -1188,37 +1244,94 @@ static SINT8 SOCK_NetMakeNodewPort(const char *address, const char *port)
 	hints.ai_protocol = IPPROTO_UDP;
 
 	gaie = I_getaddrinfo(address, port, &hints, &ai);
-	if (gaie == 0)
-	{
-		newnode = getfreenode();
-	}
-	if (newnode == -1)
+	if (gaie != 0)
 	{
 		I_freeaddrinfo(ai);
-		return -1;
+		return false;
 	}
-	else
 		runp = ai;
-
-	while (runp != NULL)
+	if (test)
 	{
-		// test ip address of server
-		for (i = 0; i < mysocketses; ++i)
+		while (runp != NULL)
 		{
-			if (runp->ai_addr->sa_family == myfamily[i])
+			// test ip address of server
+			for (i = 0; i < mysocketses; ++i)
 			{
-				memcpy(&clientaddress[newnode], runp->ai_addr, runp->ai_addrlen);
+				if (runp->ai_addr->sa_family == myfamily[i])
 				break;
 			}
-		}
 
-		if (i < mysocketses)
-			runp = runp->ai_next;
-		else
-			break;
+			if (i < mysocketses)
+				runp = runp->ai_next;
+			else
+				break;
+		}
 	}
+	if (runp != NULL)
+		memcpy(sin, runp->ai_addr, runp->ai_addrlen);
+
 	I_freeaddrinfo(ai);
+
+	return (runp != NULL);
+}
+
+static SINT8 SOCK_NetMakeNodewPort(const char *address, const char *port)
+{
+	SINT8 newnode = getfreenode();
+
+	DEBFILE(va("Creating new node: %s@%s\n", address, port));
+
+	if (newnode != -1)
+	{
+		if (!SOCK_GetAddr(&clientaddress[newnode].ip4, address, port, true))
+		{
+			nodeconnected[newnode] = false;
+			return -1;
+		}
+	}
 	return newnode;
+}
+
+/* See ../doc/Holepunch-Protocol.txt */
+static void rendezvous(int size)
+{
+	char *addrs = strdup(cv_rendezvousserver.string);
+
+	char *host = strtok(addrs, ":");
+	char *port = strtok(NULL,  ":");
+
+	mysockaddr_t rzv;
+
+	if (SOCK_GetAddr(&rzv.ip4, host, (port ? port : "7777"), false))
+	{
+		holepunchpacket->magic = hole_punch_magic;
+		sendto(mysockets[0], doomcom->data, size, 0, &rzv.any, sizeof rzv.ip4);
+	}
+	else
+	{
+		CONS_Alert(CONS_ERROR, "Failed to contact rendezvous server (%s).\n",
+				cv_rendezvousserver.string);
+	}
+
+	free(addrs);
+}
+
+static void SOCK_RequestHolePunch(void)
+{
+	mysockaddr_t * addr = &clientaddress[doomcom->remotenode];
+
+	holepunchpacket->addr = addr->ip4.sin_addr.s_addr;
+	holepunchpacket->port = addr->ip4.sin_port;
+
+	CONS_Debug(DBG_NETPLAY,
+			"requesting hole punch to node %s\n", SOCK_AddrToStr(addr));
+
+	rendezvous(10);
+}
+
+static void SOCK_RegisterHolePunch(void)
+{
+	rendezvous(4);
 }
 
 static boolean SOCK_OpenSocket(void)
@@ -1235,6 +1348,8 @@ static boolean SOCK_OpenSocket(void)
 	I_NetFreeNodenum = SOCK_FreeNodenum;
 	I_NetMakeNodewPort = SOCK_NetMakeNodewPort;
 
+	I_NetRequestHolePunch = SOCK_RequestHolePunch;
+	I_NetRegisterHolePunch = SOCK_RegisterHolePunch;
 	// build the socket but close it first
 	SOCK_CloseSocket();
 	return UDP_Socket();
