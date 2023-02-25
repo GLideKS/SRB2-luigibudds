@@ -190,6 +190,10 @@ if("${SRB2_CONFIG_USE_GME}")
 	endif()
 endif()
 
+target_link_libraries(SRB2SDL2 PRIVATE webm::libwebm webm::libvpx)
+target_link_libraries(SRB2SDL2 PRIVATE libyuv::libyuv)
+target_link_libraries(SRB2SDL2 PRIVATE Vorbis::vorbis Vorbis::vorbisenc)
+
 target_compile_definitions(SRB2SDL2 PRIVATE -D_LARGEFILE64_SOURCE)
 
 if("${SRB2_CONFIG_HWRENDER}")

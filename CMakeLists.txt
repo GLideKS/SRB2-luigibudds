@@ -98,6 +98,9 @@ if("${SRB2_CONFIG_USE_GME}")
 	find_package(libgme QUIET)
 endif()
 find_package(miniupnpc QUIET)
+find_package(VPX REQUIRED)
+find_package(Vorbis REQUIRED)
+find_package(VorbisEnc REQUIRED)
 
 
 if(${PROJECT_SOURCE_DIR} MATCHES ${PROJECT_BINARY_DIR})
