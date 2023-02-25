@@ -52,6 +52,7 @@
 #include "../md5.h"
 #include "../m_perfstats.h"
 #include "../u_list.h"
+#include "../m_avrecorder.h"
 
 #ifdef NETGAME_DEVMODE
 #define CV_RESTRICT CV_NETVAR
@@ -711,6 +712,7 @@ void D_RegisterClientCommands(void)
 	CV_RegisterVar(&cv_moviemode);
 	CV_RegisterVar(&cv_movie_option);
 	CV_RegisterVar(&cv_movie_folder);
+	M_AVRecorder_AddCommands();
 	// PNG variables
 	CV_RegisterVar(&cv_zlib_level);
 	CV_RegisterVar(&cv_zlib_memory);

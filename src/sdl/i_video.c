@@ -1317,6 +1317,8 @@ void I_FinishUpdate(void)
 	))
 		SCR_DisplayLocalPing();
 
+	M_AVRecorder_DrawFrameRate();
+
 	if (rendermode == render_soft && screens[0])
 	{
 		if (!bufSurface) //Double-Check
