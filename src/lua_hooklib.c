@@ -1182,3 +1182,14 @@ int LUA_HookPlayerCanEnterSpinGaps(player_t *player)
 	}
 	return hook.status;
 }
+
+int LUA_HookPlayerHitFloor(player_t *player)
+{
+	Hook_State hook;
+	if (prepare_hook(&hook, 0, HOOK(PlayerHitFloor)))
+	{
+		LUA_PushUserdata(gL, player, META_PLAYER);
+		call_hooks(&hook, 1, res_force);
+	}
+	return hook.status;
+}
