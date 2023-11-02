@@ -2464,7 +2464,7 @@ boolean P_PlayerHitFloor(player_t *player, boolean dorollstuff)
 						S_StartSound(player->mo, sfx_s3k4c);
 					else // create a fire pattern on the ground
 					{
-						S_StartSound(player->mo, sfx_s3k47);	
+						S_StartSound(player->mo, sfx_s3k47);
 						P_ElementalFire(player, true);
 					}
 					P_SetObjectMomZ(player->mo,
