@@ -14,7 +14,7 @@
 #include "doomdef.h"
 #include "doomstat.h"
 #include "d_main.h"
-#include "d_netcmd.h"
+#include "netcode/d_netcmd.h"
 #include "f_finale.h"
 #include "g_game.h"
 #include "hu_stuff.h"
@@ -1062,12 +1062,14 @@ static const char *credits[] = {
 	"\"Golden\"",
 	"Vivian \"toaster\" Grannell",
 	"Julio \"Chaos Zero 64\" Guir",
+	"\"Hanicef\"",
 	"\"Hannu_Hanhi\"", // For many OpenGL performance improvements!
 	"Kepa \"Nev3r\" Iceta",
 	"Thomas \"Shadow Hog\" Igoe",
 	"Iestyn \"Monster Iestyn\" Jealous",
 	"\"Kaito Sinclaire\"",
 	"\"Kalaron\"", // Coded some of Sryder13's collection of OpenGL fixes, especially fog
+	"\"katsy\"",
 	"Ronald \"Furyhunter\" Kinard", // The SDL2 port
 	"\"Lat'\"", // SRB2-CHAT, the chat window from Kart
 	"\"LZA\"",
@@ -1090,6 +1092,7 @@ static const char *credits[] = {
 	"Ben \"Cue\" Woodford",
 	"Lachlan \"Lach\" Wright",
 	"Marco \"mazmazz\" Zafra",
+	"\"Zwip-Zwap Zapony\"",
 	"",
 	"\1Art",
 	"Victor \"VAdaPEGA\" Ara\x1Fjo", // Araújo -- sorry for our limited font! D:
@@ -1197,6 +1200,7 @@ static const char *credits[] = {
 	"FreeDoom Project", // Used some of the mancubus and rocket launcher sprites for Brak
 	"Kart Krew",
 	"Alex \"MistaED\" Fuller",
+	"Howard Drossin", // Virtual Sonic - Sonic & Knuckles Theme
 	"Pascal \"CodeImp\" vd Heiden", // Doom Builder developer
 	"Randi Heit (<!>)", // For their MSPaint <!> sprite that we nicked
 	"Simon \"sirjuddington\" Judd", // SLADE developer
@@ -1323,7 +1327,7 @@ void F_CreditDrawer(void)
 			y += 12<<FRACBITS;
 			break;
 		}
-		if (FixedMul(y,vid.dupy) > vid.height)
+		if (FixedMul(y,vid.dup) > vid.height)
 			break;
 	}
 }
@@ -1358,7 +1362,7 @@ void F_CreditTicker(void)
 			case 1: y += 30<<FRACBITS; break;
 			default: y += 12<<FRACBITS; break;
 		}
-		if (FixedMul(y,vid.dupy) > vid.height)
+		if (FixedMul(y,vid.dup) > vid.height)
 			break;
 	}
 
@@ -2078,7 +2082,7 @@ void F_EndingDrawer(void)
 		if (goodending && finalecount >= TICRATE && finalecount < INFLECTIONPOINT)
 		{
 			INT32 workingtime = finalecount - TICRATE;
-			fixed_t radius = ((vid.width/vid.dupx)*(INFLECTIONPOINT - TICRATE - workingtime))/(INFLECTIONPOINT - TICRATE);
+			fixed_t radius = ((vid.width/vid.dup)*(INFLECTIONPOINT - TICRATE - workingtime))/(INFLECTIONPOINT - TICRATE);
 			angle_t fa;
 			INT32 eemeralds_cur[4];
 			char patchname[7] = "CEMGx0";
@@ -2256,7 +2260,7 @@ void F_InitMenuPresValues(void)
 	curfadevalue = 16;
 	curbgcolor = -1;
 	curbgxspeed = (gamestate == GS_TIMEATTACK) ? 0 : titlescrollxspeed;
-	curbgyspeed = (gamestate == GS_TIMEATTACK) ? 22 : titlescrollyspeed;
+	curbgyspeed = (gamestate == GS_TIMEATTACK) ? 18 : titlescrollyspeed;
 	curbghide = (gamestate == GS_TIMEATTACK) ? false : true;
 
 	curhidepics = hidetitlepics;
@@ -2283,7 +2287,6 @@ void F_InitMenuPresValues(void)
 void F_SkyScroll(const char *patchname)
 {
 	INT32 x, basey = 0;
-	INT32 dupz = (vid.dupx < vid.dupy ? vid.dupx : vid.dupy);
 	patch_t *pat;
 
 	if (rendermode == render_none)
@@ -2311,17 +2314,17 @@ void F_SkyScroll(const char *patchname)
 	curbgy %= pat->height * 16;
 
 	// Ooh, fancy frame interpolation
-	x     = ((curbgx*dupz) + FixedInt((rendertimefrac-FRACUNIT) * curbgxspeed*dupz)) / 16;
-	basey = ((curbgy*dupz) + FixedInt((rendertimefrac-FRACUNIT) * curbgyspeed*dupz)) / 16;
+	x     = ((curbgx*vid.dup) + FixedInt((rendertimefrac-FRACUNIT) * curbgxspeed*vid.dup)) / 16;
+	basey = ((curbgy*vid.dup) + FixedInt((rendertimefrac-FRACUNIT) * curbgyspeed*vid.dup)) / 16;
 
 	if (x     > 0) // Make sure that we don't leave the left or top sides empty
-		x     -= pat->width  * dupz;
+		x     -= pat->width  * vid.dup;
 	if (basey > 0)
-		basey -= pat->height * dupz;
+		basey -= pat->height * vid.dup;
 
-	for (; x < vid.width; x += pat->width * dupz)
+	for (; x < vid.width; x += pat->width * vid.dup)
 	{
-		for (INT32 y = basey; y < vid.height; y += pat->height * dupz)
+		for (INT32 y = basey; y < vid.height; y += pat->height * vid.dup)
 			V_DrawScaledPatch(x, y, V_NOSCALESTART, pat);
 	}
 
@@ -2599,7 +2602,7 @@ static void F_LoadAlacroixGraphics(SINT8 newttscale)
 
 static void F_FigureActiveTtScale(void)
 {
-	SINT8 newttscale = max(1, min(6, vid.dupx));
+	SINT8 newttscale = max(1, min(6, vid.dup));
 	SINT8 oldttscale = activettscale;
 
 	if (newttscale == testttscale)
@@ -4091,7 +4094,7 @@ static fixed_t F_GetPromptHideHudBound(void)
 	F_GetPageTextGeometry(&pagelines, &rightside, &boxh, &texth, &texty, &namey, &chevrony, &textx, &textr);
 
 	// calc boxheight (see V_DrawPromptBack)
-	boxh *= vid.dupy;
+	boxh *= vid.dup;
 	boxh = (boxh * 4) + (boxh/2)*5; // 4 lines of space plus gaps between and some leeway
 
 	// return a coordinate to check

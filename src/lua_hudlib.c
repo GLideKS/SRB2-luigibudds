@@ -282,7 +282,6 @@ static int patch_get(lua_State *L)
 	patch_t *patch = *((patch_t **)luaL_checkudata(L, 1, META_PATCH));
 	enum patch field = Lua_optoption(L, 2, -1, patch_fields_ref);
 
-	// patches are invalidated when switching renderers
 	if (!patch) {
 		if (field == patch_valid) {
 			lua_pushboolean(L, 0);
@@ -436,7 +435,7 @@ static int camera_set(lua_State *L)
 		cam->momz = luaL_checkfixed(L, 3);
 		break;
 	default:
-		return luaL_error(L, LUA_QL("camera_t") " has no field named " LUA_QS, camera_opt[field]);
+		return luaL_error(L, LUA_QL("camera_t") " has no field named " LUA_QS ".", lua_tostring(L, 2));
 	}
 	return 0;
 }
@@ -1207,19 +1206,11 @@ static int libd_height(lua_State *L)
 	return 1;
 }
 
-static int libd_dupx(lua_State *L)
+static int libd_dup(lua_State *L)
 {
 	HUDONLY
-	lua_pushinteger(L, vid.dupx); // push integral scale (patch scale)
-	lua_pushfixed(L, vid.fdupx); // push fixed point scale (position scale)
-	return 2;
-}
-
-static int libd_dupy(lua_State *L)
-{
-	HUDONLY
-	lua_pushinteger(L, vid.dupy); // push integral scale (patch scale)
-	lua_pushfixed(L, vid.fdupy); // push fixed point scale (position scale)
+	lua_pushinteger(L, vid.dup); // push integral scale (patch scale)
+	lua_pushfixed(L, vid.fdup); // push fixed point scale (position scale)
 	return 2;
 }
 
@@ -1339,8 +1330,8 @@ static luaL_Reg lib_draw[] = {
 	// properties
 	{"width", libd_width},
 	{"height", libd_height},
-	{"dupx", libd_dupx},
-	{"dupy", libd_dupy},
+	{"dupx", libd_dup},
+	{"dupy", libd_dup},
 	{"renderer", libd_renderer},
 	{"localTransFlag", libd_getlocaltransflag},
 	{"userTransFlag", libd_getusertransflag},

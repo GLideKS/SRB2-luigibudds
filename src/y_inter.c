@@ -15,7 +15,7 @@
 #include "f_finale.h"
 #include "g_game.h"
 #include "hu_stuff.h"
-#include "i_net.h"
+#include "netcode/i_net.h"
 #include "i_video.h"
 #include "p_tick.h"
 #include "r_defs.h"
@@ -536,7 +536,7 @@ void Y_IntermissionDrawer(void)
 
 		if (animatetic && (tic_t)intertic >= animatetic)
 		{
-			const INT32 scradjust = (vid.width/vid.dupx)>>3; // 40 for BASEVIDWIDTH
+			const INT32 scradjust = (vid.width/vid.dup)>>3; // 40 for BASEVIDWIDTH
 			INT32 animatetimer = (intertic - animatetic);
 			if (animatetimer <= 16)
 			{
@@ -687,7 +687,7 @@ void Y_IntermissionDrawer(void)
 
 				if (intertic > 1)
 				{
-					if (stagefailed && data.spec.emeraldy < (vid.height/vid.dupy)+16)
+					if (stagefailed && data.spec.emeraldy < (vid.height/vid.dup)+16)
 					{
 						emeraldx += intertic - 6;
 					}
@@ -1163,7 +1163,7 @@ void Y_Ticker(void)
 			}
 			else
 			{
-				if (data.spec.emeraldy < (vid.height/vid.dupy)+16)
+				if (data.spec.emeraldy < (vid.height/vid.dup)+16)
 				{
 					data.spec.emeraldy += (++data.spec.emeraldmomy);
 				}
@@ -1476,10 +1476,10 @@ void Y_StartIntermission(void)
 				if (players[consoleplayer].charflags & SF_SUPER)
 				{
 					strcpy(data.spec.passed3, "can now become");
-					snprintf(data.spec.passed4,
-						sizeof data.spec.passed4, "Super %s",
-						skins[players[consoleplayer].skin].realname);
-					data.spec.passed4[sizeof data.spec.passed4 - 1] = '\0';
+					if (strlen(skins[players[consoleplayer].skin].supername) > 20) //too long, use generic
+						strcpy(data.spec.passed4, "their super form");
+					else
+						strcpy(data.spec.passed4, skins[players[consoleplayer].skin].supername);
 				}
 			}
 			else

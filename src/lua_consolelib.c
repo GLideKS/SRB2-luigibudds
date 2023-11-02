@@ -16,6 +16,7 @@
 #include "g_game.h"
 #include "byteptr.h"
 #include "z_zone.h"
+#include "netcode/net_command.h"
 
 #include "lua_script.h"
 #include "lua_libs.h"
@@ -373,6 +374,9 @@ static int lib_cvRegisterVar(lua_State *L)
 				size_t count = 0;
 				CV_PossibleValue_t *cvpv;
 
+				const char * const MINMAX[2] = {"MIN", "MAX"};
+				int minmax_unset = 3;
+
 				lua_pushnil(L);
 				while (lua_next(L, 4))
 				{
@@ -391,16 +395,45 @@ static int lib_cvRegisterVar(lua_State *L)
 				lua_pushnil(L);
 				while (lua_next(L, 4))
 				{
+					INT32 n;
+					const char * strval;
+
 					// stack: [...] PossibleValue table, index, value
 					//                       4             5      6
 					if (lua_type(L, 5) != LUA_TSTRING
 					|| lua_type(L, 6) != LUA_TNUMBER)
 						FIELDERROR("PossibleValue", "custom PossibleValue table requires a format of string=integer, i.e. {MIN=0, MAX=9999}");
-					cvpv[i].strvalue = Z_StrDup(lua_tostring(L, 5));
-					cvpv[i].value = (INT32)lua_tonumber(L, 6);
-					i++;
+
+					strval = lua_tostring(L, 5);
+
+					if (
+							stricmp(strval, MINMAX[n=0]) == 0 ||
+							stricmp(strval, MINMAX[n=1]) == 0
+					){
+						/* need to shift forward */
+						if (minmax_unset == 3)
+						{
+							memmove(&cvpv[2], &cvpv[0],
+									i * sizeof *cvpv);
+							i += 2;
+						}
+						cvpv[n].strvalue = MINMAX[n];
+						minmax_unset &= ~(1 << n);
+					}
+					else
+					{
+						n = i++;
+						cvpv[n].strvalue = Z_StrDup(strval);
+					}
+
+					cvpv[n].value = (INT32)lua_tonumber(L, 6);
+
 					lua_pop(L, 1);
 				}
+
+				if (minmax_unset && minmax_unset != 3)
+					FIELDERROR("PossibleValue", "custom PossibleValue table requires requires both MIN and MAX keys if one is present");
+
 				cvpv[i].value = 0;
 				cvpv[i].strvalue = NULL;
 				cvar->PossibleValue = cvpv;
@@ -615,7 +648,7 @@ static int cvar_get(lua_State *L)
 		break;
 	default:
 		if (devparm)
-			return luaL_error(L, LUA_QL("consvar_t") " has no field named " LUA_QS, field);
+			return luaL_error(L, LUA_QL("consvar_t") " has no field named " LUA_QS ".", lua_tostring(L, 2));
 		else
 			return 0;
 	}
