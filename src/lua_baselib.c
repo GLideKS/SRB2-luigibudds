@@ -213,6 +213,8 @@ static const struct {
 	{META_HUDINFO,      "hudinfo_t"},
 	{META_PATCH,        "patch_t"},
 	{META_COLORMAP,     "colormap"},
+	{META_EXTRACOLORMAP,"extracolormap_t"},
+	{META_LIGHTTABLE,   "lighttable_t"},
 	{META_CAMERA,       "camera_t"},
 
 	{META_ACTION,       "action"},
@@ -1686,11 +1688,12 @@ static int lib_pHomingAttack(lua_State *L)
 static int lib_pSuperReady(lua_State *L)
 {
 	player_t *player = *((player_t **)luaL_checkudata(L, 1, META_PLAYER));
+	boolean transform = (boolean)lua_opttrueboolean(L, 2);
 	//HUDSAFE
 	INLEVEL
 	if (!player)
 		return LUA_ErrInvalid(L, "player_t");
-	lua_pushboolean(L, P_SuperReady(player));
+	lua_pushboolean(L, P_SuperReady(player, transform));
 	return 1;
 }
 
@@ -1880,6 +1883,7 @@ static int lib_pMove(lua_State *L)
 	return 2;
 }
 
+// TODO: 2.3: Delete
 static int lib_pTeleportMove(lua_State *L)
 {
 	mobj_t *ptmthing = tmthing;
@@ -2017,6 +2021,30 @@ static int lib_pCeilingzAtPos(lua_State *L)
 	//HUDSAFE
 	INLEVEL
 	lua_pushfixed(L, P_CeilingzAtPos(x, y, z, height));
+	return 1;
+}
+
+static int lib_pGetSectorColormapAt(lua_State *L)
+{
+	boolean has_sector = false;
+	sector_t *sector = NULL;
+	if (!lua_isnoneornil(L, 1))
+	{
+		has_sector = true;
+		sector = *((sector_t **)luaL_checkudata(L, 1, META_SECTOR));
+	}
+	fixed_t x = luaL_checkfixed(L, 2);
+	fixed_t y = luaL_checkfixed(L, 3);
+	fixed_t z = luaL_checkfixed(L, 4);
+	INLEVEL
+	if (has_sector && !sector)
+		return LUA_ErrInvalid(L, "sector_t");
+	extracolormap_t *exc;
+	if (sector)
+		exc = P_GetColormapFromSectorAt(sector, x, y, z);
+	else
+		exc = P_GetSectorColormapAt(x, y, z);
+	LUA_PushUserdata(L, exc, META_EXTRACOLORMAP);
 	return 1;
 }
 
@@ -2407,6 +2435,7 @@ static int lib_pMobjTouchingSectorSpecial(lua_State *L)
 	return 1;
 }
 
+// TODO: 2.3: Delete
 static int lib_pThingOnSpecial3DFloor(lua_State *L)
 {
 	mobj_t *mo = *((mobj_t **)luaL_checkudata(L, 1, META_MOBJ));
@@ -3711,6 +3740,7 @@ static int lib_gAddPlayer(lua_State *L)
 
 	newplayer->jointime = 0;
 	newplayer->quittime = 0;
+	newplayer->lastinputtime = 0;
 
 	// Read the skin argument (defaults to Sonic)
 	if (!lua_isnoneornil(L, 1))
@@ -4300,6 +4330,7 @@ static luaL_Reg lib[] = {
 	{"P_RadiusAttack",lib_pRadiusAttack},
 	{"P_FloorzAtPos",lib_pFloorzAtPos},
 	{"P_CeilingzAtPos",lib_pCeilingzAtPos},
+	{"P_GetSectorColormapAt",lib_pGetSectorColormapAt},
 	{"P_DoSpring",lib_pDoSpring},
 	{"P_TouchSpecialThing",lib_pTouchSpecialThing},
 	{"P_TryCameraMove", lib_pTryCameraMove},
@@ -4451,8 +4482,7 @@ int LUA_BaseLib(lua_State *L)
 	// Set metatable for string
 	lua_pushliteral(L, "");  // dummy string
 	lua_getmetatable(L, -1);  // get string metatable
-	lua_pushcfunction(L,lib_concat); // push concatination function
-	lua_setfield(L,-2,"__add"); // ... store it as mathematical addition
+	LUA_SetCFunctionField(L, "__add", lib_concat);
 	lua_pop(L, 2); // pop metatable and dummy string
 
 	lua_newtable(L);
