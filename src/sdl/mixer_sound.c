@@ -713,7 +713,7 @@ void I_SetSfxVolume(UINT8 volume)
 static UINT32 get_real_volume(UINT8 volume)
 {
 #if defined (HAVE_MIXERX) && (_WIN32)
-#ifndef SDL_MIXER_VERSION_ATLEAST(2,6,0) // StarManiaKG: recent SDL_Mixer_X builds fix whatever issue was here, apparently :p //
+#if !SDL_MIXER_VERSION_ATLEAST(2,6,0) // StarManiaKG: recent SDL_Mixer_X builds fix whatever issue was here, apparently :p //
 	if (I_SongType() == MU_MID)
 		// HACK: Until we stop using native MIDI,
 		// disable volume changes
@@ -1610,7 +1610,7 @@ void I_SetMusicVolume(UINT8 volume)
 		return;
 
 #if defined (HAVE_MIXERX) && (_WIN32)
-#ifndef SDL_MIXER_VERSION_ATLEAST(2,6,0) // StarManiaKG: recent SDL_Mixer_X builds fix whatever issue was here, apparently :p //
+#if !SDL_MIXER_VERSION_ATLEAST(2,6,0) // StarManiaKG: recent SDL_Mixer_X builds fix whatever issue was here, apparently :p //
 	if (I_SongType() == MU_MID)
 		// HACK: Until we stop using native MIDI,
 		// disable volume changes
