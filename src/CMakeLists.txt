@@ -204,6 +204,28 @@ if("${SRB2_CONFIG_HWRENDER}")
 	endif()
 endif()
 
+if("${SRB2_CONFIG_HAVE_MIXERX}")
+	if("${SRB2_CONFIG_USE_INTERNAL_LIBRARIES}")
+		set(MIXERX_FOUND ON)
+        if(${SRB2_SYSTEM_BITS} EQUAL 64)
+			set(MIXERX_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/libs/SDLMixerX/x86_64-w64-mingw32/include/SDL2)
+			set(MIXERX_LIBRARIES "-L${CMAKE_SOURCE_DIR}/libs/SDLMixerX/x86_64-w64-mingw32/lib -lSDL2_mixer_ext")
+		else() # 32-bit
+			set(MIXERX_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/libs/SDLMixerX/i686-w64-mingw32/include/SDL2)
+			set(MIXERX_LIBRARIES "-L${CMAKE_SOURCE_DIR}/libs/SDLMixerX/i686-w64-mingw32/lib -lSDL2_mixer_ext")
+		endif()
+	else()
+		find_package(MIXERX)
+	endif()
+
+	if(${MIXERX_FOUND})
+		set(SRB2_HAVE_MIXERX ON)
+		target_compile_definitions(SRB2SDL2 PRIVATE -DHAVE_MIXERX)
+	else()
+		message(WARNING "You have specified that SDL Mixer X is available but it was not found.")
+	endif()
+endif()
+
 # Targets
 
 # If using CCACHE, then force it.
