@@ -1797,6 +1797,22 @@ void S_SpeedMusic(float speed) // StarManiaKG: was originally boolean, no longer
 	return;
 }
 
+float S_GetSpeedMusic(void)
+{
+	return I_GetSongSpeed();
+}
+
+void S_PitchMusic(float pitch)
+{
+	I_SetSongPitch(pitch);
+	return;
+}
+
+float S_GetPitchMusic(void)
+{
+	return I_GetSongPitch();
+}
+
 /// ------------------------
 /// Music Seeking
 /// ------------------------
