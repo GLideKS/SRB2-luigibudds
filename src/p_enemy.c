@@ -4257,7 +4257,7 @@ void A_SuperSneakers(mobj_t *actor)
 
 	if (P_IsLocalPlayer(player) && !player->powers[pw_super])
 	{
-		if (S_SpeedMusic(0.0f) && (mapheaderinfo[gamemap-1]->levelflags & LF_SPEEDMUSIC))
+		if (mapheaderinfo[gamemap-1]->levelflags & LF_SPEEDMUSIC)
 			S_SpeedMusic(1.4f);
 		else
 			P_PlayJingle(player, JT_SHOES);

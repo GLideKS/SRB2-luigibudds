@@ -177,7 +177,14 @@ boolean S_MusicExists(const char *mname, boolean checkMIDI, boolean checkDigi);
 //
 
 // Set Speed of Music
-boolean S_SpeedMusic(float speed);
+void S_SpeedMusic(float speed); // StarManiaKG: was originally boolean, no longer needs to be //
+// Get Speed of Music
+float S_GetSpeedMusic(void);
+
+// Set Pitch of Music
+void S_PitchMusic(float pitch);
+// Get Pitch of Music
+float S_GetPitchMusic(void);
 
 // Music definitions
 typedef struct musicdef_s
@@ -314,6 +321,14 @@ void S_SetMusicVolume(INT32 digvolume, INT32 seqvolume);
 #define S_SetDigMusicVolume(a) S_SetMusicVolume(a,-1)
 #define S_SetMIDIMusicVolume(a) S_SetMusicVolume(-1,a)
 #define S_InitMusicVolume() S_SetMusicVolume(-1,-1)
+
+// Grab Internal Music Speed
+INT32 S_GetInternalMusicVolume(void);
+
+// Set Internal SFX Speed
+void S_SetInternalSfxVolume(INT32 volume);
+// Grab Internal SFX Speed
+INT32 S_GetInternalSfxVolume(void);
 
 INT32 S_OriginPlaying(void *origin);
 INT32 S_IdPlaying(sfxenum_t id);

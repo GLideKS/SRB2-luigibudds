@@ -165,6 +165,10 @@ static INT32 numofchannels = 0;
 
 caption_t closedcaptions[NUMCAPTIONS];
 
+// allow the grabbing of internal volumes
+INT32 internal_volume = min(max(100, 0), 100);
+INT32 internal_sfx_volume = 0;
+
 void S_ResetCaptions(void)
 {
 	UINT8 i;
@@ -1787,9 +1791,10 @@ boolean S_MusicExists(const char *mname, boolean checkMIDI, boolean checkDigi)
 /// Music Effects
 /// ------------------------
 
-boolean S_SpeedMusic(float speed)
+void S_SpeedMusic(float speed) // StarManiaKG: was originally boolean, no longer needs to be //
 {
-	return I_SetSongSpeed(speed);
+	I_SetSongSpeed(speed);
+	return;
 }
 
 /// ------------------------
@@ -2402,6 +2407,36 @@ void S_SetInternalMusicVolume(INT32 volume)
 	I_SetInternalMusicVolume(min(max(volume, 0), 100));
 }
 
+INT32 S_GetInternalMusicVolume(void)
+{
+    internal_volume = min(max(volume, 0), 100);
+	I_SetInternalMusicVolume((UINT8)internal_volume);
+}
+
+void S_SetInternalSfxVolume(INT32 volume)
+{
+	if (volume < 0 || volume > 31)
+	{
+		CONS_Alert(CONS_WARNING, "sfxvolume should be between 0-31\n");
+		volume = (volume < 0 ? 0 : 31);
+	}
+	internal_sfx_volume = volume;
+
+#ifdef HW3SOUND
+	hws_mode == HWS_DEFAULT_MODE ? I_SetSfxVolume(internal_sfx_volume&0x1F) : HW3S_SetSfxVolume(internal_sfx_volume&0x1F);
+#else
+	// now hardware volume
+	I_SetSfxVolume(internal_sfx_volume&0x1F);
+#endif
+}
+
+INT32 S_GetInternalSfxVolume(void)
+{
+	if (!internal_sfx_volume && cv_soundvolume.value)
+		internal_sfx_volume = cv_soundvolume.value;
+    return internal_sfx_volume;
+}
+
 void S_StopFadingMusic(void)
 {
 	I_StopFadingSong();
@@ -2458,7 +2493,7 @@ static void Command_Tunes_f(void)
 
 	if (argc < 2) //tunes slot ...
 	{
-		CONS_Printf("tunes <name/num> [track] [speed] [position] / <-show> / <-default> / <-none>:\n");
+		CONS_Printf("tunes <name/num> [track] [speed] [pitch] [position] / <-show> / <-default> / <-none>:\n");
 		CONS_Printf(M_GetText("Play an arbitrary music lump. If a map number is used, 'MAP##M' is played.\n"));
 		CONS_Printf(M_GetText("If the format supports multiple songs, you can specify which one to play.\n\n"));
 		CONS_Printf(M_GetText("* With \"-show\", shows the currently playing tune and track.\n"));
@@ -2496,8 +2531,8 @@ static void Command_Tunes_f(void)
 	strncpy(mapmusname, tunearg, 7);
 	mapmusname[6] = 0;
 
-	if (argc > 4)
-		position = (UINT32)atoi(COM_Argv(4));
+	if (argc > 5) // StarManiaKG: shifted up by one to account for the new pitch argument
+		position = (UINT32)atoi(COM_Argv(5));
 
 	mapmusflags = (track & MUSIC_TRACKMASK);
 	mapmusposition = position;
@@ -2509,6 +2544,13 @@ static void Command_Tunes_f(void)
 		float speed = (float)atof(COM_Argv(3));
 		if (speed > 0.0f)
 			S_SpeedMusic(speed);
+	}
+
+	if (argc > 4)
+	{
+		float pitch = (float)atof(COM_Argv(4));
+		if (pitch > 0.0f)
+			S_PitchMusic(pitch);
 	}
 }
 
@@ -2621,7 +2663,8 @@ void GameMIDIMusic_OnChange(void)
 void MusicPref_OnChange(void)
 {
 	if (M_CheckParm("-nomusic") || M_CheckParm("-noaudio") ||
-		M_CheckParm("-nomidimusic") || M_CheckParm("-nodigmusic"))
+		M_CheckParm("-nomidimusic") || M_CheckParm("-nodigmusic") ||
+		!sound_started) // StarManiaKG: prevents weird errors from popping up until the sound engine is actually started
 		return;
 
 	if (Playing())
