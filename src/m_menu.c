@@ -8084,7 +8084,7 @@ static void M_DrawSoundTest(void)
 				if (strlen(soundtestdefs[t]->title) < 17)
 					V_DrawString(x, y, (t == st_sel ? V_YELLOWMAP : 0)|V_ALLOWLOWERCASE, soundtestdefs[t]->title);
 				else
-					V_DrawThinString(x, y, (t == st_sel ? V_YELLOWMAP : 0)|V_ALLOWLOWERCASE, soundtestdefs[t]->title));
+					V_DrawThinString(x, y, (t == st_sel ? V_YELLOWMAP : 0)|V_ALLOWLOWERCASE, soundtestdefs[t]->title);
 
 				if (curplaying == soundtestdefs[t])
 				{

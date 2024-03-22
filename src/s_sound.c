@@ -2404,13 +2404,13 @@ void S_SetMusicVolume(INT32 digvolume, INT32 seqvolume)
 
 void S_SetInternalMusicVolume(INT32 volume)
 {
-	I_SetInternalMusicVolume(min(max(volume, 0), 100));
+	internal_volume = min(max(volume, 0), 100);
+	I_SetInternalMusicVolume((UINT8)internal_volume);
 }
 
 INT32 S_GetInternalMusicVolume(void)
 {
-    internal_volume = min(max(volume, 0), 100);
-	I_SetInternalMusicVolume((UINT8)internal_volume);
+    return internal_volume;
 }
 
 void S_SetInternalSfxVolume(INT32 volume)

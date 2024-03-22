@@ -3478,6 +3478,7 @@ static int lib_sGetInternalMusicVolume(lua_State *L)
 		lua_pushinteger(L, (UINT32)S_GetInternalMusicVolume());
 	else
 		lua_pushnil(L);
+	return 1;
 }
 
 static int lib_sSetInternalSfxVolume(lua_State *L)
@@ -3515,6 +3516,7 @@ static int lib_sGetInternalSfxVolume(lua_State *L)
 		lua_pushinteger(L, (UINT32)S_GetInternalSfxVolume());
 	else
 		lua_pushnil(L);
+	return 1;
 }
 
 static int lib_sStopFadingMusic(lua_State *L)
