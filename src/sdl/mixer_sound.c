@@ -1378,7 +1378,7 @@ boolean I_LoadSong(char *data, size_t len)
 #ifdef HAVE_MIXERX
 	if (Mix_GetMidiPlayer() != cv_midiplayer.value)
 		Mix_SetMidiPlayer(cv_midiplayer.value);
-	if (stricmp(Mix_GetSoundFonts(), cv_midisoundfontpath.string))
+	if (!Mix_GetSoundFonts() || stricmp(Mix_GetSoundFonts(), cv_midisoundfontpath.string))
 		Mix_SetSoundFonts(cv_midisoundfontpath.string);
 	I_ControlTimidityCFG(); // this overwrites previous custom path
 #endif
