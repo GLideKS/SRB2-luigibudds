@@ -302,6 +302,9 @@ void S_ResumeAudio(void);
 //
 
 void S_SetInternalMusicVolume(INT32 volume);
+INT32 S_GetInternalMusicVolume(void);
+void S_SetInternalSfxVolume(INT32 volume);
+INT32 S_GetInternalSfxVolume(void);
 void S_StopFadingMusic(void);
 boolean S_FadeMusicFromVolume(UINT8 target_volume, INT16 source_volume, UINT32 ms);
 #define S_FadeMusic(a, b) S_FadeMusicFromVolume(a, -1, b)
@@ -321,14 +324,6 @@ void S_SetMusicVolume(INT32 digvolume, INT32 seqvolume);
 #define S_SetDigMusicVolume(a) S_SetMusicVolume(a,-1)
 #define S_SetMIDIMusicVolume(a) S_SetMusicVolume(-1,a)
 #define S_InitMusicVolume() S_SetMusicVolume(-1,-1)
-
-// Grab Internal Music Speed
-INT32 S_GetInternalMusicVolume(void);
-
-// Set Internal SFX Speed
-void S_SetInternalSfxVolume(INT32 volume);
-// Grab Internal SFX Speed
-INT32 S_GetInternalSfxVolume(void);
 
 INT32 S_OriginPlaying(void *origin);
 INT32 S_IdPlaying(sfxenum_t id);

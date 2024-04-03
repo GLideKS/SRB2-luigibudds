@@ -201,7 +201,7 @@ static void Midiplayer_Onchange(void)
 	if (Mix_GetMidiPlayer() != cv_midiplayer.value)
 	{
 		if (Mix_SetMidiPlayer(cv_midiplayer.value)) // <> 0 means error
-			CONS_Alert(CONS_ERROR, "Midi player error: %s", Mix_GetError());
+			CONS_Alert(CONS_ERROR, "Midi player error: %s\n", Mix_GetError());
 		else
 			restart = true;
 	}
@@ -209,14 +209,13 @@ static void Midiplayer_Onchange(void)
 	if (fluidsynthsoundfonts != NULL && stricmp(fluidsynthsoundfonts, cv_midisoundfontpath.string))
 	{
 		if (!Mix_SetSoundFonts(cv_midisoundfontpath.string)) // == 0 means error
-			CONS_Alert(CONS_ERROR, "Sound font error: %s", Mix_GetError());
+			CONS_Alert(CONS_ERROR, "Sound font error: %s\n", Mix_GetError());
 		else
 			restart = true;
 	}
 
 	I_ControlTimidityCFG();
 	timiditycfgs = I_GetTimidityCFG();
-
 	if (timiditycfgs != NULL && stricmp(timiditycfgs, va("%s/timidity.cfg", cv_miditimiditypath.string)))
 		restart = true;
 
@@ -963,6 +962,7 @@ void I_SetSongSpeed(float speed) // StarManiaKG: was originally boolean, no long
 #else
 		openmpt_module_ctl_set_floatingpoint(openmpt_mhandle, "play.tempo_factor", (double)speed);
 #endif
+
 		return;
 	}
 #endif
@@ -977,16 +977,14 @@ void I_SetSongSpeed(float speed) // StarManiaKG: was originally boolean, no long
 			music_speed = speed = 20.0f;
 		}
 
-		if (FLOAT_TO_FIXED(I_GetSongSpeed()) != FLOAT_TO_FIXED(speed)) // StarManiaKG: prevents rapid and inconsistant music speeds when calling repeatedly //
-		{
+		if (Mix_SetMusicTempo(music, speed) >= 0)
+			return;
 #if (SDL_MIXER_VERSION_ATLEAST(2,6,0))
-			if (!(I_SongType() == MU_MID_EX || I_SongType() == MU_MID))
-				Mix_SetMusicSpeed(music, speed);
-			else
+		else if (Mix_SetMusicSpeed(music, speed) >= 0)
+			return;
 #endif
-				Mix_SetMusicTempo(music, speed);
-		}
-		return;
+
+		music_speed = -1.0f;
 	}
 #endif
 }
@@ -996,12 +994,12 @@ float I_GetSongSpeed(void)
 #ifdef HAVE_MIXERX
 	if (music)
 	{
-#if (SDL_MIXER_VERSION_ATLEAST(2,6,0))
-		if (!(I_SongType() == MU_MID_EX || I_SongType() == MU_MID))
-			return Mix_GetMusicSpeed(music);
-		else
-#endif
+		if (Mix_GetMusicTempo(music) >= 0)
 			return Mix_GetMusicTempo(music);
+#if (SDL_MIXER_VERSION_ATLEAST(2,6,0))
+		else if (Mix_GetMusicSpeed(music) >= 0)
+			return Mix_GetMusicSpeed(music);
+#endif
 	}
 #endif
 
@@ -1031,15 +1029,14 @@ void I_SetSongPitch(float pitch)
 			music_pitch = pitch = 4.0f; // Limit this to 4x to prevent crashing, stupid fix but... ~StarManiaKG 20/1/24 (stolen from SteelT)
 
 #if OPENMPT_API_VERSION_MAJOR < 1 && OPENMPT_API_VERSION_MINOR < 5
-		{
-			// deprecated in 0.5.0
-			char modspd[13];
-			sprintf(modspd, "%g", pitch);
-			openmpt_module_ctl_set(openmpt_mhandle, "play.pitch_factor", modspd);
-		}
+		// deprecated in 0.5.0
+		char modspd[13];
+		sprintf(modspd, "%g", pitch);
+		openmpt_module_ctl_set(openmpt_mhandle, "play.pitch_factor", modspd);
 #else
 		openmpt_module_ctl_set_floatingpoint(openmpt_mhandle, "play.pitch_factor", (double)pitch);
 #endif
+
 		return;
 	}
 #endif
@@ -1047,24 +1044,27 @@ void I_SetSongPitch(float pitch)
 #ifdef HAVE_MIXERX
 	if (music)
 	{
-		if (pitch > 20.0f)
+		if (pitch > 20.0f) // Limit this to 20x to prevent errors
 		{
 			CONS_Alert(CONS_WARNING, "I_SetSongPitch(): Music pitch cannot be set above 20x, lowering music pitch to 20x.\n");
 			music_pitch = pitch = 20.0f;
 		}
 
-		if (FLOAT_TO_FIXED(I_GetSongPitch()) != FLOAT_TO_FIXED(pitch)) // StarManiaKG: prevents rapid and inconsistant music pitches when calling repeatedly //
-			Mix_SetMusicPitch(music, pitch);
-		return;
+		if (Mix_SetMusicPitch(music, pitch) >= 0)
+			return;
+		music_pitch = -1.0f;
 	}
 #endif
 }
 
 float I_GetSongPitch(void)
 {
-#if defined (HAVE_MIXERX) && SDL_MIXER_VERSION_ATLEAST(2,6,0)
+#ifdef HAVE_MIXERX
 	if (music)
-		return Mix_GetMusicPitch(music);
+	{
+		if (Mix_GetMusicPitch(music) >= 0)
+			return Mix_GetMusicPitch(music);
+	}
 #endif
 
 	return music_pitch;
