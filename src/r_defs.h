@@ -358,7 +358,7 @@ typedef struct pslope_s
 
 	double dzdelta;
 
-	boolean moved : 1;
+	boolean moved;
 
 	UINT8 flags; // Slope options
 } pslope_t;
@@ -612,6 +612,8 @@ typedef struct line_s
 	INT16 callcount; // no. of calls left before triggering, for the "X calls" linedef specials, defaults to 0
 
 	UINT32 secportal; // transferred sector portal
+
+	struct pslope_s *midtexslope;
 } line_t;
 
 typedef struct

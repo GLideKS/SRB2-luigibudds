@@ -272,7 +272,7 @@ void HU_LoadFontCharacters(fontdef_t *font, const char *prefix)
 		for (i = 0; i < FONTSIZE; i++, j++)
 		{
 			sprintf(buffer, "%.5s%.3d", prefix, j);
-			if (W_CheckNumForName(buffer) == LUMPERROR)
+			if (W_CheckNumForPatchName(buffer) == LUMPERROR)
 				font->chars[i] = NULL;
 			else
 				font->chars[i] = (patch_t *)W_CachePatchName(buffer, PU_HUDGFX);
@@ -2015,13 +2015,13 @@ static void HU_Draw32TeamTabRankings(playersort_t *tab, INT32 whiteplayer)
 		greycheck = greycheckdef;
 		supercheck = supercheckdef;
 
-		if (tab[i].color == skincolor_redteam) //red
+		if (players[tab[i].num].ctfteam == 1) //red
 		{
 			redplayers++;
 			x = 14 + (BASEVIDWIDTH/2);
 			y = (redplayers * 9) + 20;
 		}
-		else if (tab[i].color == skincolor_blueteam) //blue
+		else if (players[tab[i].num].ctfteam == 2) //blue
 		{
 			blueplayers++;
 			x = 14;
@@ -2103,7 +2103,7 @@ void HU_DrawTeamTabRankings(playersort_t *tab, INT32 whiteplayer)
 		if (players[tab[i].num].spectator)
 			continue; //ignore them.
 
-		if (tab[i].color == skincolor_redteam) //red
+		if (players[tab[i].num].ctfteam == 1) //red
 		{
 			if (redplayers++ > 8)
 			{
@@ -2111,7 +2111,7 @@ void HU_DrawTeamTabRankings(playersort_t *tab, INT32 whiteplayer)
 				break; // don't make more loops than we need to.
 			}
 		}
-		else if (tab[i].color == skincolor_blueteam) //blue
+		else if (players[tab[i].num].ctfteam == 2) //blue
 		{
 			if (blueplayers++ > 8)
 			{
@@ -2142,14 +2142,14 @@ void HU_DrawTeamTabRankings(playersort_t *tab, INT32 whiteplayer)
 		if (players[tab[i].num].spectator)
 			continue; //ignore them.
 
-		if (tab[i].color == skincolor_redteam) //red
+		if (players[tab[i].num].ctfteam == 1) //red
 		{
 			if (redplayers++ > 8)
 				continue;
 			x = 32 + (BASEVIDWIDTH/2);
 			y = (redplayers * 16) + 16;
 		}
-		else if (tab[i].color == skincolor_blueteam) //blue
+		else if (players[tab[i].num].ctfteam == 2) //blue
 		{
 			if (blueplayers++ > 8)
 				continue;
@@ -2463,53 +2463,20 @@ static inline void HU_DrawSpectatorTicker(void)
 {
 	int i;
 	int length = 0, height = 174;
-	int totallength = 0, templength = 0;
+	int totallength = 0;
 
 	for (i = 0; i < MAXPLAYERS; i++)
 		if (playeringame[i] && players[i].spectator)
 			totallength += (signed)strlen(player_names[i]) * 8 + 16;
 
-	length -= (leveltime % (totallength + BASEVIDWIDTH));
-	length += BASEVIDWIDTH;
+	length -= (leveltime % (totallength + (vid.width / vid.dup)));
+	length += (vid.width / vid.dup);
 
 	for (i = 0; i < MAXPLAYERS; i++)
 		if (playeringame[i] && players[i].spectator)
 		{
-			char *pos;
-			char initial[MAXPLAYERNAME+1];
-			char current[MAXPLAYERNAME+1];
-
-			strcpy(initial, player_names[i]);
-			pos = initial;
-
-			if (length >= -((signed)strlen(player_names[i]) * 8 + 16) && length <= BASEVIDWIDTH)
-			{
-				if (length < 0)
-				{
-					UINT8 eatenchars = (UINT8)(abs(length) / 8 + 1);
-
-					if (eatenchars <= strlen(initial))
-					{
-						// Eat one letter off the left side,
-						// then compensate the drawing position.
-						pos += eatenchars;
-						strcpy(current, pos);
-						templength = length % 8 + 8;
-					}
-					else
-					{
-						strcpy(current, " ");
-						templength = length;
-					}
-				}
-				else
-				{
-					strcpy(current, initial);
-					templength = length;
-				}
-
-				V_DrawString(templength, height + 8, V_TRANSLUCENT|V_ALLOWLOWERCASE, current);
-			}
+			if (length >= -((signed)strlen(player_names[i]) * 8 + 16) && length <= (vid.width / vid.dup))
+				V_DrawString(length, height + 8, V_TRANSLUCENT|V_ALLOWLOWERCASE|V_SNAPTOLEFT, player_names[i]);
 
 			length += (signed)strlen(player_names[i]) * 8 + 16;
 		}
