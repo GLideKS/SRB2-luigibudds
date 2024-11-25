@@ -126,10 +126,6 @@ static int result;
 #endif
 
 #ifdef HAVE_MIXERX
-//
-// Timdity Handlers (By StarManiaKG) //
-// (You can tell which is Timidity based :p)
-//
 #if defined(__WIN32__)
 #define TIMIDITY_CFG "sf2/timidity"
 #elif defined(__OS2__)
@@ -711,12 +707,15 @@ void I_SetSfxVolume(UINT8 volume)
 
 static UINT32 get_real_volume(UINT8 volume)
 {
-#if defined (HAVE_MIXERX) && (_WIN32)
+#ifdef HAVE_MIXERX
+#ifdef _WIN32
 #if !SDL_MIXER_VERSION_ATLEAST(2,6,0) // StarManiaKG: recent SDL_Mixer_X builds fix whatever issue was here, apparently :p //
 	if (I_SongType() == MU_MID)
 		// HACK: Until we stop using native MIDI,
 		// disable volume changes
-		return ((UINT32)31*128/31); // volume = 31
+		music_volume = 31;
+	else
+#endif
 #endif
 #endif
 
@@ -993,14 +992,11 @@ float I_GetSongSpeed(void)
 {
 #ifdef HAVE_MIXERX
 	if (music)
-	{
-		if (Mix_GetMusicTempo(music) >= 0)
-			return Mix_GetMusicTempo(music);
 #if (SDL_MIXER_VERSION_ATLEAST(2,6,0))
-		else if (Mix_GetMusicSpeed(music) >= 0)
-			return Mix_GetMusicSpeed(music);
+		return Mix_GetMusicSpeed(music);
+#else
+		return Mix_GetMusicTempo(music);
 #endif
-	}
 #endif
 
 	return music_speed;
@@ -1061,10 +1057,7 @@ float I_GetSongPitch(void)
 {
 #ifdef HAVE_MIXERX
 	if (music)
-	{
-		if (Mix_GetMusicPitch(music) >= 0)
-			return Mix_GetMusicPitch(music);
-	}
+		return Mix_GetMusicPitch(music);
 #endif
 
 	return music_pitch;
@@ -1609,13 +1602,15 @@ void I_SetMusicVolume(UINT8 volume)
 	if (!I_SongPlaying())
 		return;
 
-#if defined (HAVE_MIXERX) && (_WIN32)
+#ifdef HAVE_MIXERX
+#ifdef _WIN32
 #if !SDL_MIXER_VERSION_ATLEAST(2,6,0) // StarManiaKG: recent SDL_Mixer_X builds fix whatever issue was here, apparently :p //
 	if (I_SongType() == MU_MID)
 		// HACK: Until we stop using native MIDI,
 		// disable volume changes
 		music_volume = 31;
 	else
+#endif
 #endif
 #endif
 		music_volume = volume;
