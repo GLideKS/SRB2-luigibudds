@@ -713,7 +713,7 @@ static UINT32 get_real_volume(UINT8 volume)
 	if (I_SongType() == MU_MID)
 		// HACK: Until we stop using native MIDI,
 		// disable volume changes
-		music_volume = 31;
+		return ((UINT32)31*128/31); // volume = 31
 	else
 #endif
 #endif
