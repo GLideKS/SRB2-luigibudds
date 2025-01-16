@@ -2324,7 +2324,7 @@ void S_ChangeMusicEx(const char *mmusic, UINT16 mflags, boolean looping, UINT32 
 	{
 		I_SetSongPosition(position);
 		I_FadeSong(100, fadeinms, NULL);
-}
+	}
 	else // reset volume to 100 with same music
 	{
 		I_StopFadingSong();
@@ -2341,6 +2341,7 @@ void S_StopMusic(void)
 		I_ResumeSong();
 
 	S_SpeedMusic(1.0f);
+	S_PitchMusic(1.0f);
 	I_StopSong();
 	S_UnloadMusic(); // for now, stopping also means you unload the song
 
@@ -2579,7 +2580,7 @@ static void Command_RestartAudio_f(void)
 	I_StartupSound();
 	I_InitMusic();
 
-// These must be called or no sound and music until manually set.
+	// These must be called or no sound and music until manually set.
 
 	I_SetSfxVolume(cv_soundvolume.value);
 	S_SetMusicVolume(cv_digmusicvolume.value, cv_midimusicvolume.value);
@@ -2679,8 +2680,11 @@ void GameMIDIMusic_OnChange(void)
 void MusicPref_OnChange(void)
 {
 	if (M_CheckParm("-nomusic") || M_CheckParm("-noaudio") ||
-		M_CheckParm("-nomidimusic") || M_CheckParm("-nodigmusic") ||
-		!sound_started) // StarManiaKG: prevents weird errors from popping up until the sound engine is actually started
+		M_CheckParm("-nomidimusic") || M_CheckParm("-nodigmusic"))
+		return;
+
+	// StarManiaKG: i'd rather not see thousands of sound errors on startup, thanks //
+	if (!sound_started)
 		return;
 
 	if (Playing())
