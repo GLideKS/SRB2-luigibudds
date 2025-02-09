@@ -40,7 +40,8 @@ typedef struct
 enum
 {
 	TEXTURETYPE_UNKNOWN,
-	TEXTURETYPE_TEXTURE,
+	TEXTURETYPE_SINGLEPATCH,
+	TEXTURETYPE_COMPOSITE,
 	TEXTURETYPE_FLAT
 };
 
@@ -99,7 +100,8 @@ void R_SetFlatVars(size_t length);
 
 // Returns the texture number for the texture name.
 INT32 R_TextureNumForName(const char *name);
-INT32 R_CheckTextureNumForName(const char *name, UINT8 type);
+INT32 R_CheckTextureNumForName(const char *name);
+INT32 R_CheckFlatNumForName(const char *name);
 
 // Returns the texture name for the texture number (in case you ever needed it)
 const char *R_CheckTextureNameForNum(INT32 num);
