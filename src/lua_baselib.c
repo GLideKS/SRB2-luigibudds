@@ -3384,6 +3384,57 @@ static int lib_sSpeedMusic(lua_State *L)
 	return 0;
 }
 
+static int lib_sGetSpeedMusic(lua_State *L)
+{
+	player_t *player = NULL;
+	//NOHUD
+	if (!lua_isnone(L, 1) && lua_isuserdata(L, 1))
+	{
+		player = *((player_t **)luaL_checkudata(L, 1, META_PLAYER));
+		if (!player)
+			return LUA_ErrInvalid(L, "player_t");
+	}
+	if (!player || P_IsLocalPlayer(player))
+		lua_pushinteger(L, S_GetSpeedMusic());
+	else
+		lua_pushnil(L);
+	return 1;
+}
+
+static int lib_sPitchMusic(lua_State *L)
+{
+	fixed_t fixedpitch = luaL_checkfixed(L, 1);
+	float pitch = FIXED_TO_FLOAT(fixedpitch);
+	player_t *player = NULL;
+	//NOHUD
+	if (!lua_isnone(L, 2) && lua_isuserdata(L, 2))
+	{
+		player = *((player_t **)luaL_checkudata(L, 2, META_PLAYER));
+		if (!player)
+			return LUA_ErrInvalid(L, "player_t");
+	}
+	if (!player || P_IsLocalPlayer(player))
+		S_PitchMusic(pitch);
+	return 0;
+}
+
+static int lib_sGetPitchMusic(lua_State *L)
+{
+	player_t *player = NULL;
+	//NOHUD
+	if (!lua_isnone(L, 1) && lua_isuserdata(L, 1))
+	{
+		player = *((player_t **)luaL_checkudata(L, 1, META_PLAYER));
+		if (!player)
+			return LUA_ErrInvalid(L, "player_t");
+	}
+	if (!player || P_IsLocalPlayer(player))
+		lua_pushinteger(L, S_GetPitchMusic());
+	else
+		lua_pushnil(L);
+	return 1;
+}
+
 static int lib_sStopMusic(lua_State *L)
 {
 	player_t *player = NULL;
@@ -3415,6 +3466,61 @@ static int lib_sSetInternalMusicVolume(lua_State *L)
 		S_SetInternalMusicVolume(volume);
 		lua_pushboolean(L, true);
 	}
+	else
+		lua_pushnil(L);
+	return 1;
+}
+
+static int lib_sGetInternalMusicVolume(lua_State *L)
+{
+	player_t *player = NULL;
+	//NOHUD
+	if (!lua_isnone(L, 1) && lua_isuserdata(L, 1))
+	{
+		player = *((player_t **)luaL_checkudata(L, 1, META_PLAYER));
+		if (!player)
+			return LUA_ErrInvalid(L, "player_t");
+	}
+	if (!player || P_IsLocalPlayer(player))
+		lua_pushinteger(L, (UINT32)S_GetInternalMusicVolume());
+	else
+		lua_pushnil(L);
+	return 1;
+}
+
+static int lib_sSetInternalSfxVolume(lua_State *L)
+{
+	UINT32 sfxvolume = (UINT32)luaL_checkinteger(L, 1);
+	player_t *player = NULL;
+	//NOHUD
+	if (!lua_isnone(L, 2) && lua_isuserdata(L, 2))
+	{
+		player = *((player_t **)luaL_checkudata(L, 2, META_PLAYER));
+		if (!player)
+			return LUA_ErrInvalid(L, "player_t");
+	}
+	if (!player || P_IsLocalPlayer(player))
+	{
+		S_SetInternalSfxVolume(sfxvolume);
+		lua_pushboolean(L, true);
+	}
+	else
+		lua_pushnil(L);
+	return 1;
+}
+
+static int lib_sGetInternalSfxVolume(lua_State *L)
+{
+	player_t *player = NULL;
+	//NOHUD
+	if (!lua_isnone(L, 1) && lua_isuserdata(L, 1))
+	{
+		player = *((player_t **)luaL_checkudata(L, 1, META_PLAYER));
+		if (!player)
+			return LUA_ErrInvalid(L, "player_t");
+	}
+	if (!player || P_IsLocalPlayer(player))
+		lua_pushinteger(L, (UINT32)S_GetInternalSfxVolume());
 	else
 		lua_pushnil(L);
 	return 1;
@@ -4599,8 +4705,14 @@ static luaL_Reg lib[] = {
 	{"S_StopSoundByID",lib_sStopSoundByID},
 	{"S_ChangeMusic",lib_sChangeMusic},
 	{"S_SpeedMusic",lib_sSpeedMusic},
+	{"S_GetSpeedMusic",lib_sGetSpeedMusic},
+	{"S_PitchMusic",lib_sPitchMusic},
+	{"S_GetPitchMusic",lib_sGetPitchMusic},
 	{"S_StopMusic",lib_sStopMusic},
 	{"S_SetInternalMusicVolume", lib_sSetInternalMusicVolume},
+	{"S_GetInternalMusicVolume", lib_sGetInternalMusicVolume},
+	{"S_SetInternalSfxVolume", lib_sSetInternalSfxVolume},
+	{"S_GetInternalSfxVolume", lib_sGetInternalSfxVolume},
 	{"S_StopFadingMusic",lib_sStopFadingMusic},
 	{"S_FadeMusic",lib_sFadeMusic},
 	{"S_FadeOutStopMusic",lib_sFadeOutStopMusic},
