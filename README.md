@@ -1,4 +1,4 @@
-# Major edits
+# Major edits (Luigi Budd)
 - Toggable mobj pitch/roll functional (3d rotation for models on slopes, like DRRR). Option located in Video Settings -> Lebel
 - CEchos/CSays print message into console
 - Skin change at any time
@@ -11,6 +11,8 @@
 - Addfilelocal!
 - Thin captions and thin FPS! (tinyfontfix.pk3 needed for captions)
 - Ring-Racers-styled screen quakes! ("rr_quakes" in console)
+
+"This is a fork from Luigi Budd's build, mostly the same features as the original. The difference is that I'm merging open merge requests stuff from srb2's official repo lol. Maybe I'll add something original from me idk. I do this for git learning" -GLide KS 
   
 # Sonic Robo Blast 2
 [![latest release](https://badgen.net/github/release/STJr/SRB2/stable)](https://github.com/STJr/SRB2/releases/latest)
