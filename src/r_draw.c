@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2024 by Sonic Team Junior.
+// Copyright (C) 1999-2025 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -456,7 +456,7 @@ static void R_GenerateTranslationColormap(UINT8 *dest_colormap, INT32 translatio
 		for (i = 0; i < NUM_PALETTE_ENTRIES; i++)
 			dest_colormap[i] = (UINT8)i;
 
-		// White!
+		// Boss flashing inverts the grayscale ramp
 		if (translation == TC_BOSS)
 		{
 			UINT8 *originalColormap = R_GetTranslationColormap(TC_DEFAULT, (skincolornum_t)color, GTC_CACHE);
@@ -468,6 +468,7 @@ static void R_GenerateTranslationColormap(UINT8 *dest_colormap, INT32 translatio
 				dest_colormap[31-i] = i;
 			}
 		}
+		// Metal Sonic flashing
 		else if (translation == TC_METALSONIC)
 		{
 			for (i = 0; i < 6; i++)
@@ -555,7 +556,7 @@ UINT8* R_GetTranslationColormap(INT32 skinnum, skincolornum_t color, UINT8 flags
 		// Rebuild the cache if necessary
 		if (skincolor_modified[color])
 		{
-			// Moved up here so that R_UpdateTranslationRemaps doesn't cause a stack overflow,
+			// Moved up here so that R_UpdateTranslationRemaps doesn't cause infinite recursion,
 			// since in this situation, it will call R_GetTranslationColormap
 			skincolor_modified[color] = false;
 
