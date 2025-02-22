@@ -125,7 +125,7 @@ INT32 R_SkinTranslationToCacheIndex(INT32 translation)
 	}
 }
 
-static INT32 CacheIndexToSkin(INT32 index)
+INT32 R_CacheIndexToSkinTranslation(INT32 index)
 {
 	switch (index)
 	{
@@ -137,6 +137,19 @@ static INT32 CacheIndexToSkin(INT32 index)
 		case BLINK_TT_CACHE_INDEX:      return TC_BLINK;
 		case DASHMODE_TT_CACHE_INDEX:   return TC_DASHMODE;
 		default:                        return index;
+	}
+}
+
+boolean R_IsSkinTranslationRemappable(INT32 translation)
+{
+	switch (translation)
+	{
+		case TC_METALSONIC:
+		case TC_ALLWHITE:
+		case TC_DASHMODE:
+			return false;
+		default:
+			return true;
 	}
 }
 
@@ -567,7 +580,7 @@ UINT8* R_GetTranslationColormap(INT32 skinnum, skincolornum_t color, UINT8 flags
 					colorcache_t *cache = translationtablecache[i][color];
 					if (cache)
 					{
-						R_GenerateTranslationColormap(cache->colors, CacheIndexToSkin(i), color, starttranscolor);
+						R_GenerateTranslationColormap(cache->colors, R_CacheIndexToSkinTranslation(i), color, starttranscolor);
 						R_UpdateTranslationRemaps(color, i);
 					}
 				}

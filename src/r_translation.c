@@ -1146,7 +1146,9 @@ UINT8 *R_GetTranslationRemap(int id, skincolornum_t skincolor, INT32 skinnum)
 
 static void R_UpdateTranslation(remaptable_t *tr, skincolornum_t skincolor, INT32 cache_index)
 {
-	if (!tr->num_sources || !tr->skincolor_remaps || !tr->skincolor_remaps[cache_index])
+	if (skincolor == SKINCOLOR_NONE
+	|| !R_IsSkinTranslationRemappable(R_CacheIndexToSkinTranslation(cache_index))
+	|| !tr->num_sources || !tr->skincolor_remaps || !tr->skincolor_remaps[cache_index])
 		return;
 
 	colorcache_t *cache = tr->skincolor_remaps[cache_index][skincolor - 1];
