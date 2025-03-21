@@ -1463,7 +1463,7 @@ static void R_RenderSegLoop (void)
 		//SoM: Calculate offsets for Thick fake floors.
 		// calculate texture offset
 		angle = (rw_centerangle + xtoviewangle[rw_x])>>ANGLETOFINESHIFT;
-		textureoffset = rw_offset - FixedMul(FINETANGENT(angle), rw_distance);
+		textureoffset = rw_offset - FixedMul(FINETANGENT(angle & TANMASK), rw_distance);
 		texturecolumn = FixedDiv(textureoffset, rw_invmidtexturescalex);
 
 		// texturecolumn and lighting are independent of wall tiers

@@ -2401,7 +2401,7 @@ static int slope_set(lua_State *L)
 		if (zangle == ANGLE_90 || zangle == ANGLE_270)
 			return luaL_error(L, "invalid zangle for slope!");
 		slope->zangle = zangle;
-		slope->zdelta = -FINETANGENT(((slope->zangle+ANGLE_90)>>ANGLETOFINESHIFT) & 4095);
+		slope->zdelta = -FINETANGENT(((slope->zangle+ANGLE_90)>>ANGLETOFINESHIFT) & TANMASK);
 		slope->dzdelta = FixedToDouble(slope->zdelta);
 		P_CalculateSlopeNormal(slope);
 		break;
