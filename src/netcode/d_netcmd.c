@@ -37,6 +37,7 @@
 #include "d_clisrv.h"
 #include "server_connection.h"
 #include "net_command.h"
+#include "i_net.h"
 #include "d_net.h"
 #include "../v_video.h"
 #include "../d_main.h"
@@ -3124,6 +3125,7 @@ static void Command_Login_f(void)
 	CONS_Alert(CONS_NOTICE, "Remote administration commands are not supported in this build.\n");
 #else
 	const char *pw;
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 
 	if (!netgame)
 	{

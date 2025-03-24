@@ -651,6 +651,7 @@ void CL_RemovePlayer(INT32 playernum, kickreason_t reason)
 //
 void D_QuitNetGame(void)
 {
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	mousegrabbedbylua = true;
 	I_UpdateMouseGrab();
 
@@ -875,6 +876,7 @@ static void PT_ServerShutdown(SINT8 node)
 static void PT_Login(SINT8 node, INT32 netconsole)
 {
 	(void)node;
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 
 	if (client)
 		return;
@@ -1007,6 +1009,7 @@ If they're not lagging, decrement the timer by 1. Of course, reset all of this i
 
 static inline void PingUpdate(void)
 {
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	boolean laggers[MAXPLAYERS];
 	UINT8 numlaggers = 0;
 	memset(laggers, 0, sizeof(boolean) * MAXPLAYERS);
@@ -1080,6 +1083,7 @@ static inline void PingUpdate(void)
 
 static void PT_Ping(SINT8 node, INT32 netconsole)
 {
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	// Only accept PT_PING from the server.
 	if (node != servernode)
 	{
@@ -1122,6 +1126,7 @@ static void PT_BasicKeepAlive(SINT8 node, INT32 netconsole)
 // Used during wipes to tell the server that a node is still connected
 static void CL_SendClientKeepAlive(void)
 {
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	netbuffer->packettype = PT_BASICKEEPALIVE;
 
 	HSendPacket(servernode, false, 0, 0);
@@ -1129,6 +1134,7 @@ static void CL_SendClientKeepAlive(void)
 
 static void SV_SendServerKeepAlive(void)
 {
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	for (INT32 n = 1; n < MAXNETNODES; n++)
 	{
 		if (netnodes[n].ingame)
@@ -1149,6 +1155,7 @@ static void SV_SendServerKeepAlive(void)
   */
 static void HandlePacketFromAwayNode(SINT8 node)
 {
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	if (node != servernode)
 		DEBFILE(va("Received packet from unknown host %d\n", node));
 
@@ -1188,6 +1195,7 @@ static void HandlePacketFromAwayNode(SINT8 node)
   */
 static void HandlePacketFromPlayer(SINT8 node)
 {
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	INT32 netconsole;
 
 	if (dedicated && node == 0)
