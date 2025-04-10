@@ -34,6 +34,7 @@
 #ifdef HAVE_ANIGIF
 	#include "m_anigif.h"
 #endif
+#include "r_main.h" // cv_moviemodeinfo
 
 //random index
 #include "m_random.h"
@@ -698,7 +699,7 @@ static void ST_drawRaceNum(INT32 time)
 	if (bounce < 3)
 	{
 		height -= (2 - bounce);
-		if (!(P_AutoPause() || paused) && !bounce)
+		if (!(P_AutoPause() || paused) && !bounce &&  renderisnewtic)
 				S_StartSound(0, ((racenum == racego) ? sfx_s3kad : sfx_s3ka7));
 	}
 	V_DrawScaledPatch(((BASEVIDWIDTH - racenum->width)/2), height, V_PERPLAYER, racenum);
@@ -2947,6 +2948,12 @@ void ST_ReallyCoolAndUsefulGIFDrawer(void)
 {
 	if (!moviemode)
 		return;
+    
+    if (moviemode != MM_GIF)
+        return;
+    
+    if (!cv_moviemodeinfo.value)
+        return;
 
 	//the number of frames we wrote should be equivilant to the number of tics
 	//we recorded
