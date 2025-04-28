@@ -1305,6 +1305,9 @@ static void SendNameAndColor(void)
 
 	p = buf;
 
+	if (dedicated)
+		return;
+
 	// don't allow inaccessible colors
 	if (!skincolors[cv_playercolor.value].accessible)
 	{
