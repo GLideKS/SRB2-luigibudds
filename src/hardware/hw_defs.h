@@ -17,6 +17,7 @@
 
 #define ZCLIP_PLANE 4.0f // Used for the actual game drawing
 #define NZCLIP_PLANE 0.9f // Seems to be only used for the HUD and screen textures
+#define FAR_ZCLIP_DEFAULT 32768.0f
 
 // The width/height/depth of the palette lookup table used by palette rendering.
 // Changing this also requires changing the shader code!

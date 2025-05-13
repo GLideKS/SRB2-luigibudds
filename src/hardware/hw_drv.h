@@ -41,7 +41,7 @@ EXPORT void HWRAPI(SetTexture) (GLMipmap_t *TexInfo);
 EXPORT void HWRAPI(UpdateTexture) (GLMipmap_t *TexInfo);
 EXPORT void HWRAPI(DeleteTexture) (GLMipmap_t *TexInfo);
 EXPORT void HWRAPI(ReadScreenTexture) (int tex, UINT8 *dst_data);
-EXPORT void HWRAPI(GClipRect) (INT32 minx, INT32 miny, INT32 maxx, INT32 maxy, float nearclip);
+EXPORT void HWRAPI(GClipRect) (INT32 minx, INT32 miny, INT32 maxx, INT32 maxy, float nearclip, float farclip);
 EXPORT void HWRAPI(ClearMipMapCache) (void);
 
 EXPORT void HWRAPI(SetSpecialState) (hwdspecialstate_t IdState, INT32 Value);
