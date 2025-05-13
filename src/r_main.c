@@ -36,6 +36,7 @@
 #include "r_main.h"
 #include "i_system.h" // I_GetPreciseTime
 #include "r_fps.h" // Frame interpolation/uncapped
+#include "m_easing.h"
 
 #ifdef HWRENDER
 #include "hardware/hw_main.h"
@@ -1163,28 +1164,39 @@ void R_SetupFrame(player_t *player)
 	if (quake.time && !ispaused)
 	{
 		fixed_t ir = quake.intensity>>1;
-
+        /*
+        ir = Easing_Linear(
+            FRACUNIT - ((FRACUNIT/quake.starttime) * quake.time),
+            ir, 0
+        );
+        */
+       
 		if (quake.epicenter) {
 			// Calculate 3D distance from epicenter, using the camera.
 			fixed_t xydist, dist;
-			if (P_MobjWasRemoved(r_viewmobj)) {
+			if (P_MobjWasRemoved(r_viewmobj))
+            {
 				xydist = R_PointToDist2(thiscam->x, thiscam->y, quake.epicenter->x, quake.epicenter->y);
 				dist = R_PointToDist2(0, thiscam->z, xydist, quake.epicenter->z);
-			} else {
+			}
+            else
+            {
 				xydist = R_PointToDist2(r_viewmobj->x, r_viewmobj->y, quake.epicenter->x, quake.epicenter->y);
 				dist = R_PointToDist2(0, r_viewmobj->z, xydist, quake.epicenter->z);
 			}
+            dist -= 256*FRACUNIT;
+            if (dist < 0) dist = 0;
 
 			// More effect closer to epicenter, outside of radius = no effect
 			if (!quake.radius || dist > quake.radius)
 				ir = 0;
 			else
-				ir = FixedMul(ir, FRACUNIT - FixedDiv(dist, quake.radius));
+				ir = Easing_InQuad(FixedDiv(dist, quake.radius), ir, 0);
 		}
 
 		if (cv_ringracers_quakes.value)
 		{
-			ir <<= 1;
+			ir = FixedMul(ir << 1, FRACUNIT + rendertimefrac);
 
 			/*
 			fixed_t max_shake = thiscam->height * 3 / 4;

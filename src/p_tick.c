@@ -905,9 +905,10 @@ void P_Ticker(boolean run)
 		if (quake.time)
 		{
 			--quake.time;
+
 			if (quake.minus)
 				quake.intensity -= quake.minus;
-		}
+        }
 
 		if (!P_MobjWasRemoved(metalplayback))
 			G_ReadMetalTic(metalplayback);

@@ -7129,6 +7129,7 @@ static boolean P_DrownNumbersSceneryThink(mobj_t *mobj)
 			mobj->eflags |= MFE_VERTICALFLIP;
 	}
 	else
+        // the code should really be scaling with shieldscale like in P_CheckUnderwaterAndSpaceTimer, not with scale
 		mobj->z = mobj->target->z + (mobj->target->height) + FixedMul(8*FRACUNIT, mobj->target->scale); // Adjust height for height changes
 
 	if (mobj->threshold <= 35)
