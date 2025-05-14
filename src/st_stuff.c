@@ -2949,30 +2949,33 @@ void ST_ReallyCoolAndUsefulGIFDrawer(void)
 	if (!moviemode)
 		return;
     
+    /*
     if (moviemode != MM_GIF)
         return;
-    
-    if (!cv_moviemodeinfo.value)
-        return;
+    */
+
+	if (!cv_moviemodeinfo.value)
+		return;
 
 	//the number of frames we wrote should be equivilant to the number of tics
 	//we recorded
-	INT32 gif_frames = GIF_ReturnFramesBecauseImGoodAtC();
+	INT32 gif_frames = M_RecordedFrames();
 
-	long int orig_gif_size = GIF_ReturnSizeBecauseImTooGoodAtC();
-	long int gif_size = orig_gif_size;
-	gif_size /= (1024);
-	gif_size = FixedDiv(gif_size<<FRACBITS, 1024<<FRACBITS); //gives us a close-enough calc
+    const float kMb = 1024.f * 1024.f;
+	unsigned long int orig_gif_size = M_SavedSize();
+	float gif_size = (float)orig_gif_size;
+	gif_size /= kMb;
 
 	INT32 cmap = (((2*gif_frames)/TICRATE) & 1) ? V_REDMAP : 0;
 	INT32 mheight = BASEVIDHEIGHT - 8;
 	V_DrawThinString(0, mheight,
-		cmap|V_USERHUDTRANS|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "REC"
+		cmap|V_USERHUDTRANS|V_SNAPTOLEFT|V_SNAPTOBOTTOM,
+        (moviemode == MM_APNG ? "APNG" : "GIF")
 	);
 
-	boolean withincap = (cv_gif_maxsize.value != 0 ? (orig_gif_size >= (max(cv_gif_maxsize.value - 2, 0)*1028*1028)) : false);
+	boolean withincap = (cv_gif_maxsize.value != 0 ? (orig_gif_size >= (unsigned)(max(cv_gif_maxsize.value - 2, 0) * kMb)) : false);
 
-	V_DrawThinString(17, mheight,
+	V_DrawThinString((moviemode == MM_APNG ? 22 : 17), mheight,
 		V_ALLOWLOWERCASE|V_USERHUDTRANS|V_SNAPTOLEFT|V_SNAPTOBOTTOM,
 		va(
 			//shitty ik lol
@@ -2980,7 +2983,7 @@ void ST_ReallyCoolAndUsefulGIFDrawer(void)
 			
 			G_TicsToSeconds(gif_frames),
 			G_TicsToCentiseconds(gif_frames),
-			FIXED_TO_FLOAT(gif_size)
+			gif_size
 		)
 	);
 }

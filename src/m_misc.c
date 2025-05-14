@@ -172,6 +172,7 @@ static boolean apng_downscale = false; // So nobody can do something dumb like c
 boolean takescreenshot = false; // Take a screenshot this tic
 
 moviemode_t moviemode = MM_OFF;
+static INT32 movieframesrecorded = 0;
 
 /** Returns the map number for a map identified by the last two characters in
   * its name.
@@ -1244,6 +1245,7 @@ void M_StartMovie(void)
 	else if (moviemode == MM_SCREENSHOT)
 		CONS_Printf(M_GetText("Movie mode enabled (%s).\n"), "screenshots");
 
+    movieframesrecorded = 0;
 	//singletics = (moviemode != MM_OFF);
 #endif
 }
@@ -1265,6 +1267,7 @@ void M_SaveFrame(void)
 			takescreenshot = true;
 			return;
 		case MM_GIF:
+			movieframesrecorded += 1;
 
 			long int old_size = GIF_ReturnSizeBecauseImTooGoodAtC();
 			GIF_frame();
@@ -1298,6 +1301,7 @@ void M_SaveFrame(void)
 				if (!apng_FILE) // should not happen!!
 				{
 					moviemode = MM_OFF;
+					movieframesrecorded = 0;
 					return;
 				}
 
@@ -1316,6 +1320,7 @@ void M_SaveFrame(void)
 				if (rendermode != render_soft && linear)
 					free(linear);
 #endif
+				movieframesrecorded += 1;
 
 				if (apng_frames == PNG_UINT_31_MAX)
 				{
@@ -1325,6 +1330,7 @@ void M_SaveFrame(void)
 			}
 #else
 			moviemode = MM_OFF;
+			movieframesrecorded = 0;
 #endif
 			return;
 		default:
@@ -1339,6 +1345,7 @@ void M_StopMovie(void)
 	switch (moviemode)
 	{
 		case MM_GIF:
+			movieframesrecorded	= 0;
 			if (!GIF_close())
 				return;
 			break;
@@ -1359,6 +1366,7 @@ void M_StopMovie(void)
 			apng_FILE = NULL;
 			CONS_Printf("aPNG closed; wrote %u frames\n", (UINT32)apng_frames);
 			apng_frames = 0;
+			movieframesrecorded = 0;
 			break;
 #else
 			return;
@@ -1369,8 +1377,37 @@ void M_StopMovie(void)
 			return;
 	}
 	moviemode = MM_OFF;
+	movieframesrecorded = 0;
+
 	CONS_Printf(M_GetText("Movie mode disabled.\n"));
 #endif
+}
+
+INT32 M_RecordedFrames(void)
+{
+	return movieframesrecorded;
+}
+
+long int M_SavedSize(void)
+{
+	if (!moviemode)
+		return 0;
+	
+	switch (moviemode)
+	{	
+		case MM_GIF:
+			return GIF_ReturnSizeBecauseImTooGoodAtC();
+		case MM_APNG:
+#ifdef USE_APNG
+		return ftell(apng_FILE);
+#else
+		return 0;
+#endif
+		default:
+			return 0;
+	}
+	// bruh
+	return 0;
 }
 
 // ==========================================================================
