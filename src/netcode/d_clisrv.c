@@ -160,8 +160,8 @@ void CL_Reset(void)
 	joinnode = 0;
 	viewfiles = 0;
 	server = true;
-	doomcom->numnodes = 1;
-	doomcom->numslots = 1;
+	numnetnodes = 1;
+	numslots = 1;
 	SV_StopServer();
 	SV_ResetServer();
 
@@ -226,8 +226,8 @@ static void Got_AddPlayer(UINT8 **p, INT32 playernum)
 			CL_ClearPlayer(newplayernum);
 		playeringame[newplayernum] = true;
 		G_AddPlayer(newplayernum);
-		if (newplayernum+1 > doomcom->numslots)
-			doomcom->numslots = (INT16)(newplayernum+1);
+		if (newplayernum+1 > numslots)
+			numslots = (INT16)(newplayernum+1);
 
 		if (server && I_GetNodeAddress)
 		{
@@ -623,8 +623,8 @@ void CL_RemovePlayer(INT32 playernum, kickreason_t reason)
 
 	// remove avatar of player
 	playeringame[playernum] = false;
-	while (!playeringame[doomcom->numslots-1] && doomcom->numslots > 1)
-		doomcom->numslots--;
+	while (!playeringame[numslots-1] && numslots > 1)
+		numslots--;
 
 	// Reset the name
 	sprintf(player_names[playernum], "Player %d", playernum+1);
@@ -764,7 +764,7 @@ void SV_ResetServer(void)
 	if (server)
 		servernode = 0;
 
-	doomcom->numslots = 0;
+	numslots = 0;
 
 	// clear server_context
 	memset(server_context, '-', 8);
@@ -816,7 +816,7 @@ void SV_SpawnServer(void)
 		// non dedicated server just connect to itself
 		if (!dedicated)
 			CL_ConnectToServer();
-		else doomcom->numslots = 1;
+		else numslots = 1;
 	}
 }
 
