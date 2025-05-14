@@ -38,6 +38,8 @@ extern consvar_t cv_apng_delay, cv_apng_downscale;
 void M_StartMovie(void);
 void M_SaveFrame(void);
 void M_StopMovie(void);
+INT32 M_RecordedFrames(void);
+long int M_SavedSize(void);
 
 // the file where game vars and settings are saved
 #define CONFIGFILENAME "config.cfg"

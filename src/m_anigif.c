@@ -764,6 +764,7 @@ void GIF_frame(void)
 	GIF_framewrite();
 }
 
+const float kMb = 1024.f * 1024.f;
 //
 // GIF_close
 // closes output GIF
@@ -777,9 +778,9 @@ INT32 GIF_close(void)
 	fwrite(";", 1, 1, gif_out);
 	
 	//returns bytes
-	long int gif_size = ftell(gif_out);
-	gif_size /= (1024);
-	gif_size = FixedDiv(gif_size<<FRACBITS, 1024<<FRACBITS); //gives us a close-enough calc
+	unsigned long int orig_gif_size = ftell(gif_out);
+	float gif_size = (float)orig_gif_size;
+    gif_size /= kMb;
 
 	fclose(gif_out);
 	gif_out = NULL;
@@ -796,7 +797,9 @@ INT32 GIF_close(void)
 		Z_Free(giflzw_hashTable);
 	giflzw_hashTable = NULL;
 
-	CONS_Printf(M_GetText("Animated gif closed; wrote %d frames (%0.2f MB)\n"), gif_frames, FIXED_TO_FLOAT(gif_size));
+	CONS_Printf(M_GetText("Animated gif closed; wrote %d frames (%0.2f MB)\n"), gif_frames,
+        gif_size
+    );
 	return 1;
 }
 
