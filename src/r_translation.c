@@ -1120,7 +1120,7 @@ UINT8 *R_GetTranslationRemap(int id, skincolornum_t skincolor, INT32 skinnum)
 	if (!tr)
 		return NULL;
 
-	if (!tr->num_sources || (skincolor == SKINCOLOR_NONE && skinnum >= 0))
+	if (!tr->num_sources || (skincolor == SKINCOLOR_NONE))
 		return tr->remap;
 
 	if (!tr->skincolor_remaps)
