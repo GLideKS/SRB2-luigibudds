@@ -96,8 +96,7 @@ static void CL_DrawConnectionStatus(void)
 	// Draw background fade
 	V_DrawFadeScreen(0xFF00, 16); // force default
 
-	if (cl_mode != CL_DOWNLOADFILES && cl_mode != CL_DOWNLOADHTTPFILES
-	&& cl_mode != CL_LOADFILES && cl_mode != CL_CHECKFILES && cl_mode != CL_ASKFULLFILELIST)
+	if (cl_mode != CL_DOWNLOADFILES && cl_mode != CL_DOWNLOADHTTPFILES && cl_mode != CL_LOADFILES && cl_mode != CL_CHECKFILES && cl_mode != CL_ASKFULLFILELIST)
 	{
 		INT32 animtime = ((ccstime / 4) & 15) + 16;
 		UINT8 palstart;
@@ -184,13 +183,14 @@ static void CL_DrawConnectionStatus(void)
 		{
 			INT32 totalfileslength;
 			INT32 checkcompletednum = 0;
+			INT32 i;
 
 			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, MENUCOLOR|MENUCAPS, "Press ESC to abort");
 
-			// ima just count files here
+			//ima just count files here
 			if (fileneeded)
 			{
-				for (INT32 i = 0; i < fileneedednum; i++)
+				for (i = 0; i < fileneedednum; i++)
 					if (fileneeded[i].status != FS_NOTCHECKED)
 						checkcompletednum++;
 			}
@@ -202,7 +202,7 @@ static void CL_DrawConnectionStatus(void)
 			V_DrawFill(BASEVIDWIDTH/2-128, BASEVIDHEIGHT-16, 256, 8, 111);
 			V_DrawFill(BASEVIDWIDTH/2-128, BASEVIDHEIGHT-16, totalfileslength, 8, 96);
 			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16, V_20TRANS|V_MONOSPACE|MENUCAPS,
-				va(" %2u/%2u files",checkcompletednum,fileneedednum));
+				va(" %2u/%2u Files",checkcompletednum,fileneedednum));
 		}
 		else if (filedownload.current != -1)
 		{
