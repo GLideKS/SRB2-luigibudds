@@ -351,22 +351,13 @@ static int camera_get(lua_State *L)
 			lua_pushinteger(L, cam->aiming);
 		break;
 	case camera_x:
-        if (r_viewmobj != NULL)
-            lua_pushinteger(L, r_viewmobj->x);
-        else
-		    lua_pushinteger(L, cam->x);
+	    lua_pushinteger(L, cam->x);
 		break;
 	case camera_y:
-        if (r_viewmobj != NULL)
-            lua_pushinteger(L, r_viewmobj->y);
-        else
-		    lua_pushinteger(L, cam->y);
+	    lua_pushinteger(L, cam->y);
 		break;
 	case camera_z:
-        if (r_viewmobj != NULL)
-            lua_pushinteger(L, r_viewmobj->z + 20*FRACUNIT);
-        else
-		    lua_pushinteger(L, cam->z);
+	    lua_pushinteger(L, cam->z);
 		break;
 	case camera_reset:
 		lua_pushboolean(L, cam->reset);
@@ -893,6 +884,28 @@ static int libd_drawFill(lua_State *L)
 		LUA_HUD_AddDrawFill(list, x, y, w, h, c);
 	else
 		V_DrawFill(x, y, w, h, c);
+	return 0;
+}
+
+static int libd_drawFixedFill(lua_State *L)
+{
+	huddrawlist_h list;
+	INT32 x = luaL_optinteger(L, 1, 0);
+	INT32 y = luaL_optinteger(L, 2, 0);
+	INT32 w = luaL_optinteger(L, 3, BASEVIDWIDTH << FRACBITS);
+	INT32 h = luaL_optinteger(L, 4, BASEVIDHEIGHT << FRACBITS);
+	INT32 c = luaL_optinteger(L, 5, 31);
+
+	HUDONLY
+
+	lua_getfield(L, LUA_REGISTRYINDEX, "HUD_DRAW_LIST");
+	list = (huddrawlist_h) lua_touserdata(L, -1);
+	lua_pop(L, 1);
+
+	if (LUA_HUD_IsDrawListValid(list))
+		LUA_HUD_AddDrawFixedFill(list, x, y, w, h, c);
+	else
+		V_DrawFixedFill(x, y, w, h, c);
 	return 0;
 }
 
@@ -1439,6 +1452,7 @@ static luaL_Reg lib_draw[] = {
 	{"drawNum", libd_drawNum},
 	{"drawPaddedNum", libd_drawPaddedNum},
 	{"drawFill", libd_drawFill},
+	{"drawFixedFill", libd_drawFixedFill},
 	{"drawString", libd_drawString},
 	{"drawNameTag", libd_drawNameTag},
 	{"drawScaledNameTag", libd_drawScaledNameTag},

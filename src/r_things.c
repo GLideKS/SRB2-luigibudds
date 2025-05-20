@@ -3798,8 +3798,8 @@ void R_ThingOffsetOverlay(mobj_t *thing, fixed_t *x, fixed_t *y)
 	viewingangle = R_PointToAngle(*x, *y);
 
 	// Finally, offset the X and Y coordinates towards or away from the camera
-	*x += P_ReturnThrustX(thing, viewingangle, FixedMul(offset * (FRACUNIT/4), offsetscale));
-	*y += P_ReturnThrustY(thing, viewingangle, FixedMul(offset * (FRACUNIT/4), offsetscale));
+	*x += P_ReturnThrustX(thing, viewingangle, FixedMul(offset * (FRACUNIT/3), offsetscale));
+	*y += P_ReturnThrustY(thing, viewingangle, FixedMul(offset * (FRACUNIT/3), offsetscale));
 }
 
 //

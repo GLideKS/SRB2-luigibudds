@@ -11300,6 +11300,13 @@ static void M_DrawConnectMenu(void)
 		UINT32 globalflags = (serverlist[slindex].info.refusereason ? V_TRANSLUCENT : 0)
 			|((itemOn == FIRSTSERVERLINE+i) ? V_YELLOWMAP : 0)|V_ALLOWLOWERCASE;
 
+		// min width is probably like 268px (sorry for shitty formatting)
+		V_DrawFill(currentMenu->x - 3,
+			S_LINEY(i) - (i == 0 ? 3 : 0),
+			268 + 6, (i == 0 ? 15 : 12),
+			(itemOn == FIRSTSERVERLINE+i) ? 153 : ((i & 1) ? 159 : 156)
+		);
+		
 		V_DrawString(currentMenu->x, S_LINEY(i), globalflags, serverlist[slindex].info.servername);
 
 		// Don't use color flags intentionally, the global yellow color will auto override the text color code

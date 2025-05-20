@@ -15,6 +15,9 @@
         "lua_script.h": "c",
         "p_polyobj.h": "c",
         "p_slopes.h": "c",
-        "xutility": "c"
+        "xutility": "c",
+        "deh_tables.h": "c",
+        "d_main.h": "c",
+        "xiosbase": "c"
     }
 }

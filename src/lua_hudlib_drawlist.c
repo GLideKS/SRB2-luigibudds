@@ -30,6 +30,7 @@ enum drawitem_e {
 	DI_DrawNum,
 	DI_DrawPaddedNum,
 	DI_DrawFill,
+	DI_DrawFixedFill,
 	DI_DrawString,
 	DI_DrawNameTag,
 	DI_DrawScaledNameTag,
@@ -400,6 +401,26 @@ void LUA_HUD_AddDrawFill(
 	item->c = c;
 }
 
+void LUA_HUD_AddDrawFixedFill(
+	huddrawlist_h list,
+	fixed_t x,
+	fixed_t y,
+	fixed_t w,
+	fixed_t h,
+	INT32 c
+)
+{
+	size_t i = AllocateDrawItem(list);
+	drawitem_t *item = &list->items[i];
+	item->id = GetItemId();
+	item->type = DI_DrawFixedFill;
+	item->x = x;
+	item->y = y;
+	item->w = w;
+	item->h = h;
+	item->c = c;
+}
+
 void LUA_HUD_AddDrawString(
 	huddrawlist_h list,
 	fixed_t x,
@@ -599,6 +620,9 @@ void LUA_HUD_DrawList(huddrawlist_h list)
 				break;
 			case DI_DrawFill:
 				V_DrawFill(LERPS(x), LERPS(y), LERP(w), LERP(h), item->c);
+				break;
+			case DI_DrawFixedFill:
+				V_DrawFixedFill(LERPS(x), LERPS(y), LERP(w), LERP(h), item->c);
 				break;
 			case DI_DrawString:
 				switch(item->align)
