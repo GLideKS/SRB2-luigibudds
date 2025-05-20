@@ -2770,6 +2770,7 @@ static void HWR_RenderBSPNode(INT32 bspnum)
 
 		bspnum = bsp->children[side^1];
 	}
+
 	HWR_Subsector(bspnum == -1 ? 0 : bspnum & ~NF_SUBSECTOR);
 }
 
@@ -3639,7 +3640,6 @@ static void HWR_DrawSprite(gl_vissprite_t *spr)
 		wallVerts[3].t = wallVerts[2].t = 0;
 		wallVerts[0].t = wallVerts[1].t = ((GLPatch_t *)gpatch->hardware)->max_t;
 	}
-
 
 	HWR_ApplyDispoffset(spr, wallVerts, splat, papersprite);
 
