@@ -15,9 +15,10 @@
 - Countdown beep isn't ear piercingly loud!
 - "freezelevel" debug command (Do not use when clients are connected)
 - Snake download game background fixed!
-- HUD camera struct updates position in first person! (credits [Jiskster](https://git.do.srb2.org/STJr/SRB2/-/merge_requests/2629) & Hanicef)
+- HUD camera struct updates position in first person! (credits [Jiskster](https://git.do.srb2.org/STJr/SRB2/-/merge_requests/2629) & [Hanicef](https://git.do.srb2.org/Hanicef/SRB2Classic/-/commit/681bd160f5be3925a97d798d00e67b32a8c1df71))
 - Built in sprite clipping fix (gr_clipfix)
 - Master Server list background for better readability!
+- Server Menu before joining! (Code from [SRB2Classic](https://git.do.srb2.org/Hanicef/SRB2Classic))
 
 # Lua Additions
 - "takis_custombuild" : (Read only) (boolean) Global to detect if the client is using this build
