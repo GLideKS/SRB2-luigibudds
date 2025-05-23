@@ -242,6 +242,7 @@ extern M_waiting_mode_t m_waiting_mode;
 
 // Called by linux_x/i_video_xshm.c
 void M_QuitResponse(INT32 ch);
+void M_ConnectMenu(INT32 choice); // Needed for exiting CL_VIEWSERVER
 
 // Determines whether to show a level in the list (platter version does not need to be exposed)
 boolean M_CanShowLevelInList(INT32 mapnum, INT32 gt);

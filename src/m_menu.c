@@ -305,7 +305,7 @@ static void M_StartSplitServerMenu(INT32 choice);
 static void M_StartServer(INT32 choice);
 static void M_ServerOptions(INT32 choice);
 static void M_StartServerMenu(INT32 choice);
-static void M_ConnectMenu(INT32 choice);
+void M_ConnectMenu(INT32 choice);
 static void M_ConnectMenuModChecks(INT32 choice);
 static void M_Refresh(INT32 choice);
 static void M_Connect(INT32 choice);
@@ -11504,7 +11504,7 @@ Check_new_version_thread (int *id)
 }
 #endif/*defined (MASTERSERVER) && defined (HAVE_THREADS)*/
 
-static void M_ConnectMenu(INT32 choice)
+void M_ConnectMenu(INT32 choice)
 {
 	(void)choice;
 	// modified game check: no longer handled

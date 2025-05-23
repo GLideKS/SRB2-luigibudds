@@ -37,6 +37,11 @@
 #endif
 
 cl_mode_t cl_mode = CL_SEARCHING;
+static boolean cl_vs_showaddons = false;
+static boolean cl_vs_sa_tapped = false; // impeccable variable names
+static INT32 cl_vs_sa_scroll = 0;
+static INT32 cl_vs_sa_scrolltime = 0;
+static INT16 cl_vs_sa_animcount = 8;
 static UINT16 cl_lastcheckedfilecount = 0;	// used for full file list
 boolean serverisfull = false; // lets us be aware if the server was full after we check files, but before downloading, so we can ask if the user still wants to download or not
 tic_t firstconnectattempttime = 0;
@@ -239,48 +244,165 @@ static void CL_DrawConnectionStatus(void)
 			
 			V_DrawFill(8, 72, BASEVIDWIDTH - 16, 112, 159);
 			
-			V_DrawString(12, 74, V_ALLOWLOWERCASE|V_YELLOWMAP, "Players");
-			V_DrawRightAlignedString(BASEVIDWIDTH - 12, 74, V_ALLOWLOWERCASE|V_YELLOWMAP, va("%i / %i", serverlist[joinnode].info.numberofplayer, serverlist[joinnode].info.maxplayer));
-			
-			INT32 i;
-			INT32 count = 0;
-			INT32 x = 14;
-			INT32 y = 84;
-			INT32 statuscolor = 1;
-			char player_name[MAXPLAYERNAME+1];
-			if (serverlist[joinnode].info.numberofplayer > 0)
+			if (!cl_vs_showaddons)
 			{
-				for (i = 0; i < MAXPLAYERS; i++)
+				V_DrawString(12, 74, V_ALLOWLOWERCASE|V_YELLOWMAP, "Players");
+				V_DrawRightAlignedString(BASEVIDWIDTH - 12, 74, V_ALLOWLOWERCASE|V_YELLOWMAP, va("%i / %i", serverlist[joinnode].info.numberofplayer, serverlist[joinnode].info.maxplayer));
+				
+				INT32 i;
+				INT32 count = 0;
+				INT32 x = 14;
+				INT32 y = 84;
+				INT32 statuscolor = 1;
+				char player_name[MAXPLAYERNAME+1];
+				if (serverlist[joinnode].info.numberofplayer > 0)
 				{
-					if (playerinfo[i].num < 255)
+					for (i = 0; i < MAXPLAYERS; i++)
 					{
-						strncpy(player_name, playerinfo[i].name, MAXPLAYERNAME);
-						V_DrawThinString(x + 10, y, V_ALLOWLOWERCASE|V_6WIDTHSPACE, player_name);
-						
-						if (playerinfo[i].team == 0) { statuscolor = 112; } // playing
-						if (playerinfo[i].data & 0x20) { statuscolor = 54; } // tag IT
-						if (playerinfo[i].team == 1) { statuscolor = 35; } // ctf red team
-						if (playerinfo[i].team == 2) { statuscolor = 152; } // ctf blue team
-						if (playerinfo[i].team == 255) { statuscolor = 16; } // spectator or non-team
-						
-						V_DrawFill(x, y, 7, 7, 31);
-						V_DrawFill(x, y, 6, 6, statuscolor);
-						
-						y += 9;
-						count++;
-						if ((count == 11) || (count == 22))
+						if (playerinfo[i].num < 255)
 						{
-							x += 104;
-							y = 84;
+							strncpy(player_name, playerinfo[i].name, MAXPLAYERNAME);
+							V_DrawThinString(x + 10, y, V_ALLOWLOWERCASE|V_6WIDTHSPACE, player_name);
+							
+							if (playerinfo[i].team == 0) { statuscolor = 112; } // playing
+							if (playerinfo[i].data & 0x20) { statuscolor = 54; } // tag IT
+							if (playerinfo[i].team == 1) { statuscolor = 35; } // ctf red team
+							if (playerinfo[i].team == 2) { statuscolor = 152; } // ctf blue team
+							if (playerinfo[i].team == 255) { statuscolor = 16; } // spectator or non-team
+							
+							V_DrawFill(x, y, 7, 7, 31);
+							V_DrawFill(x, y, 6, 6, statuscolor);
+							
+							y += 9;
+							count++;
+							if ((count == 11) || (count == 22))
+							{
+								x += 104;
+								y = 84;
+							}
 						}
 					}
 				}
 			}
-			
+			else
+			{
+				V_DrawString(12, 74, V_ALLOWLOWERCASE|V_YELLOWMAP, "Addons");
+
+				INT32 i;
+				INT32 count = 0;
+				INT32 x = 14;
+				INT32 y = 84;
+				char file_name[MAX_WADPATH+1];
+#define maxcharlen (20 + 3) // 3 for the 3 dots
+#define charsonside 10
+				for (i = cl_vs_sa_scroll; i < fileneedednum; i++)
+				{
+					if (i & 1)
+						V_DrawFill(x,y-1,
+							(fileneedednum < 11) ? 292 : 146, 9,
+							156
+						);
+					
+					fileneeded_t addon_file = fileneeded[i];
+					strncpy(file_name, addon_file.filename, MAX_WADPATH);
+					if ((UINT8)(strlen(file_name)+1) > maxcharlen && fileneedednum >= 11)
+						V_DrawThinString(x, y, V_ALLOWLOWERCASE|V_6WIDTHSPACE,
+							va("\x82[#%d]\x80: %.*s...%s",i+1, charsonside, file_name, file_name+strlen(file_name)-((charsonside+1)))
+						);
+					else
+					{
+						V_DrawThinString(x, y, V_ALLOWLOWERCASE|V_6WIDTHSPACE,
+							va("\x82[#%d]\x80: %s",i+1, file_name)
+						);
+
+						// make sure we have the space
+						if (fileneedednum < 11)
+						{
+							float file_size = ((float)addon_file.totalsize);
+							INT8 size_mode = 0; // regular bytes
+							//in megabytes
+							if (file_size >= (1024.0f * 1024.0f))
+							{
+								size_mode = 1;
+								file_size /= (1024.0f * 1024.0f);
+							}
+							// KB
+							else if (file_size >= 1024.0f)
+							{
+								size_mode = 2;
+								file_size /= 1024.0f;
+							}
+
+							V_DrawRightAlignedThinString(x + 292,
+								y, V_YELLOWMAP|V_ALLOWLOWERCASE,
+								// "~" since its approx this size, we mightve lost some
+								// accuracy from only having 4 bytes carry the size
+								va("(~%.1f%s)", file_size, size_mode == 0 ? "b" : (size_mode == 2 ? "kb" : "mb"))
+							);
+						}
+					}
+
+					y += 9;
+					count++;
+					if (count == 11)
+					{
+						x = BASEVIDWIDTH/2;
+						y = 84;
+					}
+					// Cannot draw any more
+					if (count == 22)
+						break;
+
+					/*
+					fileneeded[i].type = FILENEEDED_WAD;
+					fileneeded[i].status = FS_NOTCHECKED; // We haven't even started looking for the file yet
+					fileneeded[i].justdownloaded = false;
+					filestatus = READUINT8(p); // The first byte is the file status
+					fileneeded[i].folder = READUINT8(p); // The second byte is the folder flag
+					fileneeded[i].willsend = (UINT8)(filestatus >> 4);
+					fileneeded[i].totalsize = READUINT32(p); // The four next bytes are the file size
+					fileneeded[i].file = NULL; // The file isn't open yet
+					fileneeded[i].failed = FDOWNLOAD_FAIL_NONE;
+					READSTRINGN(p, fileneeded[i].filename, MAX_WADPATH); // The next bytes are the file name
+					READMEM(p, fileneeded[i].md5sum, 16); // The last 16 bytes are the file checksum
+					*/
+				}
+
+				// draw the little arrows
+				if (fileneedednum >= 22)
+				{
+					// up arrow
+					if (cl_vs_sa_scroll)
+						V_DrawRightAlignedThinString(BASEVIDWIDTH - 12,
+							74 - (cl_vs_sa_animcount/5), V_YELLOWMAP,
+							"\x1A"
+						);
+					
+					if (cl_vs_sa_scroll != fileneedednum-22)
+						V_DrawRightAlignedThinString(BASEVIDWIDTH - 12,
+							y-9 + (cl_vs_sa_animcount/5), V_YELLOWMAP,
+							"\x1B"
+						);
+				}
+			}
+#undef maxcharlen
+#undef charsonside
+
 			// Buttons
-			V_DrawFill(8, BASEVIDHEIGHT - 14, BASEVIDWIDTH - 16, 12, 159);
-			V_DrawThinString(16, BASEVIDHEIGHT - 12, V_ALLOWLOWERCASE, "[""\x82""ESC""\x80""] = Abort");
-			V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, BASEVIDHEIGHT - 12, V_ALLOWLOWERCASE, "[""\x82""ENTER""\x80""] = Join");			
+			V_DrawFill(8, BASEVIDHEIGHT - 14, BASEVIDWIDTH - 16, 13, 159);
+			V_DrawThinString(
+				16, BASEVIDHEIGHT - 11,
+				V_ALLOWLOWERCASE, "[""\x82""ESC""\x80""] = Back to MS"
+			);
+			V_DrawCenteredThinString(
+				BASEVIDWIDTH/2, BASEVIDHEIGHT - 11,
+				V_ALLOWLOWERCASE,
+				va("[""\x82""SPACE""\x80""] = %s", (cl_vs_showaddons ? "Players" : "Addons"))
+			);
+			V_DrawRightAlignedThinString(
+				BASEVIDWIDTH - 12, BASEVIDHEIGHT - 11,
+				V_ALLOWLOWERCASE, "[""\x82""ENTER""\x80""] = Join"
+			);			
 		}
 		else if ((cl_mode == CL_CHECKFILES) || (cl_mode == CL_ASKFULLFILELIST))
 		{
@@ -680,6 +802,7 @@ static void AbortConnection(void)
 	D_QuitNetGame();
 	CL_Reset();
 	D_StartTitle();
+	M_ConnectMenu(-1);
 
 	// Will be reset by caller. Signals refusal.
 	cl_mode = CL_ABORTED;
@@ -1298,6 +1421,63 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 				cl_mode = CL_CHECKFILES;
 			else if (gamekeydown[KEY_ESCAPE])
 				cl_mode = CL_ABORTED;
+
+			// SURELY i can write better code than this...
+			if (gamekeydown[KEY_SPACE] && fileneedednum)
+			{
+				if (!cl_vs_sa_tapped)
+					cl_vs_showaddons = !cl_vs_showaddons;
+				cl_vs_sa_tapped = true;
+			}
+			else if (!(cl_vs_showaddons && fileneedednum > 22))
+				cl_vs_sa_tapped = false;
+
+			if (cl_vs_showaddons && fileneedednum > 22)
+			{
+				if (gamekeydown[KEY_DOWNARROW])
+				{
+					if (!cl_vs_sa_tapped || cl_vs_sa_scrolltime >= TICRATE>>1)
+					{
+						cl_vs_sa_scroll += 1;
+						if (cl_vs_sa_scroll > fileneedednum - 22) cl_vs_sa_scroll = fileneedednum - 22;
+						if (!cl_vs_sa_tapped) cl_vs_sa_scrolltime = 0;
+					}
+					cl_vs_sa_tapped = true;
+					cl_vs_sa_scrolltime++;
+				}
+				else if (gamekeydown[KEY_UPARROW])
+				{
+					if (!cl_vs_sa_tapped || cl_vs_sa_scrolltime >= TICRATE>>1)
+					{
+						cl_vs_sa_scroll -= 1;
+						if (cl_vs_sa_scroll < 0) cl_vs_sa_scroll = 0;
+						if (!cl_vs_sa_tapped) cl_vs_sa_scrolltime = 0;
+					}
+					cl_vs_sa_tapped = true;
+					cl_vs_sa_scrolltime++;
+				}
+				else if (!gamekeydown[KEY_SPACE]) // Bruh
+				{
+					cl_vs_sa_tapped = false;
+					cl_vs_sa_scrolltime = 0;
+				}
+			}
+			else
+			{
+				cl_vs_sa_scroll = 0;
+				cl_vs_sa_scrolltime = 0;
+			}
+
+			if (--cl_vs_sa_animcount <= 0)
+				cl_vs_sa_animcount = 8;
+		}
+		else // Cool
+		{
+			cl_vs_showaddons = false;
+			cl_vs_sa_tapped = false;
+			cl_vs_sa_scroll = 0;
+			cl_vs_sa_scrolltime = 0;
+			cl_vs_sa_animcount = 0;
 		}
 
 		if (gamekeydown[KEY_ESCAPE] || gamekeydown[KEY_JOY1+1] || cl_mode == CL_ABORTED)
