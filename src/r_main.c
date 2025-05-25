@@ -259,7 +259,7 @@ static void FlipCam2_OnChange(void)
 //
 // killough 5/2/98: reformatted
 //
-INT32 R_OldPointOnSide(fixed_t x, fixed_t y, node_t *restrict node)
+INT32 R_PointOnSide(fixed_t x, fixed_t y, node_t *restrict node)
 {
 	if (!node->dx)
 		return x <= node->x ? node->dy > 0 : node->dy < 0;
@@ -278,7 +278,7 @@ INT32 R_OldPointOnSide(fixed_t x, fixed_t y, node_t *restrict node)
 }
 
 // killough 5/2/98: reformatted
-INT32 R_OldPointOnSegSide(fixed_t x, fixed_t y, seg_t *line)
+INT32 R_PointOnSegSide(fixed_t x, fixed_t y, seg_t *line)
 {
 	fixed_t lx = line->v1->x;
 	fixed_t ly = line->v1->y;
@@ -1039,16 +1039,6 @@ boolean R_IsPointInSector(sector_t *sector, fixed_t x, fixed_t y)
 
 	// and odd number of passes means we're inside the polygon.
 	return passes % 2;
-}
-
-subsector_t *R_OldPointInSubsector(fixed_t x, fixed_t y)
-{
-	size_t nodenum = numnodes-1;
-
-	while (!(nodenum & NF_SUBSECTOR))
-		nodenum = nodes[nodenum].children[R_OldPointOnSide(x, y, nodes+nodenum)];
-
-	return &subsectors[nodenum & ~NF_SUBSECTOR];
 }
 
 //
