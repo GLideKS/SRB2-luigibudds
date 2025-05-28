@@ -48,6 +48,23 @@ tic_t firstconnectattempttime = 0;
 UINT8 mynode;
 static void *snake = NULL;
 
+static const char* servmus_1 = "SRVMS1";
+static const char* servmus_2 = "SRVMS2";
+// "SRVMS3" allows for the music position to be kept between servmus_1 and servmus_3
+// also takes priority over servmus_2 
+static const char* servmus_3 = "SRVMS3"; 
+
+static void ChangeServMusic(const char* musname, boolean fallback, boolean keepPos)
+{
+	if (S_MusicExists(musname,true,true))
+		if (keepPos)
+			S_ChangeMusicEx(musname,0,true, S_GetMusicPosition(), 0,0);
+		else
+			S_ChangeMusicInternal(musname,true);
+	else if (fallback)
+		S_ChangeMusicInternal("_chsel",true);
+}
+
 static boolean IsDownloadingFile(void)
 {
 	if (cl_mode == CL_DOWNLOADFILES || cl_mode == CL_DOWNLOADHTTPFILES)
@@ -963,6 +980,10 @@ static void ShowDownloadConsentMessage(void)
 		), downloadsize), M_ConfirmConnect, MM_EVENTHANDLER);
 
 	cl_mode = CL_CONFIRMCONNECT;
+	if (S_MusicExists(servmus_3,false,true))
+		ChangeServMusic(servmus_3, true,true);
+	else
+		ChangeServMusic(servmus_2, false,false);
 	curfadevalue = 0;
 }
 
@@ -1065,6 +1086,10 @@ static boolean CL_FinishedFileList(void)
 				"Press ENTER to continue\nor ESC to cancel.\n\n"
 			), M_ConfirmConnect, MM_EVENTHANDLER);
 			cl_mode = CL_CONFIRMCONNECT;
+			if (S_MusicExists(servmus_3,false,true))
+				ChangeServMusic(servmus_3, true,true);
+			else
+				ChangeServMusic(servmus_2, false,false);
 			curfadevalue = 0;
 		}
 		else
@@ -1240,6 +1265,7 @@ static boolean CL_ServerConnectionSearchTicker(tic_t *asksent)
 			}
 
 			cl_mode = CL_VIEWSERVER;
+			ChangeServMusic(servmus_1, true,false);
 		}
 		else
 		{
@@ -1319,7 +1345,10 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 
 		case CL_ASKFULLFILELIST:
 			if (cl_lastcheckedfilecount == UINT16_MAX) // All files retrieved
+			{
 				cl_mode = CL_VIEWSERVER;
+				ChangeServMusic(servmus_1, true,false);
+			}
 			else if (fileneedednum != cl_lastcheckedfilecount || I_GetTime() >= *asksent)
 			{
 				if (CL_AskFileList(fileneedednum))
@@ -1458,7 +1487,10 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 			if (gamekeydown[KEY_SPACE] && fileneedednum)
 			{
 				if (!cl_vs_sa_tapped)
+				{
 					cl_vs_showaddons = !cl_vs_showaddons;
+					S_StartSound(NULL, sfx_menu1);
+				}
 				cl_vs_sa_tapped = true;
 			}
 			else if (!(cl_vs_showaddons && fileneedednum > 22))
@@ -1470,7 +1502,11 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 				{
 					if (!cl_vs_sa_tapped || cl_vs_sa_scrolltime >= TICRATE>>1)
 					{
-						cl_vs_sa_scroll += 1;
+						if (cl_vs_sa_scroll != fileneedednum - 22)
+						{
+							cl_vs_sa_scroll += 1;
+							S_StartSound(NULL, sfx_menu1);
+						}
 						if (cl_vs_sa_scroll > fileneedednum - 22) cl_vs_sa_scroll = fileneedednum - 22;
 						if (!cl_vs_sa_tapped) cl_vs_sa_scrolltime = 0;
 					}
@@ -1481,7 +1517,11 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 				{
 					if (!cl_vs_sa_tapped || cl_vs_sa_scrolltime >= TICRATE>>1)
 					{
-						cl_vs_sa_scroll -= 1;
+						if (cl_vs_sa_scroll)
+						{
+							cl_vs_sa_scroll -= 1;
+							S_StartSound(NULL, sfx_menu1);
+						}
 						if (cl_vs_sa_scroll < 0) cl_vs_sa_scroll = 0;
 						if (!cl_vs_sa_tapped) cl_vs_sa_scrolltime = 0;
 					}
