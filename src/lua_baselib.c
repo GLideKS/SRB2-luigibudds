@@ -3352,7 +3352,7 @@ static int lib_sStartSound(lua_State *L)
 	if (!lua_isnil(L, 1))
 		if (!GetValidSoundOrigin(L, &origin))
 			return 0;
-	if (!player || P_IsLocalPlayer(player))
+	if (!player || (player == &players[displayplayer] || player == &players[secondarydisplayplayer]))
 	{
 		if (hud_running || hook_cmd_running)
 			origin = NULL;	// HUD rendering and CMD building startsound shouldn't have an origin, just remove it instead of having a retarded error.

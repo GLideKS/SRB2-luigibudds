@@ -74,6 +74,7 @@ boolean (*I_NetOpenSocket)(void) = NULL;
 boolean (*I_Ban) (INT32 node) = NULL;
 void (*I_ClearBans)(void) = NULL;
 const char *(*I_GetNodeAddress) (INT32 node) = NULL;
+const char *(*I_GetNodeAddressNoPort) (INT32 node) = NULL;
 const char *(*I_GetBanAddress) (size_t ban) = NULL;
 const char *(*I_GetBanMask) (size_t ban) = NULL;
 boolean (*I_SetBanAddress) (const char *address, const char *mask) = NULL;

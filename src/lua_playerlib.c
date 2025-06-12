@@ -17,6 +17,9 @@
 #include "g_game.h"
 #include "p_local.h"
 
+#include "netcode\i_net.h"
+#include "netcode\d_clisrv.h"
+
 #include "lua_script.h"
 #include "lua_libs.h"
 #include "lua_hud.h" // hud_running errors
@@ -84,6 +87,7 @@ enum player_e
 {
 	player_valid,
 	player_name,
+	player_ipaddress,
 	player_realmo,
 	player_mo,
 	player_cmd,
@@ -232,6 +236,7 @@ enum player_e
 static const char *const player_opt[] = {
 	"valid",
 	"name",
+	"ipaddress",
 	"realmo",
 	"mo",
 	"cmd",
@@ -403,6 +408,20 @@ static int player_get(lua_State *L)
 		break;
 	case player_name:
 		lua_pushstring(L, player_names[plr-players]);
+		break;
+	case player_ipaddress: // Woahhhh.
+		// This only returns something if the client is the server
+		// which ig is fine since i added this for server moderation lul
+		if (I_GetNodeAddressNoPort)
+		{
+			const char* address = I_GetNodeAddressNoPort(playernode[plr-players]);
+			if (address)
+				lua_pushstring(L, address);
+			else
+				lua_pushnil(L);
+		}
+		else
+			lua_pushnil(L);
 		break;
 	case player_realmo:
 		LUA_PushUserdata(L, plr->mo, META_MOBJ);

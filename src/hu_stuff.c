@@ -1871,8 +1871,6 @@ void HU_drawPing(INT32 x, INT32 y, UINT32 ping, boolean notext, INT32 flags)
 	UINT8 barcolor = 31; // color we use for the bars (green, yellow, red or black)
 	SINT8 i = 0;
 	SINT8 yoffset = 6;
-	INT32 dx = x+1 - (V_SmallStringWidth(va("%dms", ping),
-				V_ALLOWLOWERCASE|flags)/2);
 
 	if (ping < 128)
 	{
@@ -1891,7 +1889,16 @@ void HU_drawPing(INT32 x, INT32 y, UINT32 ping, boolean notext, INT32 flags)
 	}
 
 	if (ping < UINT32_MAX && (!notext || vid.width >= 640)) // how sad, we're using a shit resolution.
-		V_DrawSmallString(dx, y+4, V_ALLOWLOWERCASE|flags, va("%dms", ping));
+	{
+		if (!cv_pingmeasurement.value)
+			V_DrawCenteredSmallString(x, y+4, V_ALLOWLOWERCASE|flags, va("%dms", ping));
+		else
+		{
+			// ping to frame delay (ring racer)
+			float lag = ((float)ping * (1.0f / TICRATE));
+			V_DrawCenteredSmallString(x, y+4, V_ALLOWLOWERCASE|flags, va("%.1fd", lag));
+		}	
+	}
 
 	for (i=0; (i<3); i++) // Draw the ping bar
 	{

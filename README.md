@@ -1,3 +1,6 @@
+# Installation:
+You can compile the source code normally (see "Compiling") and put the binary in your SRB2 directory. No additional assets required, it works right out the bag!
+
 # Changes
 - Toggable mobj pitch/roll functional (3d rotation for models on slopes, like DRRR). Option located in Video Settings -> Level -> "Pitch/Roll Rotation"
 - CEchos/CSays print message into console

@@ -425,6 +425,50 @@ static const char *SOCK_AddrToStr(mysockaddr_t *sk)
 	return s;
 }
 
+static const char *SOCK_AddrToStr_NOPORT(mysockaddr_t *sk)
+{
+	static char s[64]; // 255.255.255.255 or
+	// [ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]
+#ifdef HAVE_NTOP
+#ifdef HAVE_IPV6
+	int v6 = (sk->any.sa_family == AF_INET6);
+#else
+	int v6 = 0;
+#endif
+	void *addr;
+
+	if(sk->any.sa_family == AF_INET)
+		addr = &sk->ip4.sin_addr;
+#ifdef HAVE_IPV6
+	else if(sk->any.sa_family == AF_INET6)
+		addr = &sk->ip6.sin6_addr;
+#endif
+	else
+		addr = NULL;
+
+	if(addr == NULL)
+		sprintf(s, "No address");
+	else if(inet_ntop(sk->any.sa_family, addr, &s[v6], sizeof (s) - v6) == NULL)
+		sprintf(s, "Unknown family type, error #%u", errno);
+#ifdef HAVE_IPV6
+	else if(sk->any.sa_family == AF_INET6)
+	{
+		s[0] = '[';
+		strcat(s, "]");
+	}
+#endif
+
+#else
+	if (sk->any.sa_family == AF_INET)
+	{
+		strcpy(s, inet_ntoa(sk->ip4.sin_addr));
+	}
+	else
+		sprintf(s, "Unknown type");
+#endif
+	return s;
+}
+
 static const char *SOCK_GetNodeAddress(INT32 node)
 {
 	if (node == 0)
@@ -432,6 +476,15 @@ static const char *SOCK_GetNodeAddress(INT32 node)
 	if (!nodeconnected[node])
 		return NULL;
 	return SOCK_AddrToStr(&clientaddress[node]);
+}
+
+static const char *SOCK_GetNodeAddress_NOPORT(INT32 node)
+{
+	if (node == 0)
+		return "self";
+	if (!nodeconnected[node])
+		return NULL;
+	return SOCK_AddrToStr_NOPORT(&clientaddress[node]);
 }
 
 static const char *SOCK_GetBanAddress(size_t ban)
@@ -1358,6 +1411,7 @@ boolean I_InitTcpNetwork(void)
 	I_Ban = SOCK_Ban;
 	I_ClearBans = SOCK_ClearBans;
 	I_GetNodeAddress = SOCK_GetNodeAddress;
+	I_GetNodeAddressNoPort = SOCK_GetNodeAddress_NOPORT;
 	I_GetBanAddress = SOCK_GetBanAddress;
 	I_GetBanMask = SOCK_GetBanMask;
 	I_SetBanAddress = SOCK_SetBanAddress;

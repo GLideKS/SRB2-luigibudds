@@ -1356,7 +1356,7 @@ static menuitem_t OP_VideoOptionsMenu[] =
 	{IT_STRING | IT_CVAR, NULL, "Show FPS",                  &cv_ticrate,         201},
 	{IT_STRING | IT_CVAR, NULL, "Clear Before Redraw",       &cv_homremoval,      206},
 	{IT_STRING | IT_CVAR, NULL, "Show \"FOCUS LOST\"",       &cv_showfocuslost,   211},
-	{IT_STRING | IT_CVAR, NULL, "Show GIF Info",             &cv_moviemodeinfo,   216},
+	{IT_STRING | IT_CVAR, NULL, "Show Movie Info",           &cv_moviemodeinfo,   216},
 
 #ifdef HWRENDER
 	{IT_HEADER, NULL, "Renderer", NULL, 225},

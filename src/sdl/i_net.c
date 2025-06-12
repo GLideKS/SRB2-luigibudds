@@ -59,11 +59,25 @@ static const char *NET_AddrToStr(IPaddress* sk)
 	return s;
 }
 
+static const char *NET_AddrToStr_NOPORT(IPaddress* sk)
+{
+	static char s[26]; // 255.255.255.255
+	strcpy(s, SDLNet_ResolveIP(sk));
+	return s;
+}
+
 static const char *NET_GetNodeAddress(INT32 node)
 {
 	if (!nodeconnected[node])
 		return NULL;
 	return NET_AddrToStr(&clientaddress[node]);
+}
+
+static const char *NET_GetNodeAddress_NOPORT(INT32 node)
+{
+	if (!nodeconnected[node])
+		return NULL;
+	return NET_AddrToStr_NOPORT(&clientaddress[node]);
 }
 
 static const char *NET_GetBanAddress(size_t ban)
@@ -425,6 +439,7 @@ boolean I_InitNetwork(void)
 	I_Ban = NET_Ban;
 	I_ClearBans = NET_ClearBans;
 	I_GetNodeAddress = NET_GetNodeAddress;
+	I_GetNodeAddressNoPort = NET_GetNodeAddress_NOPORT;
 	I_GetBenAddress = NET_GetBenAddress;
 	I_SetBanAddress = NET_SetBanAddress;
 	bannednode = NET_bannednode;
