@@ -31,6 +31,7 @@
 #include "m_misc.h" // moviemode
 #include "m_anigif.h" // cv_gif_downscale
 #include "p_setup.h" // NiGHTS grading
+#include "d_main.h" // rendergametic
 #ifdef HAVE_ANIGIF
 	#include "m_anigif.h"
 #endif
@@ -1269,6 +1270,7 @@ static INT32 lt_zigzag = 0;
 
 tic_t lt_ticker = 0, lt_lasttic = 0;
 tic_t lt_exitticker = 0, lt_endtime = 0;
+fixed_t lt_timefrac = FRACUNIT;
 
 //
 // Load the graphics for the title card.
@@ -1312,10 +1314,12 @@ void ST_startTitleCard(void)
 	// initialize HUD variables
 	lt_active = true;
 	lt_ticker = lt_exitticker = lt_lasttic = 0;
+	lt_timefrac = FRACUNIT;
 	lt_endtime = 2*TICRATE + (10*NEWTICRATERATIO);
 	lt_scroll = BASEVIDWIDTH * FRACUNIT;
 	lt_zigzag = -((lt_patches[1])->width * FRACUNIT);
 	lt_mom = 0;
+	LUA_HUD_ClearDrawList(luahuddrawlist_titlecard);
 }
 
 //
@@ -1450,11 +1454,19 @@ void ST_drawTitleCard(void)
 	lt_lasttic = lt_ticker;
 
 luahook:
-	//if (renderisnewtic)
+	lt_timefrac += renderdeltatics;
+	// while (lt_timefrac >= FRACUNIT)
 	{
 		LUA_HUD_ClearDrawList(luahuddrawlist_titlecard);
 		LUA_HUDHOOK(titlecard, luahuddrawlist_titlecard);
+		lt_timefrac -= FRACUNIT;
 	}
+	/*
+	V_DrawThinString(0,BASEVIDHEIGHT-10, V_SNAPTOLEFT|V_SNAPTOBOTTOM, va("rgt: %d",rendergametic));
+	V_DrawThinString(0,BASEVIDHEIGHT-20, V_SNAPTOLEFT|V_SNAPTOBOTTOM, va("lt_ti: %d",lt_ticker));
+	V_DrawThinString(0,BASEVIDHEIGHT-30, V_SNAPTOLEFT|V_SNAPTOBOTTOM, va("lt_lt: %d",lt_lasttic));
+	V_DrawThinString(0,BASEVIDHEIGHT-40, V_SNAPTOLEFT|V_SNAPTOBOTTOM, va("lt_tf: %.2f", FIXED_TO_FLOAT(lt_timefrac)));
+	*/
 	LUA_HUD_DrawList(luahuddrawlist_titlecard);
 }
 

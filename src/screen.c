@@ -212,6 +212,7 @@ void SCR_Startup(void)
 	V_Recalc();
 
 	CV_RegisterVar(&cv_ticrate);
+	CV_RegisterVar(&cv_tpscounter);
 	CV_RegisterVar(&cv_constextsize);
 
 	V_SetPalette(0);
@@ -378,6 +379,9 @@ boolean SCR_IsAspectCorrect(INT32 width, INT32 height)
 	 );
 }
 
+static boolean ticsgraph[TICRATE];
+static tic_t lasttic;
+
 double averageFPS = 0.0f;
 
 #define USE_FPS_SAMPLES
@@ -425,35 +429,62 @@ void SCR_CalculateFPS(void)
 
 void SCR_DisplayTicRate(void)
 {
-	INT32 ticcntcolor = 0;
+	INT32 fpscntcolor = 0, ticcntcolor = 0;
 	const INT32 h = vid.height-(8*vid.dup);
 	UINT32 cap = R_GetFramerateCap();
 	double fps = round(averageFPS);
+	//tps code from srb2classic
+	INT32 vstep = (cv_ticrate.value ? -8 : 0);
+	tic_t i;
+	// ideally this can measure the tps of the server sending you the packets but oh well
+	// `gametic + (neededtic - gametic)` works fine enough for tps soooo 
+	tic_t ontic = (netgame && client && Playing()) ? (gametic + (neededtic - gametic)) : I_GetTime(); 	// chromaticpipe made happy
+	tic_t totaltics = 0;
 
 	if (gamestate == GS_NULL)
 		return;
 
 	if (cap > 0)
 	{
-		if (fps <= cap / 2.0) ticcntcolor = V_REDMAP;
-		else if (fps <= cap * 0.90) ticcntcolor = V_YELLOWMAP;
-		else ticcntcolor = V_GREENMAP;
+		if (fps <= cap / 2.0) fpscntcolor  = V_REDMAP;
+		else if (fps <= cap * 0.90) fpscntcolor  = V_YELLOWMAP;
+		else fpscntcolor  = V_GREENMAP;
 	}
 	else
 	{
-		ticcntcolor = V_GREENMAP;
+		fpscntcolor  = V_GREENMAP;
 	}
 
-	if (cv_ticrate.value == 2) // compact counter
+	for (i = lasttic + 1; i < TICRATE+lasttic && i < ontic; i++)
+		ticsgraph[i % TICRATE] = false;
+	
+	ticsgraph[ontic % TICRATE] = true;
+
+	for (i = 0;i < TICRATE;++i)
+		if (ticsgraph[i])
+			++totaltics;
+	
+	if (totaltics <= TICRATE/2)
+		ticcntcolor = V_REDMAP;
+	else if (totaltics >= TICRATE)
+		ticcntcolor = V_SKYMAP;
+
+	//cv_ticrate is actually fps lul
+ 	if (cv_ticrate.value == 3) // thin compact counter
 	{
 		const char *fpsstr = va("%04.2f", averageFPS);
 		//this FUCKING sucks
 		V_DrawThinString(
 			BASEVIDWIDTH - (V_ThinStringWidth(fpsstr,0)),
 			BASEVIDHEIGHT - 8,
-			ticcntcolor|V_USERHUDTRANS|V_SNAPTORIGHT|V_SNAPTOBOTTOM,
+			fpscntcolor |V_USERHUDTRANS|V_SNAPTORIGHT|V_SNAPTOBOTTOM,
 			fpsstr // use averageFPS directly
 		);
+	}
+ 	else if (cv_ticrate.value == 2) // compact counter
+	{
+		V_DrawRightAlignedString(vid.width, h,
+			fpscntcolor|V_NOSCALESTART|V_USERHUDTRANS, va("%04.2f", averageFPS)); // use averageFPS directly
 	}
 	else if (cv_ticrate.value == 1) // full counter
 	{
@@ -471,8 +502,37 @@ void SCR_DisplayTicRate(void)
 		V_DrawString(vid.width - ((7 * 8 * vid.dup) + V_StringWidth("FPS: ", V_NOSCALESTART)), h,
 			V_YELLOWMAP|V_NOSCALESTART|V_USERHUDTRANS, "FPS:");
 		V_DrawString(vid.width - width, h,
+			fpscntcolor |V_NOSCALESTART|V_USERHUDTRANS, drawnstr);
+	}
+
+	// Draw TPS
+ 	if (cv_tpscounter.value == 3) // thin compact counter
+	{
+		const char *tpsstr = va("%d", totaltics);
+		//this FUCKING sucks
+		V_DrawThinString(
+			BASEVIDWIDTH - (V_ThinStringWidth(tpsstr,0)),
+			BASEVIDHEIGHT - 8 + vstep,
+			ticcntcolor|V_USERHUDTRANS|V_SNAPTORIGHT|V_SNAPTOBOTTOM,
+			tpsstr // use averageFPS directly
+		);
+	}
+ 	else if (cv_tpscounter.value == 2) // compact counter
+	{
+		V_DrawRightAlignedString(vid.width, h + (vstep*vid.dup),
+			ticcntcolor|V_NOSCALESTART|V_USERHUDTRANS, va("%d", totaltics)); // use averageFPS directly
+	}
+	else if (cv_tpscounter.value == 1) // full counter
+	{
+		const char *drawnstr = va("%d", totaltics);
+		INT32 width = V_StringWidth(drawnstr, V_NOSCALESTART);
+
+		V_DrawString(vid.width - ((7 * 8 * vid.dup) + V_StringWidth("TPS: ", V_NOSCALESTART)), h + (vstep*vid.dup),
+			V_YELLOWMAP|V_NOSCALESTART|V_USERHUDTRANS, "TPS:");
+		V_DrawString(vid.width - width, h + (vstep*vid.dup),
 			ticcntcolor|V_NOSCALESTART|V_USERHUDTRANS, drawnstr);
 	}
+	lasttic = ontic;
 }
 
 void SCR_DisplayLocalPing(void)
@@ -480,12 +540,18 @@ void SCR_DisplayLocalPing(void)
 	UINT32 ping = playerpingtable[consoleplayer];	// consoleplayer's ping is everyone's ping in a splitnetgame :P
 	if (cv_showping.value == 1 || (cv_showping.value == 2 && servermaxping && ping > servermaxping))	// only show 2 (warning) if our ping is at a bad level
 	{
-		INT32 dispy = cv_ticrate.value ? 180 : 189;
-		HU_drawPing(307, dispy, ping, true, V_SNAPTORIGHT | V_SNAPTOBOTTOM);
+		INT32 dispy = 189;
+		if (cv_ticrate.value)
+			dispy -= 9;
+		
+		// this is way too close to the captions for my liking but its whatever :p
+		if (cv_tpscounter.value)
+			dispy -= 9;
+		
+		HU_drawPing(307, dispy, ping, true, V_SNAPTORIGHT | V_SNAPTOBOTTOM, consoleplayer);
 	}
 }
 
-// TODO: interp toggle (same for console)
 void SCR_ClosedCaptions(void)
 {
 	UINT8 i;

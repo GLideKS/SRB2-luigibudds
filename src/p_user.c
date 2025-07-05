@@ -9989,17 +9989,36 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 
 	if (!(player->climbing || (player->powers[pw_carry] == CR_NIGHTSMODE) || player->playerstate == PST_DEAD || tutorialmode))
 	{
-		if (player->spectator || (!cv_chasecam.value && thiscam == &camera) || (!cv_chasecam2.value && thiscam == &camera2))
+		if (player->spectator || !thiscam->chase)
 		{
 			// set the values to the player's values so they can still be used
 			thiscam->x = player->mo->x;
 			thiscam->y = player->mo->y;
-			thiscam->z = player->mo->z;
+			thiscam->z = player->viewz;
 			thiscam->momx = player->mo->momx;
 			thiscam->momy = player->mo->momy;
 			thiscam->momz = player->mo->momz;
-			thiscam->aiming = player->aiming;
-			thiscam->angle = player->viewrollangle;
+
+			if (thiscam == &camera)
+			{
+				// when not spectating, use local angles
+				if (&players[displayplayer] == &players[consoleplayer]) {
+					thiscam->angle = localangle;
+					thiscam->aiming = localaiming;
+				}
+				else
+				{
+					thiscam->angle = players[displayplayer].cmd.angleturn << 16;
+					thiscam->aiming = players[displayplayer].cmd.aiming << 16;
+				}
+			} 
+			else if (thiscam == &camera2)
+			{
+				// i dont think secondarydisplayplayer changes, so we should be fine.
+				thiscam->angle = localangle2;
+				thiscam->aiming = localaiming2;
+			}
+
 			thiscam->subsector = player->mo->subsector;
 			thiscam->floorz = player->mo->floorz;
 			thiscam->ceilingz = player->mo->ceilingz;

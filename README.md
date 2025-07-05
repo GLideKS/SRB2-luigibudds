@@ -1,3 +1,5 @@
+If you want to use code from my repo, please contact me beforehand. (because most of it isnt mine Lul!!!)
+
 # Installation:
 You can compile the source code normally (see "Compiling") and put the binary in your SRB2 directory. No additional assets required, it works right out the bag!
 
@@ -21,9 +23,15 @@ You can compile the source code normally (see "Compiling") and put the binary in
 - HUD camera struct updates position in first person! (credits [Jiskster](https://git.do.srb2.org/STJr/SRB2/-/merge_requests/2629) & [Hanicef](https://git.do.srb2.org/Hanicef/SRB2Classic/-/commit/681bd160f5be3925a97d798d00e67b32a8c1df71))
 - Built in sprite clipping fix (gr_clipfix)
 - Master Server list background for better readability!
-- Server Menu before joining! (Code from [SRB2Classic](https://git.do.srb2.org/Hanicef/SRB2Classic))
+- Server Menu before joining! (Code from [SRB2Classic](https://codeberg.org/srb2classic/srb2classic))
+- See your ping in frame delay instead of milliseconds! (cv_pingmeasurement)
+- Tics per second counter! (showtps) (Code from [SRB2Classic](https://codeberg.org/srb2classic/srb2classic))
+- Improved startup times! (Code from [SRB2Classic](https://codeberg.org/srb2classic/srb2classic))
+- Minimum input delay & "Gentleman's Delay" option from SRB2Kart Saturn/Ring Racers! (mindelay and gentlemensdelay respectively)
 
 # Lua Additions
+
+## Global variables
 - "takis_custombuild" : (Read only) (boolean) Global to detect if the client is using this build
 - "takis_complexlocaladdons" : (Read only) (boolean) Global to detect if the client has loaded local addons with lua in them
 - "takis_locallyloading" : (Read only) (boolean) Only set during script loading, detects whether the script is being loaded locally
@@ -35,12 +43,19 @@ You can compile the source code normally (see "Compiling") and put the binary in
   end
   --normal, gameplay editing code
   ```
+
+## Functions
 - P_GetLocalAiming(player_t player) : Returns the angle_t `aiming` of `player` if they are a local player. Returns 0 otherwise.
 - P_GetLocalAngle(player_t player) : Returns the angle_t `angle` of `player` if they are a local player. Returns 0 otherwise.
+
 - v.interpolate/v.interpLatch(boolean/int) : See [SRB2K Saturn's documentation](https://github.com/Indev450/SRB2Kart-Saturn/blob/Saturn/LUASTUFF.md)
 - v.drawFixedFill : Same as v.drawFill, but x, y, width, and height arguments are all in fixed point scale.
+
 - M_Random* : Same as v.Random* functions, except also client-sided and not limited to HUD hooks.
+
+## mobj_t
 - mobj.pitch/roll : Now rotates mobjs in 3D space, including models
+
 Example that tilts your character in their 3D direction:
 ```lua
 addHook("PlayerThink",function(p)
@@ -55,6 +70,9 @@ addHook("PlayerThink",function(p)
     me.pitch = FixedMul(mang, cos(angle))
 end)
 ```
+
+## player_t
+- player.ipaddress (string) : For use in moderation addons, this only returns a string for the server of the players IP address. Clients _cannot_ see other clients' IP addresses. The only way for other clients to know is if the server sends a command with them or something :p
 
 # Sonic Robo Blast 2
 [![latest release](https://badgen.net/github/release/STJr/SRB2/stable)](https://github.com/STJr/SRB2/releases/latest)

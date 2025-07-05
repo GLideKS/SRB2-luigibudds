@@ -361,6 +361,10 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher, boolean heightcheck)
 	I_Assert(special != NULL);
 	I_Assert(toucher != NULL);
 
+	// Bruh!
+	if ((special == NULL) || (toucher == NULL))
+		return;
+
 	// Dead thing touching.
 	// Can happen with a sliding player corpse.
 	if (toucher->health <= 0)
@@ -456,7 +460,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher, boolean heightcheck)
 				P_DamageMobj(toucher, special, special, 1, 0); // ouch
 				return;
 			}
-			 case MT_BIGMINE:
+			case MT_BIGMINE:
 			{
 				special->momx = toucher->momx/3;
 				special->momy = toucher->momy/3;

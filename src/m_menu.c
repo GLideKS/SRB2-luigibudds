@@ -4156,7 +4156,7 @@ void M_DrawTextBox(INT32 x, INT32 y, INT32 width, INT32 boxlines)
 //
 // Draw the TV static effect on unavailable map icons
 //
-static void M_DrawStaticBox(fixed_t x, fixed_t y, INT32 flags, fixed_t w, fixed_t h)
+void M_DrawStaticBox(fixed_t x, fixed_t y, INT32 flags, fixed_t w, fixed_t h)
 {
 	patch_t *patch = W_CachePatchName("LSSTATIC", PU_PATCH);
 	static fixed_t staticx = 0, staticy = 0; // Keep track of where we are across function calls

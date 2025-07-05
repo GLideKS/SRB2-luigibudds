@@ -856,7 +856,7 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup, boole
 	restype_t type;
 	UINT16 numlumps = 0;
 #ifndef NOMD5
-	size_t i;
+	//size_t i;
 #endif
 	UINT8 md5sum[16];
 	int important;
@@ -1359,9 +1359,10 @@ UINT16 W_CheckNumForFolderEndPK3(const char *name, UINT16 wad, UINT16 startlump)
 {
 	INT32 i;
 	lumpinfo_t *lump_p = wadfiles[wad]->lumpinfo + startlump;
+	size_t name_length = strlen(name);
 	for (i = startlump; i < wadfiles[wad]->numlumps; i++, lump_p++)
 	{
-		if (strnicmp(name, lump_p->fullname, strlen(name)))
+		if (strnicmp(name, lump_p->fullname, name_length))
 			break;
 	}
 	return i;

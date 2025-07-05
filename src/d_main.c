@@ -837,10 +837,10 @@ void D_SRB2Loop(void)
 					// This might actually be better suited inside G_Ticker or TryRunTics
 					for (tic_t chasecamtics = 0; chasecamtics < realtics; chasecamtics++)
 					{
-						if (splitscreen && camera2.chase)
+						if (splitscreen)
 							P_MoveChaseCamera(&players[secondarydisplayplayer], &camera2, false);
-						if (camera.chase)
-							P_MoveChaseCamera(&players[displayplayer], &camera, false);
+						
+						P_MoveChaseCamera(&players[displayplayer], &camera, false);
 					}
 					R_UpdateViewInterpolation();
 				}

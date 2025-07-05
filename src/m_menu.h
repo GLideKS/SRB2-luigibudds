@@ -216,6 +216,9 @@ void M_SortServerList(void);
 // Draws a box with a texture inside as background for messages
 void M_DrawTextBox(INT32 x, INT32 y, INT32 width, INT32 boxlines);
 
+// Draw the TV static effect on unavailable map icons
+void M_DrawStaticBox(fixed_t x, fixed_t y, INT32 flags, fixed_t w, fixed_t h);
+
 // the function to show a message box typing with the string inside
 // string must be static (not in the stack)
 // routine is a function taking a INT32 in parameter

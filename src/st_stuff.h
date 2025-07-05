@@ -58,6 +58,7 @@ void ST_drawWipeTitleCard(void);
 
 extern tic_t lt_ticker, lt_lasttic;
 extern tic_t lt_exitticker, lt_endtime;
+extern fixed_t lt_timefrac;
 
 // return if player a is in the same team as player b
 boolean ST_SameTeam(player_t *a, player_t *b);

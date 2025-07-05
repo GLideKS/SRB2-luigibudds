@@ -14,6 +14,7 @@
 #include "gamestate.h"
 #include "d_clisrv.h"
 #include "d_netfil.h"
+#include "d_netcmd.h"
 #include "../d_main.h"
 #include "../f_finale.h"
 #include "../g_game.h"
@@ -32,6 +33,7 @@
 #include "../z_zone.h"
 #include "../doomtype.h"
 #include "../doomstat.h"
+#include "../hu_stuff.h"
 #if defined (__GNUC__) || defined (__unix__)
 #include <unistd.h>
 #endif
@@ -76,7 +78,7 @@ static boolean IsDownloadingFile(void)
 static void DrawConnectionStatusBox(void)
 {
 	M_DrawTextBox(BASEVIDWIDTH/2-128-8, BASEVIDHEIGHT-16-8, 32, 1);
-	if (filedownload.current != -1)
+	if (filedownload.current != -1 && cl_mode != CL_DOWNLOADSAVEGAME)
 		M_DrawTextBox(BASEVIDWIDTH/2-128-8, BASEVIDHEIGHT-46-8, 32, 1);
     
 	if (cl_mode == CL_CONFIRMCONNECT || IsDownloadingFile())
@@ -245,9 +247,25 @@ static void CL_DrawConnectionStatus(void)
 			const char *map = va("%sP", serverlist[joinnode].info.mapname);
 			patch_t *current_map = W_LumpExists(map) ? W_CachePatchName(map, PU_CACHE) : W_CachePatchName("BLANKLVL", PU_CACHE);
 			V_DrawSmallScaledPatch(10, 18, 0, current_map);
+			if (!W_LumpExists(map))
+			{
+				M_DrawStaticBox(10, 18, V_80TRANS, 80, 50);
+			}
 			
 			UINT32 ping = (UINT32)serverlist[joinnode].info.time;
-			V_DrawThinString(12 + 80, 28, V_ALLOWLOWERCASE, va("Ping: %s%ums", (ping < 128 ? "\x83" : (ping < 256 ? "\x82" : "\x85")), ping)); 
+			if (cv_pingmeasurement.value)
+			{
+				V_DrawThinString(12 + 80, 28, V_ALLOWLOWERCASE, va("Delay: %s%.1fd",
+					(ping < 128 ? "\x83" : (ping < 256 ? "\x82" : "\x85")),
+					HU_pingMSToDelay(ping)
+				));
+			}
+			else
+				V_DrawThinString(12 + 80, 28, V_ALLOWLOWERCASE, va("Ping: %s%ums",
+					(ping < 128 ? "\x83" : (ping < 256 ? "\x82" : "\x85")),
+					ping
+				));
+			
 			V_DrawThinString(12 + 80, 38, V_ALLOWLOWERCASE, va("%s", serverlist[joinnode].info.maptitle));
 			V_DrawThinString(12 + 80, 48, V_ALLOWLOWERCASE, va("%s", serverlist[joinnode].info.gametypename));
 			
@@ -260,9 +278,14 @@ static void CL_DrawConnectionStatus(void)
 				V_DrawThinString(12 + 80, 58, V_ALLOWLOWERCASE|V_YELLOWMAP, "Vanilla");
 			}
 			
+			if (serverlist[joinnode].info.flags & SV_DEDICATED)
+				V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, 58, V_ALLOWLOWERCASE|V_ORANGEMAP, "Dedicated");
+			else
+				V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, 58, V_ALLOWLOWERCASE|V_GREENMAP, "Listen Serv.");
+			
 			if (serverlist[joinnode].info.cheatsenabled)
 			{
-				V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, 58, V_ALLOWLOWERCASE|V_GREENMAP, "Cheats");
+				V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, 48, V_ALLOWLOWERCASE|V_GREENMAP, "Cheats");
 			}
 			
 			V_DrawFill(8, 72, BASEVIDWIDTH - 16, 112, 159);
@@ -423,13 +446,13 @@ static void CL_DrawConnectionStatus(void)
 				{
 					// up arrow
 					if (cl_vs_sa_scroll)
-						V_DrawRightAlignedThinString(BASEVIDWIDTH - 12,
+						V_DrawRightAlignedThinString(BASEVIDWIDTH - 10,
 							74 - (cl_vs_sa_animcount/5), V_YELLOWMAP,
 							"\x1A"
 						);
 					
 					if (cl_vs_sa_scroll != fileneedednum-22)
-						V_DrawRightAlignedThinString(BASEVIDWIDTH - 12,
+						V_DrawRightAlignedThinString(BASEVIDWIDTH - 10,
 							y-9 + (cl_vs_sa_animcount/5), V_YELLOWMAP,
 							"\x1B"
 						);
@@ -444,11 +467,14 @@ static void CL_DrawConnectionStatus(void)
 				16, BASEVIDHEIGHT - 11,
 				V_ALLOWLOWERCASE, "[""\x82""ESC""\x80""] = Back to MS"
 			);
-			V_DrawCenteredThinString(
-				BASEVIDWIDTH/2, BASEVIDHEIGHT - 11,
-				V_ALLOWLOWERCASE,
-				va("[""\x82""SPACE""\x80""] = %s", (cl_vs_showaddons ? "Players" : "Addons"))
-			);
+			if (fileneedednum > 0)
+			{
+				V_DrawCenteredThinString(
+					BASEVIDWIDTH/2, BASEVIDHEIGHT - 11,
+					V_ALLOWLOWERCASE,
+					va("[""\x82""SPACE""\x80""] = %s", (cl_vs_showaddons ? "Players" : "Addons"))
+				);
+			}
 			V_DrawRightAlignedThinString(
 				BASEVIDWIDTH - 12, BASEVIDHEIGHT - 11,
 				V_ALLOWLOWERCASE, "[""\x82""ENTER""\x80""] = Join"
@@ -477,7 +503,7 @@ static void CL_DrawConnectionStatus(void)
 			V_DrawFill(BASEVIDWIDTH/2-128, BASEVIDHEIGHT-16, 256, 8, 111);
 			V_DrawFill(BASEVIDWIDTH/2-128, BASEVIDHEIGHT-16, totalfileslength, 8, 96);
 			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16, V_20TRANS|V_MONOSPACE|V_ALLOWLOWERCASE,
-				va(" %2u/%2u Files",checkcompletednum,fileneedednum));
+				va(" %2u/%2u files",checkcompletednum,fileneedednum));
         }
 		else if (filedownload.current != -1)
 		{
@@ -1499,7 +1525,9 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 			}
 			else if (!(cl_vs_showaddons && fileneedednum > 22))
 				cl_vs_sa_tapped = false;
-
+			
+			// i never said my C code was GOOD...
+			// maybe some macros could clean this up
 			if (cl_vs_showaddons && fileneedednum > 22)
 			{
 				if (gamekeydown[KEY_DOWNARROW])

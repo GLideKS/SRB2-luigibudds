@@ -78,6 +78,7 @@
 #include "../lua_libs.h"
 #include "../lua_hook.h"
 #include "sdlmain.h"
+#include "../netcode/tic_command.h" // simulated_lag
 #ifdef HWRENDER
 #include "../hardware/hw_main.h"
 #include "../hardware/hw_drv.h"
@@ -1271,10 +1272,13 @@ void I_FinishUpdate(void)
 	if (cv_closedcaptioning.value)
 		SCR_ClosedCaptions();
 
-	if (cv_ticrate.value)
+	if (cv_ticrate.value || cv_tpscounter.value)
 		SCR_DisplayTicRate();
 
-	if (cv_showping.value && netgame && consoleplayer != serverplayer)
+	if (cv_showping.value && (
+		(netgame && consoleplayer != serverplayer)
+		|| (simulated_lag != 0 && consoleplayer == serverplayer && Playing())
+	))
 		SCR_DisplayLocalPing();
 
 	if (rendermode == render_soft && screens[0])
