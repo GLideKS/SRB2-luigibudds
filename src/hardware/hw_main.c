@@ -102,6 +102,15 @@ boolean gl_shadersavailable = false;
 // Whether the internal state is set to palette rendering or not.
 static boolean gl_palette_rendering_state = false;
 
+// values for the far clipping plane
+static float clipping_distances[] = {1024.0f, 2048.0f, 4096.0f, 6144.0f, 8192.0f, 12288.0f, 16384.0f};
+// values for bsp culling
+// slightly higher than the far clipping plane to compensate for impreciseness
+static INT32 bsp_culling_distances[] = {(1024+512)*FRACUNIT, (2048+512)*FRACUNIT, (4096+512)*FRACUNIT,
+	(6144+512)*FRACUNIT, (8192+512)*FRACUNIT, (12288+512)*FRACUNIT, (16384+512)*FRACUNIT};
+
+static INT32 current_bsp_culling_distance = 0;
+
 // --------------------------------------------------------------------------
 //                                              STUFF FOR THE PROJECTION CODE
 // --------------------------------------------------------------------------
@@ -2109,6 +2118,70 @@ static boolean HWR_CheckBBox(fixed_t *bspcoord)
 	py1 = bspcoord[checkcoord[boxpos][1]];
 	px2 = bspcoord[checkcoord[boxpos][2]];
 	py2 = bspcoord[checkcoord[boxpos][3]];
+
+	if (current_bsp_culling_distance)
+	{
+		//fixed_t midx = (px1 >> 1) + (px2 >> 1);
+		//fixed_t midy = (py1 >> 1) + (py2 >> 1);
+		//fixed_t mindist = min(min(R_PointToDist(px1, py1), R_PointToDist(px2, py2)), R_PointToDist(midx, midy));
+
+		//fixed_t mindist = ClosestPointOnLineDistance(px1, py1, px2, py2);
+
+		//fixed_t mindist1 = ClosestPointOnLineDistance(bspcoord[BOXLEFT], bspcoord[BOXTOP], bspcoord[BOXRIGHT], bspcoord[BOXTOP]); // top line
+		//fixed_t mindist2 = ClosestPointOnLineDistance(bspcoord[BOXLEFT], bspcoord[BOXTOP], bspcoord[BOXLEFT], bspcoord[BOXBOTTOM]); // left line
+		//fixed_t mindist3 = ClosestPointOnLineDistance(bspcoord[BOXLEFT], bspcoord[BOXBOTTOM], bspcoord[BOXRIGHT], bspcoord[BOXBOTTOM]); // bottom line
+		//fixed_t mindist4 = ClosestPointOnLineDistance(bspcoord[BOXRIGHT], bspcoord[BOXTOP], bspcoord[BOXRIGHT], bspcoord[BOXBOTTOM]); // right line
+		// this one seems too lax.. maybe closestpointonlinedistance is glitchy and returns points that are not on the line segment?
+		// could try building an if-else structure that determines what point or line is closest
+		// 1  | 2  | 3
+		//--------------
+		// 4  |node| 5
+		//--------------
+		// 6  | 7  | 8
+		// y
+		// ^
+		// |
+		// -----> x
+		// inside node: always inside draw distance. the above boxpos thing might have returned true already?
+		// 1. check top left corner     2. check top line     3. check top right corner
+		// 4. check left line                                 5. check right line
+		// 6. check bottom left corner  7. check bottom line  8. check bottom right corner
+		// one if statement will split the space in two for one coordinate
+		// for example:
+		// x < BOXLEFT   || BOXLEFT ||   !(x < BOXLEFT)   <-- (same as x >= BOXLEFT)
+		fixed_t mindist;// = min(min(mindist1, mindist2), min(mindist3, mindist4));
+
+		// new thing
+		// calculate distance to axis aligned bounding box.
+		if (viewx < bspcoord[BOXLEFT]) // 1,4,6
+		{
+			if (viewy > bspcoord[BOXTOP]) // 1
+				mindist = R_PointToDist(bspcoord[BOXLEFT], bspcoord[BOXTOP]);
+			else if (viewy < bspcoord[BOXBOTTOM]) // 6
+				mindist = R_PointToDist(bspcoord[BOXLEFT], bspcoord[BOXBOTTOM]);
+			else // 4
+				mindist = bspcoord[BOXLEFT] - viewx;
+		}
+		else if (viewx > bspcoord[BOXRIGHT]) // 3,5,8
+		{
+			if (viewy > bspcoord[BOXTOP]) // 3
+				mindist = R_PointToDist(bspcoord[BOXRIGHT], bspcoord[BOXTOP]);
+			else if (viewy < bspcoord[BOXBOTTOM]) // 8
+				mindist = R_PointToDist(bspcoord[BOXRIGHT], bspcoord[BOXBOTTOM]);
+			else // 5
+				mindist = viewx - bspcoord[BOXRIGHT];
+		}
+		else // 2,node,7
+		{
+			if (viewy > bspcoord[BOXTOP]) // 2
+				mindist = viewy - bspcoord[BOXTOP];
+			else if (viewy < bspcoord[BOXBOTTOM]) // 7
+				mindist = bspcoord[BOXBOTTOM] - viewy;
+			else // node
+				mindist = 0;
+		}
+		if (mindist > current_bsp_culling_distance) return false;
+	}
 
 	angle1 = R_PointToAngle64(px1, py1);
 	angle2 = R_PointToAngle64(px2, py2);
@@ -4268,7 +4341,7 @@ static void HWR_AddSprites(sector_t *sec)
 {
 	mobj_t *thing;
 	precipmobj_t *precipthing;
-	fixed_t limit_dist, hoop_limit_dist;
+	fixed_t limit_dist, hoop_limit_dist, precip_limit_dist;
 
 	// BSP is traversed by subsector.
 	// A sector might have been split into several
@@ -4280,13 +4353,28 @@ static void HWR_AddSprites(sector_t *sec)
 	// Well, now it will be done.
 	sec->validcount = validcount;
 
+	if (current_bsp_culling_distance)
+	{
+		// Use the smaller setting
+		if (cv_drawdist.value)
+			limit_dist = min((fixed_t)current_bsp_culling_distance, (fixed_t)(cv_drawdist.value) << FRACBITS);
+		else
+			limit_dist = (fixed_t)current_bsp_culling_distance;
+		precip_limit_dist = min((fixed_t)current_bsp_culling_distance, (fixed_t)(cv_drawdist_precip.value) << FRACBITS);
+		hoop_limit_dist = min((fixed_t)current_bsp_culling_distance, (fixed_t)(cv_drawdist_nights.value) << FRACBITS);
+	}
+	else
+	{
+		limit_dist = (fixed_t)(cv_drawdist.value) << FRACBITS;
+		precip_limit_dist = (fixed_t)cv_drawdist_precip.value << FRACBITS;
+		hoop_limit_dist = (fixed_t)(cv_drawdist_nights.value) << FRACBITS;
+	}
+
 	// sprite lighting
 	sectorlight = sec->lightlevel & 0xff;
 
 	// Handle all things in sector.
-	// If a limit exists, handle things a tiny bit different.
-	limit_dist = (fixed_t)(cv_drawdist.value) << FRACBITS;
-	hoop_limit_dist = (fixed_t)(cv_drawdist_nights.value) << FRACBITS;
+	// If a limit exists, handle things a tiny bit different
 	for (thing = sec->thinglist; thing; thing = thing->snext)
 	{
 		if (R_ThingWithinDist(thing, limit_dist, hoop_limit_dist))
@@ -4301,11 +4389,11 @@ static void HWR_AddSprites(sector_t *sec)
 	}
 
 	// no, no infinite draw distance for precipitation. this option at zero is supposed to turn it off
-	if ((limit_dist = (fixed_t)cv_drawdist_precip.value << FRACBITS))
+	if (precip_limit_dist)
 	{
 		for (precipthing = sec->preciplist; precipthing; precipthing = precipthing->snext)
 		{
-			if (R_PrecipThingVisible(precipthing, limit_dist))
+			if (R_PrecipThingVisible(precipthing, precip_limit_dist))
 				HWR_ProjectPrecipitationSprite(precipthing);
 		}
 	}
@@ -5270,7 +5358,7 @@ static inline void HWR_ClearView(void)
 	                 (INT32)viewwindowy,
 	                 (INT32)(viewwindowx + viewwidth),
 	                 (INT32)(viewwindowy + viewheight),
-	                 ZCLIP_PLANE);
+	                 ZCLIP_PLANE, FAR_ZCLIP_DEFAULT);
 	HWD.pfnClearBuffer(false, true, 0);
 
 	//disable clip window - set to full size
@@ -5347,6 +5435,18 @@ static void HWR_SetupView(player_t *player, INT32 viewnumber, float fpov, boolea
 		R_SkyboxFrame(player);
 	else
 		R_SetupFrame(player);
+
+	current_bsp_culling_distance = 0;
+
+	if (!skybox && cv_glrenderdistance.value)
+	{
+		HWD.pfnGClipRect((INT32)viewwindowx,
+	                 (INT32)viewwindowy,
+	                 (INT32)(viewwindowx + viewwidth),
+	                 (INT32)(viewwindowy + viewheight),
+	                 ZCLIP_PLANE, clipping_distances[cv_glrenderdistance.value - 1]);
+		current_bsp_culling_distance = bsp_culling_distances[cv_glrenderdistance.value - 1];
+	}
 
 	gl_viewx = FixedToFloat(viewx);
 	gl_viewy = FixedToFloat(viewy);
@@ -5443,6 +5543,8 @@ void HWR_RenderSkyboxView(INT32 viewnumber, player_t *player)
 
 	HWR_RenderBSPNode((INT32)numnodes-1);
 
+	current_bsp_culling_distance = 0;
+
 	if (cv_glbatching.value)
 		HWR_RenderBatches();
 
@@ -5480,7 +5582,7 @@ void HWR_RenderSkyboxView(INT32 viewnumber, player_t *player)
 
 	// added by Hurdler for correct splitscreen
 	// moved here by hurdler so it works with the new near clipping plane
-	HWD.pfnGClipRect(0, 0, vid.width, vid.height, NZCLIP_PLANE);
+	HWD.pfnGClipRect(0, 0, vid.width, vid.height, NZCLIP_PLANE, FAR_ZCLIP_DEFAULT);
 }
 
 // ==========================================================================
@@ -5561,6 +5663,8 @@ void HWR_RenderPlayerView(INT32 viewnumber, player_t *player)
 
 	HWR_RenderBSPNode((INT32)numnodes-1);
 
+	current_bsp_culling_distance = 0;
+
 	PS_STOP_TIMING(ps_bsptime);
 
 	if (cv_glbatching.value)
@@ -5610,7 +5714,7 @@ void HWR_RenderPlayerView(INT32 viewnumber, player_t *player)
 
 	// added by Hurdler for correct splitscreen
 	// moved here by hurdler so it works with the new near clipping plane
-	HWD.pfnGClipRect(0, 0, vid.width, vid.height, NZCLIP_PLANE);
+	HWD.pfnGClipRect(0, 0, vid.width, vid.height, NZCLIP_PLANE, FAR_ZCLIP_DEFAULT);
 }
 
 // Returns whether palette rendering is "actually enabled."
@@ -5704,6 +5808,11 @@ static CV_PossibleValue_t glfiltermode_cons_t[]= {{HWD_SET_TEXTUREFILTER_POINTSA
 	{HWD_SET_TEXTUREFILTER_MIXED3, "Nearest_Mipmap"},
 	{0, NULL}};
 CV_PossibleValue_t glanisotropicmode_cons_t[] = {{1, "MIN"}, {16, "MAX"}, {0, NULL}};
+CV_PossibleValue_t glsecbright_cons_t[] = {{0, "MIN"}, {255, "MAX"}, {0, NULL}};
+CV_PossibleValue_t glrenderdistance_cons_t[] = {
+	{0, "Max"}, {1, "1024"}, {2, "2048"}, {3, "4096"}, {4, "6144"}, {5, "8192"},
+	{6, "12288"}, {7, "16384"}, {0, NULL}};
+
 
 consvar_t cv_glshaders = CVAR_INIT ("gr_shaders", "On", CV_SAVE|CV_CALL, glshaders_cons_t, CV_glshaders_OnChange);
 
@@ -5730,6 +5839,8 @@ consvar_t cv_glanisotropicmode = CVAR_INIT ("gr_anisotropicmode", "1", CV_SAVE|C
 consvar_t cv_glsolvetjoin = CVAR_INIT ("gr_solvetjoin", "On", 0, CV_OnOff, NULL);
 
 consvar_t cv_glbatching = CVAR_INIT ("gr_batching", "On", 0, CV_OnOff, NULL);
+
+consvar_t cv_glrenderdistance = CVAR_INIT("gr_renderdistance", "Max", CV_SAVE, glrenderdistance_cons_t, NULL);
 
 static CV_PossibleValue_t glpalettedepth_cons_t[] = {{16, "16 bits"}, {24, "24 bits"}, {0, NULL}};
 
@@ -5814,6 +5925,7 @@ void HWR_AddCommands(void)
 	CV_RegisterVar(&cv_glsolvetjoin);
 
 	CV_RegisterVar(&cv_glbatching);
+	CV_RegisterVar(&cv_glrenderdistance);
 
 	CV_RegisterVar(&cv_glpaletterendering);
 	CV_RegisterVar(&cv_glpalettedepth);
