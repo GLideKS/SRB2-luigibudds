@@ -224,6 +224,7 @@ enum player_e
 	player_awayviewaiming,
 	player_spectator,
 	player_outofcoop,
+	player_muted,
 	player_bot,
 	player_botleader,
 	player_lastbuttons,
@@ -373,6 +374,7 @@ static const char *const player_opt[] = {
 	"awayviewaiming",
 	"spectator",
 	"outofcoop",
+	"muted",
 	"bot",
 	"botleader",
 	"lastbuttons",
@@ -831,6 +833,9 @@ static int player_get(lua_State *L)
 		break;
 	case player_outofcoop:
 		lua_pushboolean(L, plr->outofcoop);
+		break;
+	case player_muted:
+		lua_pushboolean(L, plr->muted);
 		break;
 	case player_bot:
 		lua_pushinteger(L, plr->bot);
@@ -1355,6 +1360,8 @@ static int player_set(lua_State *L)
 	case player_outofcoop:
 		plr->outofcoop = lua_toboolean(L, 3);
 		break;
+	case player_muted:
+		return NOSET;
 	case player_bot:
 		return NOSET;
 	case player_botleader:

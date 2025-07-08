@@ -438,7 +438,7 @@ void SCR_DisplayTicRate(void)
 	tic_t i;
 	// ideally this can measure the tps of the server sending you the packets but oh well
 	// `gametic + (neededtic - gametic)` works fine enough for tps soooo 
-	tic_t ontic = (netgame && client && Playing()) ? (gametic + (neededtic - gametic)) : I_GetTime(); 	// chromaticpipe made happy
+	tic_t ontic = (netgame && client && Playing()) ? (neededtic) : I_GetTime(); 	// chromaticpipe made happy
 	tic_t totaltics = 0;
 
 	if (gamestate == GS_NULL)
