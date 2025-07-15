@@ -150,6 +150,10 @@ void LUA_HUD_ClearDrawList(huddrawlist_h list)
 		list->strbuf[0] = 0;
 	}
 	list->strbuf_len = 0;
+
+	// We have no use for these yet
+	hud_interpolate = false;
+	hud_interptag = 0;
 }
 
 void LUA_HUD_DestroyDrawList(huddrawlist_h list)
@@ -595,8 +599,10 @@ void LUA_HUD_DrawList(huddrawlist_h list)
 		#define LERP(it) (olditem ? olditem->it + FixedMul(frac, item->it - olditem->it) : item->it)
 
 		// half of this could be done when the coordinates are latched... zzzzzz
-		#define LERPS(it) (latchitem ? ((latchitem->it + (item->it - latchitem->it)) - (latchitem->it - oldlatchitem->it)) + lerp##it : (olditem ? olditem->it + FixedMul(frac, item->it - olditem->it) : item->it))
-		//define LERPS(it) (olditem ? (latchitem ? (latchitem->it + (item->it - latchitem->it)) - (latchitem->it - oldlatchitem->it) : olditem->it) + lerp##it : item->it)
+		#define LERPS(it) (latchitem ? \
+			(( (latchitem->it) + ( (item->it) - (latchitem->it) )) - ( (latchitem->it) - (oldlatchitem->it) )) + (lerp##it) \
+			: (olditem ? (olditem->it) + FixedMul(frac, (item->it) - (olditem->it)) : (item->it)) \
+		)
 		
 		switch (item->type)
 		{

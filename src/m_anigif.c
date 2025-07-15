@@ -67,7 +67,7 @@ static precise_t gif_prevframetime = 0;
 static UINT32 gif_delayus = 0; // "us" is microseconds
 static UINT8 gif_writeover = 0;
 
-
+static boolean gif_paused = false;
 
 // OPTIMIZE gif output
 // ---
@@ -803,13 +803,24 @@ INT32 GIF_close(void)
 	return 1;
 }
 
-INT32 GIF_ReturnFramesBecauseImGoodAtC(void)
-{
-	return (moviemode == MM_GIF) ? gif_frames : 0;
-}
+// Getter/setters
 long int GIF_ReturnSizeBecauseImTooGoodAtC(void)
 {
 	return (moviemode == MM_GIF) ? ftell(gif_out) : 0;
+}
+
+void GIF_SetRecordingPaused(boolean paused)
+{
+	// not recording a gif so.... why are you usin this??
+	if (moviemode != MM_GIF)
+		gif_paused = false;
+	else
+		gif_paused = paused;
+}
+
+boolean GIF_RecordingPaused(void)
+{
+	return (moviemode == MM_GIF) ? gif_paused : false;
 }
 
 #endif //ifdef HAVE_ANIGIF

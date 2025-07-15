@@ -121,6 +121,7 @@ static void Command_Playdemo_f(void);
 static void Command_Timedemo_f(void);
 static void Command_Stopdemo_f(void);
 static void Command_StartMovie_f(void);
+static void Command_PauseMovie_f(void);
 static void Command_StopMovie_f(void);
 static void Command_Map_f(void);
 static void Command_ResetCamera_f(void);
@@ -707,6 +708,7 @@ void D_RegisterClientCommands(void)
 
 	COM_AddCommand("screenshot", M_ScreenShot, COM_LUA);
 	COM_AddCommand("startmovie", Command_StartMovie_f, COM_LUA);
+	COM_AddCommand("pausemovie", Command_PauseMovie_f, COM_LUA);
 	COM_AddCommand("stopmovie", Command_StopMovie_f, COM_LUA);
 
 	CV_RegisterVar(&cv_screenshot_option);
@@ -1688,6 +1690,11 @@ static void Command_Stopdemo_f(void)
 static void Command_StartMovie_f(void)
 {
 	M_StartMovie();
+}
+
+static void Command_PauseMovie_f(void)
+{
+	M_PauseMovie();
 }
 
 static void Command_StopMovie_f(void)

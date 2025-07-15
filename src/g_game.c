@@ -358,10 +358,11 @@ consvar_t cv_useranalog[2] = {
 };
 
 // deez New User eXperiences
+// Dont push this to git
 static CV_PossibleValue_t directionchar_cons_t[] = {{0, "Camera"}, {1, "Movement"}, {2, "Simple Locked"}, {0, NULL}};
 consvar_t cv_directionchar[2] = {
-	CVAR_INIT ("directionchar", "Movement", CV_SAVE|CV_CALL, directionchar_cons_t, DirectionChar_OnChange),
-	CVAR_INIT ("directionchar2", "Movement", CV_SAVE|CV_CALL, directionchar_cons_t, DirectionChar2_OnChange),
+	CVAR_INIT ("directionchar", "Movement", CV_SAVE|CV_CALL|CV_ALLOWLUA, directionchar_cons_t, DirectionChar_OnChange),
+	CVAR_INIT ("directionchar2", "Movement", CV_SAVE|CV_CALL|CV_ALLOWLUA, directionchar_cons_t, DirectionChar2_OnChange),
 };
 consvar_t cv_autobrake = CVAR_INIT ("autobrake", "On", CV_SAVE|CV_CALL, CV_OnOff, AutoBrake_OnChange);
 consvar_t cv_autobrake2 = CVAR_INIT ("autobrake2", "On", CV_SAVE|CV_CALL, CV_OnOff, AutoBrake2_OnChange);
@@ -1730,6 +1731,22 @@ void G_BuildTiccmd(ticcmd_t *cmd, INT32 realtics, UINT8 ssplayer)
 
 		cmd->angleturn = orighookangle;
 
+		// Accel bug (for the funny)
+		/*
+		if (cmd->forwardmove != 0 && cmd->sidemove != 0) {
+			if (cmd->forwardmove > 0) {
+				cmd->forwardmove = 50;
+			} else {
+				cmd->forwardmove = -50;
+			}
+
+			if (cmd->sidemove > 0) {
+				cmd->sidemove = 50;
+			} else {
+				cmd->sidemove = -50;
+			}
+		}
+		*/
 		LUA_HookTiccmd(player, cmd, HOOK(PlayerCmd));
 
 		extra = cmd->angleturn - orighookangle;

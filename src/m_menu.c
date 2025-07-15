@@ -1098,6 +1098,7 @@ static menuitem_t OP_ChangeControlsMenu[] =
 	{IT_CALL | IT_STRING2, NULL, "Pause / Run Retry", M_ChangeControl, GC_PAUSE      },
 	{IT_CALL | IT_STRING2, NULL, "Screenshot",            M_ChangeControl, GC_SCREENSHOT    },
 	{IT_CALL | IT_STRING2, NULL, "Toggle GIF Recording",  M_ChangeControl, GC_RECORDGIF     },
+	{IT_CALL | IT_STRING2, NULL, "Pause GIF Recording",   M_ChangeControl, GC_PAUSEGIF      },
 	{IT_CALL | IT_STRING2, NULL, "Open/Close Menu (ESC)", M_ChangeControl, GC_SYSTEMMENU    },
 	{IT_CALL | IT_STRING2, NULL, "Next Viewpoint",        M_ChangeControl, GC_VIEWPOINTNEXT },
 	{IT_CALL | IT_STRING2, NULL, "Prev Viewpoint",        M_ChangeControl, GC_VIEWPOINTPREV },
@@ -3349,8 +3350,7 @@ boolean M_Responder(event_t *ev)
 				Command_Manual_f();
 				return true;
 
-			case KEY_F2: // Empty
-				return true;
+			// F2 is now used for pausing movies
 
 			case KEY_F3: // Toggle HUD
 				CV_SetValue(&cv_showhud, !cv_showhud.value);
@@ -13396,20 +13396,20 @@ static void M_Setup1PControlsMenu(INT32 choice)
 	//OP_ChangeControlsMenu[18+0].status = IT_HEADER;
 	//OP_ChangeControlsMenu[18+1].status = IT_SPACE;
 	// ...
-	OP_ChangeControlsMenu[18+2].status = IT_CALL|IT_STRING2;
-	OP_ChangeControlsMenu[18+3].status = IT_CALL|IT_STRING2;
-	OP_ChangeControlsMenu[18+4].status = IT_CALL|IT_STRING2;
-	OP_ChangeControlsMenu[18+5].status = IT_CALL|IT_STRING2;
-	OP_ChangeControlsMenu[18+6].status = IT_CALL|IT_STRING2;
+	OP_ChangeControlsMenu[19+2].status = IT_CALL|IT_STRING2;
+	OP_ChangeControlsMenu[19+3].status = IT_CALL|IT_STRING2;
+	OP_ChangeControlsMenu[19+4].status = IT_CALL|IT_STRING2;
+	OP_ChangeControlsMenu[19+5].status = IT_CALL|IT_STRING2;
+	OP_ChangeControlsMenu[19+6].status = IT_CALL|IT_STRING2;
 	//OP_ChangeControlsMenu[18+7].status = IT_CALL|IT_STRING2;
 	//OP_ChangeControlsMenu[18+8].status = IT_CALL|IT_STRING2;
-	OP_ChangeControlsMenu[18+9].status = IT_CALL|IT_STRING2;
+	OP_ChangeControlsMenu[19+9].status = IT_CALL|IT_STRING2;
 	// ...
-	OP_ChangeControlsMenu[28+0].status = IT_HEADER;
-	OP_ChangeControlsMenu[28+1].status = IT_SPACE;
+	OP_ChangeControlsMenu[29+0].status = IT_HEADER;
+	OP_ChangeControlsMenu[29+1].status = IT_SPACE;
 	// ...
-	OP_ChangeControlsMenu[28+2].status = IT_CALL|IT_STRING2;
-	OP_ChangeControlsMenu[28+3].status = IT_CALL|IT_STRING2;
+	OP_ChangeControlsMenu[29+2].status = IT_CALL|IT_STRING2;
+	OP_ChangeControlsMenu[29+3].status = IT_CALL|IT_STRING2;
 
 	OP_ChangeControlsDef.prevMenu = &OP_P1ControlsDef;
 	OP_ChangeControlsDef.menuid &= ~(((1 << MENUBITS) - 1) << MENUBITS); // remove second level
@@ -13428,20 +13428,20 @@ static void M_Setup2PControlsMenu(INT32 choice)
 	//OP_ChangeControlsMenu[18+0].status = IT_GRAYEDOUT2;
 	//OP_ChangeControlsMenu[18+1].status = IT_GRAYEDOUT2;
 	// ...
-	OP_ChangeControlsMenu[18+2].status = IT_GRAYEDOUT2;
-	OP_ChangeControlsMenu[18+3].status = IT_GRAYEDOUT2;
-	OP_ChangeControlsMenu[18+4].status = IT_GRAYEDOUT2;
-	OP_ChangeControlsMenu[18+5].status = IT_GRAYEDOUT2;
-	OP_ChangeControlsMenu[18+6].status = IT_GRAYEDOUT2;
+	OP_ChangeControlsMenu[19+2].status = IT_GRAYEDOUT2;
+	OP_ChangeControlsMenu[19+3].status = IT_GRAYEDOUT2;
+	OP_ChangeControlsMenu[19+4].status = IT_GRAYEDOUT2;
+	OP_ChangeControlsMenu[19+5].status = IT_GRAYEDOUT2;
+	OP_ChangeControlsMenu[19+6].status = IT_GRAYEDOUT2;
 	//OP_ChangeControlsMenu[18+7].status = IT_GRAYEDOUT2;
 	//OP_ChangeControlsMenu[18+8].status = IT_GRAYEDOUT2;
-	OP_ChangeControlsMenu[18+9].status = IT_GRAYEDOUT2;
+	OP_ChangeControlsMenu[19+9].status = IT_GRAYEDOUT2;
 	// ...
-	OP_ChangeControlsMenu[28+0].status = IT_GRAYEDOUT2;
-	OP_ChangeControlsMenu[28+1].status = IT_GRAYEDOUT2;
+	OP_ChangeControlsMenu[29+0].status = IT_GRAYEDOUT2;
+	OP_ChangeControlsMenu[29+1].status = IT_GRAYEDOUT2;
 	// ...
-	OP_ChangeControlsMenu[28+2].status = IT_GRAYEDOUT2;
-	OP_ChangeControlsMenu[28+3].status = IT_GRAYEDOUT2;
+	OP_ChangeControlsMenu[29+2].status = IT_GRAYEDOUT2;
+	OP_ChangeControlsMenu[29+3].status = IT_GRAYEDOUT2;
 
 	OP_ChangeControlsDef.prevMenu = &OP_P2ControlsDef;
 	OP_ChangeControlsDef.menuid &= ~(((1 << MENUBITS) - 1) << MENUBITS); // remove second level
@@ -13532,29 +13532,33 @@ static void M_DrawControl(void)
 
 		if (currentMenu->menuitems[i].status == IT_CONTROL)
 		{
-			V_DrawString(x, y, ((i == itemOn) ? V_YELLOWMAP : 0), currentMenu->menuitems[i].text);
+			V_DrawFill(x - 3,y, (BASEVIDWIDTH-currentMenu->x) - x + 6, 8,
+				((i == itemOn) ? 153 : ((i & 1) ? 159 : 156))|V_TRANSLUCENT
+			);
+			V_DrawThinString(x, y + 1, ((i == itemOn) ? V_YELLOWMAP : 0)|V_ALLOWLOWERCASE, currentMenu->menuitems[i].text);
 			keys[0] = setupcontrols[currentMenu->menuitems[i].alphaKey][0];
 			keys[1] = setupcontrols[currentMenu->menuitems[i].alphaKey][1];
 
 			tmp[0] ='\0';
 			if (keys[0] == KEY_NULL && keys[1] == KEY_NULL)
 			{
-				strcpy(tmp, "---");
+				strcpy(tmp, "\x86---");
 			}
 			else
 			{
+				strcpy(tmp, "\x82");
 				if (keys[0] != KEY_NULL)
-					strcat (tmp, G_KeyNumToName (keys[0]));
+					strcat(tmp, G_KeyNumToName(keys[0]));
 
 				if (keys[0] != KEY_NULL && keys[1] != KEY_NULL)
-					strcat(tmp," or ");
+					strcat(tmp," \x86or \x82");
 
 				if (keys[1] != KEY_NULL)
-					strcat (tmp, G_KeyNumToName (keys[1]));
+					strcat(tmp, G_KeyNumToName(keys[1]));
 
 
 			}
-			V_DrawRightAlignedString(BASEVIDWIDTH-currentMenu->x, y, V_YELLOWMAP, tmp);
+			V_DrawRightAlignedString(BASEVIDWIDTH-currentMenu->x, y, V_ALLOWLOWERCASE, tmp);
 		}
 		/*else if (currentMenu->menuitems[i].status == IT_GRAYEDOUT2)
 			V_DrawString(x, y, V_TRANSLUCENT, currentMenu->menuitems[i].text);*/

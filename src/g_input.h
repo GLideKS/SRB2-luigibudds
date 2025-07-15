@@ -101,6 +101,9 @@ typedef enum
 	GC_CUSTOM1, // Lua scriptable
 	GC_CUSTOM2, // Lua scriptable
 	GC_CUSTOM3, // Lua scriptable
+	// this is here at the end instead of next to the moviemode stuff because i dont wanna mess
+	// with consistancy and have something bad happen
+	GC_PAUSEGIF,
 	NUM_GAMECONTROLS
 } gamecontrols_e;
 

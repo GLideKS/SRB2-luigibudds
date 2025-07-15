@@ -25,8 +25,10 @@
 INT32 GIF_open(const char *filename);
 void GIF_frame(void);
 INT32 GIF_close(void);
-INT32 GIF_ReturnFramesBecauseImGoodAtC(void);
+
 long int GIF_ReturnSizeBecauseImTooGoodAtC(void);
+boolean GIF_RecordingPaused(void);
+void GIF_SetRecordingPaused(boolean paused);
 
 #endif
 

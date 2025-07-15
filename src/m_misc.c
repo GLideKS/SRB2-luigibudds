@@ -1267,6 +1267,8 @@ void M_SaveFrame(void)
 			takescreenshot = true;
 			return;
 		case MM_GIF:
+			if (GIF_RecordingPaused()) break;
+
 			movieframesrecorded += 1;
 
 			long int old_size = GIF_ReturnSizeBecauseImTooGoodAtC();
@@ -1339,6 +1341,16 @@ void M_SaveFrame(void)
 #endif
 }
 
+// GIF recordings only right now
+void M_PauseMovie(void)
+{
+	if (moviemode != MM_GIF)
+		return;
+	
+	// this should be all we need lol
+	GIF_SetRecordingPaused(!GIF_RecordingPaused());
+}
+
 void M_StopMovie(void)
 {
 #if NUMSCREENS > 2
@@ -1346,6 +1358,7 @@ void M_StopMovie(void)
 	{
 		case MM_GIF:
 			movieframesrecorded	= 0;
+			GIF_SetRecordingPaused(false);
 			if (!GIF_close())
 				return;
 			break;
@@ -1707,6 +1720,8 @@ boolean M_ScreenshotResponder(event_t *ev)
 		M_ScreenShot();
 	else if (ch == KEY_F9 || ch == gamecontrol[GC_RECORDGIF][0] || ch == gamecontrol[GC_RECORDGIF][1]) // remappable F9
 		((moviemode) ? M_StopMovie : M_StartMovie)();
+	else if ((ch == KEY_F2 || ch == gamecontrol[GC_PAUSEGIF][0] || ch == gamecontrol[GC_PAUSEGIF][1]) && moviemode == MM_GIF) // remappable F2
+		M_PauseMovie();
 	else
 		return false;
 	return true;

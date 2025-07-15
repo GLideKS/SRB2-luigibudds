@@ -2972,22 +2972,24 @@ void ST_ReallyCoolAndUsefulGIFDrawer(void)
 	//the number of frames we wrote should be equivilant to the number of tics
 	//we recorded
 	INT32 gif_frames = M_RecordedFrames();
+	boolean gif_paused = GIF_RecordingPaused();
 
     const float kMb = 1024.f * 1024.f;
 	unsigned long int orig_gif_size = M_SavedSize();
 	float gif_size = (float)orig_gif_size;
 	gif_size /= kMb;
 
-	INT32 cmap = (((2*gif_frames)/TICRATE) & 1) ? V_REDMAP : 0;
+	// muh ternary
+	INT32 cmap = gif_paused ? V_YELLOWMAP : (((2*gif_frames)/TICRATE) & 1) ? V_REDMAP : 0;
 	INT32 mheight = BASEVIDHEIGHT - 8;
 	V_DrawThinString(0, mheight,
 		cmap|V_USERHUDTRANS|V_SNAPTOLEFT|V_SNAPTOBOTTOM,
-        (moviemode == MM_APNG ? "APNG" : "GIF")
+        gif_paused ? "II" : (moviemode == MM_APNG ? "APNG" : "GIF")
 	);
 
 	boolean withincap = (cv_gif_maxsize.value != 0 ? (orig_gif_size >= (unsigned)(max(cv_gif_maxsize.value - 2, 0) * kMb)) : false);
 
-	V_DrawThinString((moviemode == MM_APNG ? 22 : 17), mheight,
+	V_DrawThinString((gif_paused ? 12 : (moviemode == MM_APNG ? 22 : 17)), mheight,
 		V_ALLOWLOWERCASE|V_USERHUDTRANS|V_SNAPTOLEFT|V_SNAPTOBOTTOM,
 		va(
 			//shitty ik lol
