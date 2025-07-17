@@ -1452,7 +1452,7 @@ static void HU_DrawChat(void)
 	INT32 charwidth = 4, charheight = 6;
 	INT32 boxw = cv_chatwidth.value;
 	INT32 t = 0, c = 0, y = cv_chaty.value - (typelines*charheight);
-	UINT32 i = 0, saylen = strlen(w_chat); // You learn new things everyday!
+	UINT32 i = 0, saylen = strlen(w_chat) /*You learn new things everyday!*/, typed_chars = 0; 
 	INT32 cflag = 0;
 	const char *ntalk = "Say: ", *ttalk = "Team: ";
 	const char *talk = ntalk;
@@ -1530,7 +1530,13 @@ static void HU_DrawChat(void)
 			y += charheight;
 			typelines += 1;
 		}
+		typed_chars += 1;
 	}
+	// Limit
+	V_DrawSmallString(cv_chatx.value, cv_chaty.value,
+		HU_GetChatSnapping()|(HU_MAXMSGLEN - typed_chars > 64 ? V_TRANSLUCENT : (typed_chars == HU_MAXMSGLEN ? V_REDMAP : V_YELLOWMAP)),
+		va("%d/%d",typed_chars,HU_MAXMSGLEN)
+	);
 
 	// handle /pm list. It's messy, horrible and I don't care.
 	if (strnicmp(w_chat, "/pm", 3) == 0 && vid.width >= 400 && !teamtalk) // 320x200 unsupported kthxbai
