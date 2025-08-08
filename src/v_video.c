@@ -45,6 +45,11 @@ UINT8 *screens[5];
 static CV_PossibleValue_t ticrate_cons_t[] = {{0, "No"}, {1, "Full"}, {2, "Compact"}, {3, "Thin Compacted"}, {0, NULL}};
 consvar_t cv_ticrate = CVAR_INIT ("showfps", "No", CV_SAVE, ticrate_cons_t, NULL);
 consvar_t cv_tpscounter = CVAR_INIT ("showtps", "No", CV_SAVE, ticrate_cons_t, NULL);
+consvar_t cv_compactinfo = CVAR_INIT ("compactinfo", "No", CV_SAVE, CV_YesNo, NULL);
+
+//this is for the server connection screen Lul
+consvar_t cv_compactaddonlist = CVAR_INIT ("compactaddons", "Yes", CV_SAVE, CV_YesNo, NULL);
+
 
 static void CV_palette_OnChange(void);
 
@@ -790,8 +795,9 @@ void V_DrawCroppedPatch(fixed_t x, fixed_t y, fixed_t pscale, fixed_t vscale, IN
 	fixed_t col, ofs, colfrac, rowfrac, fdup, vdup;
 	INT32 dup;
 	column_t *column;
-	UINT8 *desttop, *dest;
+	UINT8 *desttop, *dest, *deststart, *destend;
 	const UINT8 *source, *deststop;
+	fixed_t pwidth; // patch width
 
 	UINT8 perplayershuffle = 0;
 
@@ -856,6 +862,24 @@ void V_DrawCroppedPatch(fixed_t x, fixed_t y, fixed_t pscale, fixed_t vscale, IN
 	colfrac = FixedDiv(FRACUNIT, fdup);
 	rowfrac = FixedDiv(FRACUNIT, vdup);
 
+	/*
+	{
+		fixed_t offsetx = 0, offsety = 0;
+
+		// left offset
+		if (scrn & V_FLIP)
+			offsetx = FixedMul((patch->width - patch->leftoffset)<<FRACBITS, pscale) + 1;
+		else
+			offsetx = FixedMul(patch->leftoffset<<FRACBITS, pscale);
+
+		// top offset
+		offsety = FixedMul(patch->topoffset<<FRACBITS, vscale);
+
+		// Subtract the offsets from x/y positions
+		x -= offsetx;
+		y -= offsety;
+	}
+	*/
 	x -= FixedMul(patch->leftoffset<<FRACBITS, pscale);
 	y -= FixedMul(patch->topoffset<<FRACBITS, vscale);
 
@@ -1016,13 +1040,35 @@ void V_DrawCroppedPatch(fixed_t x, fixed_t y, fixed_t pscale, fixed_t vscale, IN
 		}
 	}
 
+	if (pscale != FRACUNIT) // scale width properly
+	{
+		pwidth = patch->width<<FRACBITS;
+		pwidth = FixedMul(pwidth, pscale);
+		pwidth *= dup;
+		pwidth >>= FRACBITS;
+	}
+	else
+		pwidth = patch->width * dup;
+
+	deststart = desttop;
+	destend = desttop + pwidth;
+
 	for (col = sx; (col>>FRACBITS) < patch->width && (col - sx) < w; col += colfrac, ++x, desttop++)
 	{
 		if (x < 0) // don't draw off the left of the screen (WRAP PREVENTION)
-			continue;
+		{
+			if (scrn & V_FLIP)
+				break;
+			else
+				continue;
+		}
 		if (x >= vid.width) // don't draw off the right of the screen (WRAP PREVENTION)
-			break;
-
+		{
+			if (scrn & V_FLIP)
+				continue;
+			else
+				break;
+		}
 		column = &patch->columns[col>>FRACBITS];
 
 		for (unsigned i = 0; i < column->num_posts; i++)

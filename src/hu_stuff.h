@@ -63,7 +63,7 @@ typedef struct
 //------------------------------------
 //           chat stuff
 //------------------------------------
-#define HU_MAXMSGLEN 223
+#define HU_MAXMSGLEN 222
 #define CHAT_BUFSIZE 64		// that's enough messages, right? We'll delete the older ones when that gets out of hand.
 #ifdef NETSPLITSCREEN
 #define OLDCHAT (cv_consolechat.value == 1 || dedicated || vid.width < 640)
@@ -109,7 +109,7 @@ void HU_Drawer(void);
 char HU_dequeueChatChar(void);
 void HU_clearChatChars(void);
 float HU_pingMSToDelay(UINT32 ping);
-void HU_drawPing(INT32 x, INT32 y, UINT32 ping, boolean notext, INT32 flags, INT32 pnum);	// Lat': Ping drawer for scoreboard.
+INT32 HU_drawPing(INT32 x, INT32 y, UINT32 ping, boolean notext, INT32 flags, INT32 pnum, boolean returnwidth);	// Lat': Ping drawer for scoreboard.
 void HU_DrawTabRankings(INT32 x, INT32 y, playersort_t *tab, INT32 scorelines, INT32 whiteplayer);
 void HU_DrawTeamTabRankings(playersort_t *tab, INT32 whiteplayer);
 void HU_DrawDualTabRankings(INT32 x, INT32 y, playersort_t *tab, INT32 scorelines, INT32 whiteplayer);

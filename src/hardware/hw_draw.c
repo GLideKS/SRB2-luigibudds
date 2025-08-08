@@ -315,10 +315,6 @@ void HWR_DrawCroppedPatch(patch_t *gpatch, fixed_t x, fixed_t y, fixed_t pscale,
 	UINT8 blendmode = ((option & V_BLENDMASK) >> V_BLENDSHIFT);
 	GLPatch_t *hwrPatch;
 
-//  3--2
-//  | /|
-//  |/ |
-//  0--1
 	float dup, fscalew, fscaleh, fwidth, fheight;
 
 	UINT8 perplayershuffle = 0;
@@ -485,6 +481,10 @@ void HWR_DrawCroppedPatch(patch_t *gpatch, fixed_t x, fixed_t y, fixed_t pscale,
 	fwidth /= vid.width / 2;
 	fheight /= vid.height / 2;
 
+	//  3--2
+	//  | /|
+	//  |/ |
+	//  0--1
 	// set the polygon vertices to the right positions
 	v[0].x = v[3].x = cx;
 	v[2].x = v[1].x = cx + fwidth;
@@ -494,11 +494,19 @@ void HWR_DrawCroppedPatch(patch_t *gpatch, fixed_t x, fixed_t y, fixed_t pscale,
 
 	v[0].z = v[1].z = v[2].z = v[3].z = 1.0f;
 
-	v[0].s = v[3].s = (FIXED_TO_FLOAT(sx)/(float)(gpatch->width))*hwrPatch->max_s;
-	if (sx + w > gpatch->width<<FRACBITS)
-		v[2].s = v[1].s = hwrPatch->max_s;
+	if (option & V_FLIP)
+		v[0].s = v[3].s = (1.0f - ( FIXED_TO_FLOAT(sx) / (float)(gpatch->width) ) )*hwrPatch->max_s;
 	else
-		v[2].s = v[1].s = (FIXED_TO_FLOAT(sx+w)/(float)(gpatch->width))*hwrPatch->max_s;
+		v[0].s = v[3].s = (FIXED_TO_FLOAT(sx)/(float)(gpatch->width))*hwrPatch->max_s;
+	if (sx + w > gpatch->width<<FRACBITS)
+		v[2].s = v[1].s = (option & V_FLIP) ? 0 : hwrPatch->max_s;
+	else
+	{
+		if (option & V_FLIP)
+			v[2].s = v[1].s = (1.0f - (FIXED_TO_FLOAT(sx+w)/(float)(gpatch->width)))*hwrPatch->max_s;
+		else
+			v[2].s = v[1].s = (FIXED_TO_FLOAT(sx+w)/(float)(gpatch->width))*hwrPatch->max_s;
+	}
 
 	v[0].t = v[1].t = (FIXED_TO_FLOAT(sy)/(float)(gpatch->height))*hwrPatch->max_t;
 	if (sy + h > gpatch->height<<FRACBITS)

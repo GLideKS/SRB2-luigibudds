@@ -348,13 +348,13 @@ static int camera_get(lua_State *L)
 		lua_pushangle(L, cam->aiming);
 		break;
 	case camera_x:
-	    lua_pushinteger(L, cam->x);
+	    lua_pushinteger(L, cam->x + quake.x);
 		break;
 	case camera_y:
-	    lua_pushinteger(L, cam->y);
+	    lua_pushinteger(L, cam->y + quake.y);
 		break;
 	case camera_z:
-	    lua_pushinteger(L, cam->z);
+	    lua_pushinteger(L, cam->z + quake.z);
 		break;
 	case camera_reset:
 		lua_pushboolean(L, cam->reset);
@@ -475,7 +475,23 @@ static int libd_patchExists(lua_State *L)
 static int libd_cachePatch(lua_State *L)
 {
 	HUDONLY
-	LUA_PushUserdata(L, W_CachePatchLongName(luaL_checkstring(L, 1), PU_PATCH), META_PATCH);
+	const char *name = luaL_checkstring(L, 1);
+	patch_t *patch = W_CachePatchLongName(name, PU_PATCH);
+
+#ifdef ROTSPRITE
+	if (lua_isnumber(L, 2))
+	{
+		angle_t rollangle = luaL_checkangle(L, 2);
+		INT32 rot = R_GetRollAngle(rollangle);
+		if (rot) {
+			patch_t *rotpatch = Patch_GetRotated(patch, rot, false);
+			LUA_PushUserdata(L, rotpatch, META_PATCH);
+			return 1;
+		}
+	}
+#endif
+	
+	LUA_PushUserdata(L, patch, META_PATCH);
 	return 1;
 }
 
@@ -1429,6 +1445,61 @@ static int libd_interpLatch(lua_State *L)
 	return 0;
 }
 
+// Render related stuff for interpolation
+static int libd_getrendertimefrac(lua_State *L)
+{
+	HUDONLY
+	
+	// we do this so that any interpolation with v.timeFraction() wont be "ahead" when the game is paused
+	boolean dointerp = true;
+	if ((paused || P_AutoPause()) || hu_stopped || !R_UsingFrameInterpolation())
+		dointerp = false;
+	
+	lua_pushfixed(L, dointerp ? rendertimefrac : 0);
+	return 1;
+}
+
+static int libd_getrenderdeltatics(lua_State *L)
+{
+	HUDONLY
+	lua_pushfixed(L, renderdeltatics);
+	return 1;
+}
+
+static int libd_getrenderisnewtic(lua_State *L)
+{
+	HUDONLY
+	lua_pushboolean(L, renderisnewtic);
+	return 1;
+}
+
+static int libd_getuncapped(lua_State *L)
+{
+	HUDONLY
+	lua_pushboolean(L, R_UsingFrameInterpolation());
+	return 1;
+}
+
+// get the position of mobj->old_[xyz] to mobj->[xyz]
+// ideally the second argument could be which position to use...
+// but i dont know enough of the lua api to do that, so all 3 positions are getting pushed
+static int libd_lerpmobjstate(lua_State *L)
+{
+	HUDONLY
+	mobj_t *thing = *((mobj_t **)luaL_checkudata(L, 1, META_MOBJ));
+
+	interpmobjstate_t interp = {0};
+	if (R_UsingFrameInterpolation() && !paused)
+		R_InterpolateMobjState(thing, rendertimefrac, &interp);
+	else
+		R_InterpolateMobjState(thing, FRACUNIT, &interp);
+
+	lua_pushfixed(L, interp.x);
+	lua_pushfixed(L, interp.y);
+	lua_pushfixed(L, interp.z);
+	return 3;
+}
+
 static luaL_Reg lib_draw[] = {
 	// cache
 	{"patchExists", libd_patchExists},
@@ -1474,6 +1545,11 @@ static luaL_Reg lib_draw[] = {
 	{"userTransFlag", libd_getusertransflag},
 	{"interpolate", libd_interpolate},
 	{"interpLatch", libd_interpLatch},
+	{"timeFraction", libd_getrendertimefrac},
+	{"deltaTics", libd_getrenderdeltatics},
+	{"isNewTic", libd_getrenderisnewtic},
+	{"usingInterpolation", libd_getuncapped},
+	{"interpolateMobj", libd_lerpmobjstate},
 	{NULL, NULL}
 };
 
@@ -1565,7 +1641,8 @@ void LUA_SetHudHook(int hook, huddrawlist_h list)
 
 	switch (hook)
 	{
-		case HUD_HOOK(game): {
+		case HUD_HOOK(game):
+		case HUD_HOOK(uncappedgame): {
 			camera_t *cam = (splitscreen && stplyr ==
 					&players[secondarydisplayplayer])
 				? &camera2 : &camera;

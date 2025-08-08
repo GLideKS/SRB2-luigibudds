@@ -124,7 +124,7 @@ void Command_Numthinkers_f(void)
 	{
 		for (think = thlist[i].next; think != &thlist[i]; think = think->next)
 		{
-			if (think->function.acp1 != action)
+			if (think->function != action)
 				continue;
 
 			count++;
@@ -216,7 +216,7 @@ void P_AddThinker(const thinklistnum_t n, thinker_t *thinker)
 	thinker->prev = thlist[n].prev;
 	thlist[n].prev = thinker;
 
-	thinker->references = 0;    // killough 11/98: init reference counter to 0
+	thinker->references = 0;	// killough 11/98: init reference counter to 0
 	thinker->cachable = n == THINK_MOBJ;
 
 #ifdef PARANOIA
@@ -228,7 +228,7 @@ void P_AddThinker(const thinklistnum_t n, thinker_t *thinker)
 static const char *MobjTypeName(const mobj_t *mobj)
 {
 	mobjtype_t type;
-	actionf_p1 p1 = mobj->thinker.function.acp1;
+	actionf_p1 p1 = mobj->thinker.function;
 
 	if (p1 == (actionf_p1)P_MobjThinker)
 		type = mobj->type;
@@ -247,7 +247,7 @@ static const char *MobjTypeName(const mobj_t *mobj)
 
 static const char *MobjThinkerName(const mobj_t *mobj)
 {
-	actionf_p1 p1 = mobj->thinker.function.acp1;
+	actionf_p1 p1 = mobj->thinker.function;
 
 	if (p1 == (actionf_p1)P_MobjThinker)
 	{
@@ -349,7 +349,7 @@ void P_RemoveThinker(thinker_t *thinker)
 {
 	LUA_InvalidateUserdata(thinker);
 	thinker->removing = true;
-	thinker->function.acp1 = (actionf_p1)P_RemoveThinkerDelayed;
+	thinker->function = (actionf_p1)P_RemoveThinkerDelayed;
 }
 
 /*
@@ -437,9 +437,9 @@ static inline void P_RunThinkers(void)
 		for (currentthinker = thlist[i].next; currentthinker != &thlist[i]; currentthinker = currentthinker->next)
 		{
 #ifdef PARANOIA
-			I_Assert(currentthinker->function.acp1 != NULL);
+			I_Assert(currentthinker->function != NULL);
 #endif
-			currentthinker->function.acp1(currentthinker);
+			currentthinker->function(currentthinker);
 		}
 		PS_STOP_TIMING(ps_thlist_times[i]);
 	}
@@ -743,51 +743,51 @@ void P_Ticker(boolean run)
 		return;
 	}
 
-    if (freezelevelthinkers)
-    {
-        P_MapStart();
-        R_UpdateMobjInterpolators();
-        
-        S_SetStackAdjustmentStart();
-        
-        // tick prethink too cause takis uses it for controls (only if toggled)
-        if (freezelevelthinkers_thinkframers)
-        {
-            PS_START_TIMING(ps_lua_prethinkframe_time);
-            LUA_HookPreThinkFrame();
-            PS_STOP_TIMING(ps_lua_prethinkframe_time);
-        }
+	if (freezelevelthinkers)
+	{
+		P_MapStart();
+		R_UpdateMobjInterpolators();
+		
+		S_SetStackAdjustmentStart();
+		
+		// tick prethink too cause takis uses it for controls (only if toggled)
+		if (freezelevelthinkers_thinkframers)
+		{
+			PS_START_TIMING(ps_lua_prethinkframe_time);
+			LUA_HookPreThinkFrame();
+			PS_STOP_TIMING(ps_lua_prethinkframe_time);
+		}
 
-        // ONLY tick players and their mobjs
-        PS_START_TIMING(ps_playerthink_time);
-        for (i = 0; i < MAXPLAYERS; i++)
-        {
-            if (playeringame[i] && players[i].mo && !P_MobjWasRemoved(players[i].mo))
-            {
-                P_PlayerThink(&players[i]);
-                P_MobjThinker(players[i].mo);
-            }
-        }
-        PS_STOP_TIMING(ps_playerthink_time);
-        for (i = 0; i < MAXPLAYERS; i++)
-            if (playeringame[i] && players[i].mo && !P_MobjWasRemoved(players[i].mo))
-                P_PlayerAfterThink(&players[i]);
+		// ONLY tick players and their mobjs
+		PS_START_TIMING(ps_playerthink_time);
+		for (i = 0; i < MAXPLAYERS; i++)
+		{
+			if (playeringame[i] && players[i].mo && !P_MobjWasRemoved(players[i].mo))
+			{
+				P_PlayerThink(&players[i]);
+				P_MobjThinker(players[i].mo);
+			}
+		}
+		PS_STOP_TIMING(ps_playerthink_time);
+		for (i = 0; i < MAXPLAYERS; i++)
+			if (playeringame[i] && players[i].mo && !P_MobjWasRemoved(players[i].mo))
+				P_PlayerAfterThink(&players[i]);
 
-        if (freezelevelthinkers_thinkframers)
-        {
-            PS_START_TIMING(ps_lua_thinkframe_time);
-            LUA_HookThinkFrame();
-            PS_STOP_TIMING(ps_lua_thinkframe_time);
+		if (freezelevelthinkers_thinkframers)
+		{
+			PS_START_TIMING(ps_lua_thinkframe_time);
+			LUA_HookThinkFrame();
+			PS_STOP_TIMING(ps_lua_thinkframe_time);
 
-            PS_START_TIMING(ps_lua_postthinkframe_time);
-            LUA_HookPostThinkFrame();
-            PS_STOP_TIMING(ps_lua_postthinkframe_time);
-       }
+			PS_START_TIMING(ps_lua_postthinkframe_time);
+			LUA_HookPostThinkFrame();
+			PS_STOP_TIMING(ps_lua_postthinkframe_time);
+	   }
 
-        R_UpdateViewInterpolation();
-        P_MapEnd();
-        return;
-    }
+		R_UpdateViewInterpolation();
+		P_MapEnd();
+		return;
+	}
 
 	if (!S_MusicPaused())
 		S_AdjustMusicStackTics();
@@ -908,7 +908,7 @@ void P_Ticker(boolean run)
 
 			if (quake.minus)
 				quake.intensity -= quake.minus;
-        }
+		}
 
 		if (!P_MobjWasRemoved(metalplayback))
 			G_ReadMetalTic(metalplayback);

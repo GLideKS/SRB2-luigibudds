@@ -365,6 +365,7 @@ static CV_PossibleValue_t showping_cons_t[] = {{0, "Off"}, {1, "Always"}, {2, "W
 consvar_t cv_showping = CVAR_INIT ("showping", "Warning", CV_SAVE, showping_cons_t, NULL);
 static CV_PossibleValue_t pingmeasurement_cons_t[] = {{0, "Milliseconds"}, {1, "Frames"}, {0, NULL}};
 consvar_t cv_pingmeasurement = CVAR_INIT ("pingmeasurement", "Milliseconds", CV_SAVE, pingmeasurement_cons_t, NULL);
+consvar_t cv_showcsays = CVAR_INIT ("showcsays", "Yes", CV_SAVE, CV_YesNo, NULL);
 
 // Intermission time Tails 04-19-2002
 static CV_PossibleValue_t inttime_cons_t[] = {{0, "MIN"}, {3600, "MAX"}, {0, NULL}};
@@ -639,6 +640,7 @@ void D_RegisterServerCommands(void)
 	CV_RegisterVar(&cv_pingtimeout);
 	CV_RegisterVar(&cv_showping);
 	CV_RegisterVar(&cv_pingmeasurement);
+	CV_RegisterVar(&cv_showcsays);
 
 	CV_RegisterVar(&cv_allowseenames);
 
@@ -4867,7 +4869,7 @@ static void Command_Archivetest_f(void)
 	// assign mobjnum
 	i = 1;
 	for (th = thlist[THINK_MOBJ].next; th != &thlist[THINK_MOBJ]; th = th->next)
-		if (th->function.acp1 != (actionf_p1)P_RemoveThinkerDelayed)
+		if (th->function != (actionf_p1)P_RemoveThinkerDelayed)
 			((mobj_t *)th)->mobjnum = i++;
 
 	// allocate buffer
@@ -5063,7 +5065,7 @@ static void Color_OnChange(void)
 			return;
 		}
 
-		if (!P_PlayerMoving(consoleplayer) && skincolors[players[consoleplayer].skincolor].accessible == true)
+		if (skincolors[players[consoleplayer].skincolor].accessible == true)
 		{
 			// Color change menu scrolling fix is no longer necessary
 			SendNameAndColor();
@@ -5091,7 +5093,7 @@ static void Color2_OnChange(void)
 	}
 	else
 	{
-		if (!P_PlayerMoving(secondarydisplayplayer) && skincolors[players[secondarydisplayplayer].skincolor].accessible == true)
+		if (skincolors[players[secondarydisplayplayer].skincolor].accessible == true)
 		{
 			// Color change menu scrolling fix is no longer necessary
 			SendNameAndColor2();

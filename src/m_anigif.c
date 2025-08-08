@@ -809,13 +809,13 @@ long int GIF_ReturnSizeBecauseImTooGoodAtC(void)
 	return (moviemode == MM_GIF) ? ftell(gif_out) : 0;
 }
 
-void GIF_SetRecordingPaused(boolean paused)
+void GIF_SetRecordingPaused(boolean new_paused)
 {
 	// not recording a gif so.... why are you usin this??
 	if (moviemode != MM_GIF)
 		gif_paused = false;
 	else
-		gif_paused = paused;
+		gif_paused = new_paused;
 }
 
 boolean GIF_RecordingPaused(void)

@@ -1187,6 +1187,7 @@ void R_SetupFrame(player_t *player)
 		if (cv_ringracers_quakes.value)
 		{
 			ir = FixedMul(ir << 1, FRACUNIT + rendertimefrac);
+			ir = (3*ir)/4;
 
 			/*
 			fixed_t max_shake = thiscam->height * 3 / 4;

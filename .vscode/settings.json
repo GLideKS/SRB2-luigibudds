@@ -20,6 +20,15 @@
         "d_main.h": "c",
         "xiosbase": "c",
         "net_command.h": "c",
-        "cmath": "c"
+        "cmath": "c",
+        "compare": "c",
+        "format": "c",
+        "memory": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "xmemory": "c",
+        "xstring": "c",
+        "xtr1common": "c"
     }
 }

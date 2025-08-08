@@ -89,6 +89,7 @@ automatically.
 	X (intermission),\
 	X (continue),\
 	X (playersetup),\
+	X (uncappedgame),\
 
 /*
 I chose to access the hook enums through a macro as well. This could provide

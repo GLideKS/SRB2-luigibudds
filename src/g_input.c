@@ -603,6 +603,7 @@ static const char *gamecontrolname[NUM_GAMECONTROLS] =
 	"custom1",
 	"custom2",
 	"custom3",
+	"pausegif",
 };
 
 #define NUMKEYNAMES (sizeof (keynames)/sizeof (keyname_t))
@@ -741,6 +742,7 @@ void G_DefineDefaultControls(void)
 		gamecontroldefault[i][GC_PAUSE        ][0] = 'p';
 		gamecontroldefault[i][GC_SCREENSHOT   ][0] = KEY_F8;
 		gamecontroldefault[i][GC_RECORDGIF    ][0] = KEY_F9;
+		gamecontroldefault[i][GC_PAUSEGIF     ][0] = KEY_F2;
 		gamecontroldefault[i][GC_VIEWPOINTNEXT][0] = KEY_F12;
 
 		// Gamepad controls -- same for both schemes
