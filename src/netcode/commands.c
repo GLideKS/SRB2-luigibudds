@@ -26,6 +26,7 @@
 #include "../doomstat.h"
 #include "../doomdef.h"
 #include "../r_local.h"
+#include "../m_misc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -389,6 +390,9 @@ void Command_Kick(void)
 
 void Command_connect(void)
 {
+	// By default, clear the saved address that we'd save after succesfully joining just to be sure:
+	joinedIP[0] = '\0';
+
 	if (COM_Argc() < 2 || *COM_Argv(1) == 0)
 	{
 		CONS_Printf(M_GetText(
@@ -441,6 +445,10 @@ void Command_connect(void)
 					servernode = I_NetMakeNodewPort(COM_Argv(1), COM_Argv(2));
 				else // address only, or address:port
 					servernode = I_NetMakeNode(COM_Argv(1));
+				
+				// Last IPs joined:
+				// Keep the address we typed in memory so that we can save it if we *succesfully* join the server
+				strlcpy(joinedIP, COM_Argv(1), MAX_LOGIP);
 			}
 			else
 			{
