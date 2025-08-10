@@ -47,6 +47,8 @@ static INT32 cl_vs_sa_scroll = 0;
 static INT32 cl_vs_sa_scrolltime = 0;
 static INT16 cl_vs_sa_animcount = 8;
 #define MAXBIGADDONS (11)
+//Shortcut for `fileneedednum - cap`
+#define ADDONSCROLLCAP (cv_compactaddonlist.value ? (MAXBIGADDONS*2) : MAXBIGADDONS)
 
 static UINT16 cl_lastcheckedfilecount = 0;	// used for full file list
 
@@ -286,7 +288,7 @@ static void CL_DrawConnectionStatus(void)
 			if (serverlist[joinnode].info.flags & SV_DEDICATED)
 				V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, 58, V_ALLOWLOWERCASE|V_ORANGEMAP, "Dedicated");
 			else
-				V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, 58, V_ALLOWLOWERCASE|V_GREENMAP, "Listen Serv.");
+				V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, 58, V_ALLOWLOWERCASE|V_GREENMAP, "Listen Server");
 			
 			if (serverlist[joinnode].info.cheatsenabled)
 			{
@@ -353,7 +355,7 @@ static void CL_DrawConnectionStatus(void)
 				{
 					if (i & 1)
 						V_DrawFill(x,y-1,
-							(small_mode) ? 292 : 146, 9,
+							(small_mode) ? 288 : 146, 9,
 							156
 						);
 					
@@ -361,12 +363,12 @@ static void CL_DrawConnectionStatus(void)
 					strncpy(file_name, addon_file.filename, MAX_WADPATH);
 					if ((UINT8)(strlen(file_name)+1) > maxcharlen && !small_mode)
 						V_DrawThinString(x, y, V_ALLOWLOWERCASE|V_6WIDTHSPACE,
-							va("\x82[#%d]\x80: %.*s...%s",i+1, charsonside, file_name, file_name+strlen(file_name)-((charsonside+1)))
+							va("\x82[#%.2d]\x80: %.*s...%s",i+1, charsonside, file_name, file_name+strlen(file_name)-((charsonside+1)))
 						);
 					else
 					{
 						V_DrawThinString(x, y, V_ALLOWLOWERCASE|V_6WIDTHSPACE,
-							va("\x82[#%d]\x80: %s",i+1, file_name)
+							va("\x82[#%.2d]\x80: %s",i+1, file_name)
 						);
 
 						// make sure we have the space
@@ -387,11 +389,11 @@ static void CL_DrawConnectionStatus(void)
 								file_size /= 1024.0f;
 							}
 
-							V_DrawRightAlignedThinString(x + 292,
+							V_DrawRightAlignedThinString(x + 288,
 								y, V_YELLOWMAP|V_ALLOWLOWERCASE,
 								// "~" since its approx this size, we mightve lost some
 								// accuracy from only having 4 bytes carry the size
-								va("(~%.1f%s)", file_size, size_mode == 0 ? "b" : (size_mode == 2 ? "kb" : "mb"))
+								va("~%.1f%s", file_size, size_mode == 0 ? "b" : (size_mode == 2 ? "kb" : "mb"))
 							);
 						}
 					}
@@ -408,20 +410,6 @@ static void CL_DrawConnectionStatus(void)
 					// Cannot draw any more
 					if (count == MAXBIGADDONS*2)
 						break;
-
-					/*
-					fileneeded[i].type = FILENEEDED_WAD;
-					fileneeded[i].status = FS_NOTCHECKED; // We haven't even started looking for the file yet
-					fileneeded[i].justdownloaded = false;
-					filestatus = READUINT8(p); // The first byte is the file status
-					fileneeded[i].folder = READUINT8(p); // The second byte is the folder flag
-					fileneeded[i].willsend = (UINT8)(filestatus >> 4);
-					fileneeded[i].totalsize = READUINT32(p); // The four next bytes are the file size
-					fileneeded[i].file = NULL; // The file isn't open yet
-					fileneeded[i].failed = FDOWNLOAD_FAIL_NONE;
-					READSTRINGN(p, fileneeded[i].filename, MAX_WADPATH); // The next bytes are the file name
-					READMEM(p, fileneeded[i].md5sum, 16); // The last 16 bytes are the file checksum
-					*/
 				}
 
 				// reiterate again!!! Yes!!! Yay!!!
@@ -450,6 +438,7 @@ static void CL_DrawConnectionStatus(void)
 				);
 
 				// draw the little arrows
+				// We probably have space for a scroll bar here now
 				if (fileneedednum >= (MAXBIGADDONS*2))
 				{
 					// up arrow
@@ -459,7 +448,7 @@ static void CL_DrawConnectionStatus(void)
 							"\x1A"
 						);
 					
-					if (cl_vs_sa_scroll != fileneedednum-(MAXBIGADDONS*2))
+					if (cl_vs_sa_scroll != fileneedednum - ADDONSCROLLCAP)
 						V_DrawRightAlignedThinString(BASEVIDWIDTH - 10,
 							y-9 + (cl_vs_sa_animcount/5), V_YELLOWMAP,
 							"\x1B"
@@ -1542,13 +1531,14 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 				{
 					if (!cl_vs_sa_tapped || cl_vs_sa_scrolltime >= TICRATE>>1)
 					{
-						if (cl_vs_sa_scroll != fileneedednum - (MAXBIGADDONS*2))
+						INT32 cap = fileneedednum - ADDONSCROLLCAP;
+						if (cl_vs_sa_scroll != cap)
 						{
 							cl_vs_sa_scroll += 1;
 							S_StartSound(NULL, sfx_menu1);
 						}
-						if (cl_vs_sa_scroll > fileneedednum - (MAXBIGADDONS*2)) cl_vs_sa_scroll = fileneedednum - (MAXBIGADDONS*2);
-						if (!cl_vs_sa_tapped) cl_vs_sa_scrolltime = 0;
+						cl_vs_sa_scroll = max(0,min(cl_vs_sa_scroll, cap));
+						if (!cl_vs_sa_tapped) { cl_vs_sa_scrolltime = 0; }
 					}
 					cl_vs_sa_tapped = true;
 					cl_vs_sa_scrolltime++;

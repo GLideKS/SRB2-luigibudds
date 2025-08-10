@@ -405,6 +405,7 @@ void Command_connect(void)
 		return;
 	}
 
+	boolean wasserver = server;
 	server = false;
 /*
 	if (!stricmp(COM_Argv(1), "self"))
@@ -425,6 +426,7 @@ void Command_connect(void)
 		else if (netgame)
 		{
 			CONS_Printf(M_GetText("You cannot connect while in a game. End this game first.\n"));
+			server = wasserver;
 			return;
 		}
 		else if (I_NetOpenSocket)
