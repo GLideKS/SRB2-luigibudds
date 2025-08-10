@@ -22,6 +22,7 @@
 #include "lua_libs.h"
 #include "lua_hook.h"
 #include "lua_hud.h" // hud_running errors
+#include "lua_archive.h"
 
 #include "m_perfstats.h"
 #include "netcode/d_netcmd.h" // for cv_perfstats
@@ -690,6 +691,17 @@ int LUA_HookKey(event_t *event, int hook_type)
 	return hook.status;
 }
 
+int LUA_HookText(event_t *event, int hook_type)
+{
+	Hook_State hook;
+	if (prepare_hook(&hook, false, hook_type))
+	{
+		LUA_PushUserdata(gL, event, META_TEXTEVENT);
+		call_hooks(&hook, 1, res_true);
+	}
+	return hook.status;
+}
+
 void LUA_HookHUD(int hook_type, huddrawlist_h list)
 {
 	Hook_State hook;
@@ -726,6 +738,22 @@ int LUA_HookCharacterHUD
 	}
 	return hook.status;
 }
+
+boolean LUA_HookEscapePanel(int hook, huddrawlist_h drawlist, int x, int y, int width, int height)
+{
+	Hook_State hookstate;
+	if (prepare_hud_hook(&hookstate, false, hook))
+	{
+		LUA_SetHudHook(hook, drawlist);
+		lua_pushinteger(gL, x);
+		lua_pushinteger(gL, y);
+		lua_pushinteger(gL, width);
+		lua_pushinteger(gL, height);
+		call_hud_hooks(&hookstate, 1, res_true);
+	}
+	return hookstate.status;
+}
+
 
 /* =========================================================================
                                SPECIALIZED HOOKS
@@ -1016,9 +1044,10 @@ void LUA_HookNetArchive(lua_CFunction archFunc)
 
 		begin_hook_values(&hook);
 
-		// tables becomes an upvalue of archFunc
-		lua_pushvalue(gL, -1);
-		lua_pushcclosure(gL, archFunc, 1);
+		// tables and userdata becomes an upvalue of archFunc
+		lua_pushvalue(gL, -2);
+		lua_pushvalue(gL, -2);
+		lua_pushcclosure(gL, archFunc, 2);
 		// stack: tables, archFunc
 
 		init_hook_call(&hook, 0, res_none);
@@ -1075,6 +1104,18 @@ void LUA_HookPlayerQuit(player_t *plr, kickreason_t reason)
 		lua_pushinteger(gL, reason); // Reason for quitting
 		call_hooks(&hook, 0, res_none);
 	}
+}
+
+int LUA_HookNameChange(player_t *plr, const char *name)
+{
+	Hook_State hook;
+	if (prepare_hook(&hook, true, HOOK(NameChange)))
+	{
+		LUA_PushUserdata(gL, plr, META_PLAYER); // Player that changed name
+		lua_pushstring(gL, name);   // New player name
+		call_hooks(&hook, 1, res_false);
+	}
+	return hook.status;
 }
 
 int LUA_HookTeamSwitch(player_t *player, int newteam, boolean fromspectators, boolean tryingautobalance, boolean tryingscramble)
@@ -1225,6 +1266,47 @@ int LUA_HookMusicChange(const char *oldname, struct MusicChange *param)
 	}
 
 	return hook.status;
+}
+
+static void res_soundplay(Hook_State* hook)
+{
+    if (!lua_isnil(gL, -1))
+    {
+        UINT32 sfx_id = lua_tonumber(gL, -1);
+        if (lua_isboolean(gL, -1) && lua_toboolean(gL, -1))
+            hook->status = 0; //sfx_None if returning True
+
+        //Make sure number is in range
+        else if (!lua_isboolean(gL, -1)
+            && (sfx_id < NUMSFX))
+            hook->status = sfx_id;
+
+        if (sfx_id >= NUMSFX)
+			CONS_Alert(CONS_WARNING, "sfx %d out of range (0 - %d)\n", sfx_id, NUMSFX-1);
+    }
+}
+
+int LUA_HookSoundPlay(sfxenum_t sfx_id, void *origin, const int origintype)
+{
+    Hook_State hook;
+
+    if (prepare_hook(&hook, sfx_id, HOOK(SoundPlay)))
+    {
+        lua_pushinteger(gL, sfx_id);
+        if (origin != NULL)
+        {
+			if (origintype == 0)
+				LUA_PushUserdata(gL, (mobj_t*)origin, META_MOBJ);
+			else if (origintype == 1)
+				LUA_PushUserdata(gL, (sector_t*)origin, META_SECTOR);
+			lua_pushinteger(gL, origintype);
+        }
+
+        hud_running = true; // local hook
+        call_hooks(&hook, 1, res_soundplay);
+        hud_running = false;
+    }
+    return hook.status;
 }
 
 static void res_playerheight(Hook_State *hook)

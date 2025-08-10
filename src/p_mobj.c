@@ -36,10 +36,11 @@
 #include "p_slopes.h"
 #include "f_finale.h"
 #include "m_cond.h"
+#include "simple_hashmap.h"
 #include "netcode/net_command.h"
 
 static CV_PossibleValue_t CV_BobSpeed[] = {{0, "MIN"}, {4*FRACUNIT, "MAX"}, {0, NULL}};
-consvar_t cv_movebob = CVAR_INIT ("movebob", "1.0", CV_FLOAT|CV_SAVE, CV_BobSpeed, NULL);
+consvar_t cv_movebob = CVAR_INIT ("movebob", "0.25", CV_FLOAT|CV_SAVE, CV_BobSpeed, NULL);
 
 actioncache_t actioncachehead;
 
@@ -63,7 +64,7 @@ void P_RunCachedActions(void)
 		var2 = states[ac->statenum].var2;
 		astate = &states[ac->statenum];
 		if (ac->mobj && !P_MobjWasRemoved(ac->mobj)) // just in case...
-			states[ac->statenum].action.acp1(ac->mobj);
+			states[ac->statenum].action(ac->mobj);
 		next = ac->next;
 		Z_Free(ac);
 	}
@@ -178,6 +179,61 @@ static void P_CycleMobjState(mobj_t *mobj)
 	}
 }
 
+static panim_t GetPlayerAnimationFromState(player_t *player, statenum_t state)
+{
+	switch(P_GetCanonicalPlayerState(player, state))
+	{
+	case S_PLAY_STND:
+	case S_PLAY_WAIT:
+	case S_PLAY_NIGHTS_STAND:
+		return PA_IDLE;
+	case S_PLAY_EDGE:
+		return PA_EDGE;
+	case S_PLAY_WALK:
+	case S_PLAY_SKID:
+	case S_PLAY_FLOAT:
+		return PA_WALK;
+	case S_PLAY_RUN:
+	case S_PLAY_FLOAT_RUN:
+		return PA_RUN;
+	case S_PLAY_DASH:
+		return PA_DASH;
+	case S_PLAY_PAIN:
+	case S_PLAY_STUN:
+		return PA_PAIN;
+	case S_PLAY_ROLL:
+	//case S_PLAY_SPINDASH: -- everyone can ROLL thanks to zoom tubes...
+	case S_PLAY_NIGHTS_ATTACK:
+		return PA_ROLL;
+	case S_PLAY_JUMP:
+		return PA_JUMP;
+	case S_PLAY_SPRING:
+		return PA_SPRING;
+	case S_PLAY_FALL:
+	case S_PLAY_NIGHTS_FLOAT:
+		return PA_FALL;
+	case S_PLAY_FLY:
+	case S_PLAY_FLY_TIRED:
+	case S_PLAY_SWIM:
+	case S_PLAY_GLIDE:
+	case S_PLAY_BOUNCE:
+	case S_PLAY_BOUNCE_LANDING:
+	case S_PLAY_TWINSPIN:
+		return PA_ABILITY;
+	case S_PLAY_SPINDASH: // ...but the act of SPINDASHING is charability2 specific.
+	case S_PLAY_FIRE:
+	case S_PLAY_FIRE_FINISH:
+	case S_PLAY_MELEE:
+	case S_PLAY_MELEE_FINISH:
+	case S_PLAY_MELEE_LANDING:
+		return PA_ABILITY2;
+	case S_PLAY_RIDE:
+		return PA_RIDE;
+	default:
+		return PA_ETC;
+	}
+}
+
 //
 // P_SetPlayerMobjState
 // Returns true if the mobj is still present.
@@ -201,6 +257,12 @@ static boolean P_SetPlayerMobjState(mobj_t *mobj, statenum_t state)
 		I_Error("P_SetPlayerMobjState used for non-player mobj. Use P_SetMobjState instead!\n(Mobj type: %d, State: %d)", mobj->type, state);
 #endif
 
+	// If the state has been overriden for this skin, use the replacement instead
+	statenum_t customskinstate;
+	SIMPLEHASH_FIND_INT(skins[player->skin]->defaulttocustomstate, hashentry_int32_int32_t, state, S_NULL, customskinstate)
+	if (customskinstate)
+		state = customskinstate;
+
 	// Catch falling for nojumpspin
 	if ((state == S_PLAY_JUMP) && (player->charflags & SF_NOJUMPSPIN) && (P_MobjFlip(mobj)*mobj->momz < 0))
 		return P_SetPlayerMobjState(mobj, S_PLAY_FALL);
@@ -222,88 +284,24 @@ static boolean P_SetPlayerMobjState(mobj_t *mobj, statenum_t state)
 	{
 		if (state == S_PLAY_JUMP)
 		{
-			if (player->mo->state-states == S_PLAY_WALK)
+			if (P_IsPlayerInState(player, S_PLAY_WALK))
 				return P_SetPlayerMobjState(mobj, S_PLAY_FLOAT);
 			return true;
 		}
-		else if (player->mo->state-states == S_PLAY_FLOAT && state == S_PLAY_STND)
+		else if (P_IsPlayerInState(player, S_PLAY_FLOAT) && state == S_PLAY_STND)
 			return true;
 	}
 	// You were in pain state after taking a hit, and you're moving out of pain state now?
-	else if (mobj->state == &states[mobj->info->painstate] && player->powers[pw_flashing] == flashingtics && state != mobj->info->painstate)
+	else if (P_IsPlayerInState(player, S_PLAY_PAIN)
+	&& player->powers[pw_flashing] == flashingtics
+	&& P_GetCanonicalPlayerState(player, state) != S_PLAY_PAIN)
 	{
 		// Start flashing, since you've landed.
 		player->powers[pw_flashing] = flashingtics-1;
 		P_DoPityCheck(player);
 	}
 
-	// Set animation state
-	// The pflags version of this was just as convoluted.
-	switch(state)
-	{
-	case S_PLAY_STND:
-	case S_PLAY_WAIT:
-	case S_PLAY_NIGHTS_STAND:
-		player->panim = PA_IDLE;
-		break;
-	case S_PLAY_EDGE:
-		player->panim = PA_EDGE;
-		break;
-	case S_PLAY_WALK:
-	case S_PLAY_SKID:
-	case S_PLAY_FLOAT:
-		player->panim = PA_WALK;
-		break;
-	case S_PLAY_RUN:
-	case S_PLAY_FLOAT_RUN:
-		player->panim = PA_RUN;
-		break;
-	case S_PLAY_DASH:
-		player->panim = PA_DASH;
-		break;
-	case S_PLAY_PAIN:
-	case S_PLAY_STUN:
-		player->panim = PA_PAIN;
-		break;
-	case S_PLAY_ROLL:
-	//case S_PLAY_SPINDASH: -- everyone can ROLL thanks to zoom tubes...
-	case S_PLAY_NIGHTS_ATTACK:
-		player->panim = PA_ROLL;
-		break;
-	case S_PLAY_JUMP:
-		player->panim = PA_JUMP;
-		break;
-	case S_PLAY_SPRING:
-		player->panim = PA_SPRING;
-		break;
-	case S_PLAY_FALL:
-	case S_PLAY_NIGHTS_FLOAT:
-		player->panim = PA_FALL;
-		break;
-	case S_PLAY_FLY:
-	case S_PLAY_FLY_TIRED:
-	case S_PLAY_SWIM:
-	case S_PLAY_GLIDE:
-	case S_PLAY_BOUNCE:
-	case S_PLAY_BOUNCE_LANDING:
-	case S_PLAY_TWINSPIN:
-		player->panim = PA_ABILITY;
-		break;
-	case S_PLAY_SPINDASH: // ...but the act of SPINDASHING is charability2 specific.
-	case S_PLAY_FIRE:
-	case S_PLAY_FIRE_FINISH:
-	case S_PLAY_MELEE:
-	case S_PLAY_MELEE_FINISH:
-	case S_PLAY_MELEE_LANDING:
-		player->panim = PA_ABILITY2;
-		break;
-	case S_PLAY_RIDE:
-		player->panim = PA_RIDE;
-		break;
-	default:
-		player->panim = PA_ETC;
-		break;
-	}
+	player->panim = GetPlayerAnimationFromState(player, state);
 
 	if (recursion++) // if recursion detected,
 		memset(seenstate = tempstate, 0, sizeof tempstate); // clear state table
@@ -324,7 +322,7 @@ static boolean P_SetPlayerMobjState(mobj_t *mobj, statenum_t state)
 		mobj->tics = st->tics;
 
 		// Adjust the player's animation speed
-		if (mobj->state-states == S_PLAY_WAIT && (player->charflags & SF_FASTWAIT))
+		if (state == S_PLAY_WAIT && (player->charflags & SF_FASTWAIT))
 			mobj->tics = 5;
 		else if (player->panim == PA_EDGE && (player->charflags & SF_FASTEDGE))
 			mobj->tics = 2;
@@ -472,12 +470,12 @@ static boolean P_SetPlayerMobjState(mobj_t *mobj, statenum_t state)
 		// Modified handling.
 		// Call action functions when the state is set
 
-		if (st->action.acp1)
+		if (st->action)
 		{
 			var1 = st->var1;
 			var2 = st->var2;
 			astate = st;
-			st->action.acp1(mobj);
+			st->action(mobj);
 
 			// woah. a player was removed by an action.
 			// this sounds like a VERY BAD THING, but there's nothing we can do now...
@@ -614,12 +612,12 @@ boolean P_SetMobjState(mobj_t *mobj, statenum_t state)
 		// Modified handling.
 		// Call action functions when the state is set
 
-		if (st->action.acp1)
+		if (st->action)
 		{
 			var1 = st->var1;
 			var2 = st->var2;
 			astate = st;
-			st->action.acp1(mobj);
+			st->action(mobj);
 			if (P_MobjWasRemoved(mobj))
 				return false;
 		}
@@ -922,7 +920,7 @@ void P_ExplodeMissile(mobj_t *mo)
 			explodemo->destscale = mo->destscale;
 			explodemo->momx += (P_RandomByte() % 32) * FixedMul(FRACUNIT/8, explodemo->scale);
 			explodemo->momy += (P_RandomByte() % 32) * FixedMul(FRACUNIT/8, explodemo->scale);
-			S_StartSound(explodemo, sfx_pop);
+			S_StartSoundFromMobj(explodemo, sfx_pop);
 		}
 		explodemo = P_SpawnMobj(mo->x, mo->y, mo->z, MT_EXPLODE);
 		if (!P_MobjWasRemoved(explodemo))
@@ -931,7 +929,7 @@ void P_ExplodeMissile(mobj_t *mo)
 			explodemo->destscale = mo->destscale;
 			explodemo->momx += (P_RandomByte() % 64) * FixedMul(FRACUNIT/8, explodemo->scale);
 			explodemo->momy -= (P_RandomByte() % 64) * FixedMul(FRACUNIT/8, explodemo->scale);
-			S_StartSound(explodemo, sfx_dmpain);
+			S_StartSoundFromMobj(explodemo, sfx_dmpain);
 		}
 		explodemo = P_SpawnMobj(mo->x, mo->y, mo->z, MT_EXPLODE);
 		if (!P_MobjWasRemoved(explodemo))
@@ -940,7 +938,7 @@ void P_ExplodeMissile(mobj_t *mo)
 			explodemo->destscale = mo->destscale;
 			explodemo->momx -= (P_RandomByte() % 128) * FixedMul(FRACUNIT/8, explodemo->scale);
 			explodemo->momy += (P_RandomByte() % 128) * FixedMul(FRACUNIT/8, explodemo->scale);
-			S_StartSound(explodemo, sfx_pop);
+			S_StartSoundFromMobj(explodemo, sfx_pop);
 		}
 		explodemo = P_SpawnMobj(mo->x, mo->y, mo->z, MT_EXPLODE);
 		if (!P_MobjWasRemoved(explodemo))
@@ -949,7 +947,7 @@ void P_ExplodeMissile(mobj_t *mo)
 			explodemo->destscale = mo->destscale;
 			explodemo->momx -= (P_RandomByte() % 96) * FixedMul(FRACUNIT/8, explodemo->scale);
 			explodemo->momy -= (P_RandomByte() % 96) * FixedMul(FRACUNIT/8, explodemo->scale);
-			S_StartSound(explodemo, sfx_cybdth);
+			S_StartSoundFromMobj(explodemo, sfx_cybdth);
 		}
 	}
 
@@ -959,7 +957,7 @@ void P_ExplodeMissile(mobj_t *mo)
 	mo->flags |= MF_NOCLIPTHING; // Dummy flag to indicate that this was already called.
 
 	if (mo->info->deathsound && !(mo->flags2 & MF2_DEBRIS))
-		S_StartSound(mo, mo->info->deathsound);
+		S_StartSoundFromMobj(mo, mo->info->deathsound);
 
 	P_SetMobjState(mo, mo->info->deathstate);
 }
@@ -1738,7 +1736,7 @@ void P_XYMovement(mobj_t *mo)
 		{
 			P_BounceMove(mo);
 			xmove = ymove = 0;
-			S_StartSound(mo, mo->info->activesound);
+			S_StartSoundFromMobj(mo, mo->info->activesound);
 
 			// Bounce ring algorithm
 			if (mo->type == MT_THROWNBOUNCE)
@@ -1764,7 +1762,7 @@ void P_XYMovement(mobj_t *mo)
 		}
 		else if (mo->flags & MF_STICKY)
 		{
-			S_StartSound(mo, mo->info->activesound);
+			S_StartSoundFromMobj(mo, mo->info->activesound);
 			mo->momx = mo->momy = mo->momz = 0; //Full stop!
 			mo->flags |= MF_NOGRAVITY; //Stay there!
 			mo->flags &= ~MF_STICKY; //Don't check again!
@@ -2288,7 +2286,7 @@ boolean P_ZMovement(mobj_t *mo)
 			{
 				mo->momz = -mo->momz;
 				mo->z += mo->momz;
-				S_StartSound(mo, mo->info->activesound);
+				S_StartSoundFromMobj(mo, mo->info->activesound);
 				mo->threshold++;
 
 				// Be sure to change the XY one too if you change this.
@@ -2314,7 +2312,7 @@ boolean P_ZMovement(mobj_t *mo)
 				mo->momx = mo->momy = mo->momz = 0;
 				mo->z = mo->floorz;
 				if (mo->info->painsound)
-					S_StartSound(mo, mo->info->painsound);
+					S_StartSoundFromMobj(mo, mo->info->painsound);
 			}
 			break;
 		case MT_RING: // Ignore still rings
@@ -2453,7 +2451,7 @@ boolean P_ZMovement(mobj_t *mo)
 						// Otherwise bounce up at half speed.
 						else
 							mom.z = -mom.z/2;
-						S_StartSound(mo, mo->info->activesound);
+						S_StartSoundFromMobj(mo, mo->info->activesound);
 					}
 				}
 				// Hack over. Back to your regularly scheduled detonation. -SH
@@ -2538,7 +2536,7 @@ boolean P_ZMovement(mobj_t *mo)
 				else if (mo->type == MT_FALLINGROCK)
 				{
 					if (P_MobjFlip(mo)*mom.z > FixedMul(2*FRACUNIT, mo->scale))
-						S_StartSound(mo, mo->info->activesound + P_RandomKey(mo->info->reactiontime));
+						S_StartSoundFromMobj(mo, mo->info->activesound + P_RandomKey(mo->info->reactiontime));
 
 					mom.z /= 2; // Rocks not so bouncy
 
@@ -2602,7 +2600,7 @@ boolean P_ZMovement(mobj_t *mo)
 				if (P_MobjFlip(mo)*mo->momz >= 0)
 				{
 					mo->momz = -mo->momz;
-					S_StartSound(mo, mo->info->activesound);
+					S_StartSoundFromMobj(mo, mo->info->activesound);
 				}
 			}
 			else
@@ -2900,7 +2898,7 @@ nightsdone:
 
 			// hit the ceiling
 			if (mariomode)
-				S_StartSound(mo, sfx_mario1);
+				S_StartSoundFromMobj(mo, sfx_mario1);
 
 			if (!mo->player->climbing)
 				mo->momz = 0;
@@ -2963,7 +2961,7 @@ boolean P_SceneryZMovement(mobj_t *mo)
 				}
 
 				if (mo->threshold != 42) // Don't make pop sound if threshold is 42.
-					S_StartSound(explodemo, sfx_bubbl1 + P_RandomKey(5));
+					S_StartSoundFromMobj(explodemo, sfx_bubbl1 + P_RandomKey(5));
 				//note that we assign the bubble sound to one of the new bubbles.
 				// in other words, IT ACTUALLY GETS USED YAAAAAAAY
 
@@ -3277,11 +3275,11 @@ void P_MobjCheckWater(mobj_t *mobj)
 			mobjtype_t bubbletype;
 
 			if (mobj->eflags & MFE_GOOWATER || wasingoo)
-				S_StartSound(mobj, sfx_ghit);
+				S_StartSoundFromMobj(mobj, sfx_ghit);
 			else if (mobj->eflags & MFE_TOUCHLAVA)
-				S_StartSound(mobj, sfx_splash);
+				S_StartSoundFromMobj(mobj, sfx_splash);
 			else
-				S_StartSound(mobj, sfx_splish); // And make a sound!
+				S_StartSoundFromMobj(mobj, sfx_splish); // And make a sound!
 
 			bubblecount = FixedDiv(abs(mobj->momz), mobj->scale)>>(FRACBITS-1);
 			// Max bubble count
@@ -3513,7 +3511,7 @@ boolean P_CameraThinker(player_t *player, camera_t *thiscam, boolean resetcalled
 		if (!P_TryCameraMove(thiscam->x + thiscam->momx, thiscam->y + thiscam->momy, thiscam)) // Thanks for the greatly improved camera, Lach -- Sev
 		{ // Never fails for 2D mode.
 			mobj_t dummy;
-			dummy.thinker.function.acp1 = (actionf_p1)P_MobjThinker;
+			dummy.thinker.function = (actionf_p1)P_MobjThinker;
 			dummy.subsector = thiscam->subsector;
 			dummy.x = thiscam->x;
 			dummy.y = thiscam->y;
@@ -3717,7 +3715,7 @@ static void P_PlayerMobjThinker(mobj_t *mobj)
 	// momentum movement
 	mobj->eflags &= ~MFE_JUSTSTEPPEDDOWN;
 
-	if (mobj->state-states == S_PLAY_BOUNCE_LANDING)
+	if (P_IsPlayerInState(mobj->player, S_PLAY_BOUNCE_LANDING))
 		goto animonly; // no need for checkposition - doesn't move at ALL
 
 	// Zoom tube
@@ -4066,7 +4064,7 @@ static void P_GenericBossThinker(mobj_t *mobj)
 
 		// look for a new target
 		if (P_BossTargetPlayer(mobj, false) && mobj->info->seesound)
-			S_StartSound(mobj, mobj->info->seesound);
+			S_StartSoundFromMobj(mobj, mobj->info->seesound);
 
 		return;
 	}
@@ -4106,7 +4104,7 @@ static void P_Boss1Thinker(mobj_t *mobj)
 
 		// look for a new target
 		if (P_BossTargetPlayer(mobj, false) && mobj->info->seesound)
-			S_StartSound(mobj, mobj->info->seesound);
+			S_StartSoundFromMobj(mobj, mobj->info->seesound);
 
 		return;
 	}
@@ -4153,7 +4151,7 @@ static void P_Boss2Thinker(mobj_t *mobj)
 
 		// look for a new target
 		if (P_BossTargetPlayer(mobj, false) && mobj->info->seesound)
-			S_StartSound(mobj, mobj->info->seesound);
+			S_StartSoundFromMobj(mobj, mobj->info->seesound);
 
 		return;
 	}
@@ -4437,7 +4435,7 @@ static void P_Boss3Thinker(mobj_t *mobj)
 					sprev = shock;
 				}
 				if (!P_MobjWasRemoved(shock))
-					S_StartSound(mobj, shock->info->seesound);
+					S_StartSoundFromMobj(mobj, shock->info->seesound);
 
 				// look for a new target
 				P_BossTargetPlayer(mobj, true);
@@ -4661,7 +4659,7 @@ static void P_Boss4Thinker(mobj_t *mobj)
 		mobj->movecount %= 360*FRACUNIT;
 
 		if (((oldmovecount>>FRACBITS)%120 >= 60) && !((mobj->movecount>>FRACBITS)%120 >= 60))
-			S_StartSound(NULL, sfx_mswing);
+			S_StartSoundFromEverywhere(sfx_mswing);
 	}
 
 	// movedir == battle stage:
@@ -4748,7 +4746,7 @@ static void P_Boss4Thinker(mobj_t *mobj)
 		{
 			mobj->momz = mobj->movefactor = 0;
 			mobj->threshold = 1110<<FRACBITS;
-			S_StartSound(NULL, sfx_s3k60);
+			S_StartSoundFromEverywhere(sfx_s3k60);
 			mobj->movedir++;
 		}
 
@@ -4996,7 +4994,7 @@ static void P_Boss7Thinker(mobj_t *mobj)
 		if (mobj->health > 0)
 			mobj->health--;
 
-		S_StartSound(0, (mobj->health) ? sfx_behurt : sfx_bedie2);
+		S_StartSoundFromEverywhere((mobj->health) ? sfx_behurt : sfx_bedie2);
 
 		mobj->reactiontime /= 3;
 
@@ -5036,7 +5034,7 @@ static void P_Boss7Thinker(mobj_t *mobj)
 		INT32 i;
 		mobj->state->nextstate = mobj->info->painstate; // Reset
 
-		S_StartSound(0, sfx_bedeen);
+		S_StartSoundFromEverywhere(sfx_bedeen);
 
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
@@ -5060,7 +5058,7 @@ static void P_Boss7Thinker(mobj_t *mobj)
 				mobj->state->nextstate = mobj->info->spawnstate;
 
 				// Laugh
-				S_StartSound(0, sfx_bewar1 + P_RandomKey(4));
+				S_StartSoundFromEverywhere(sfx_bewar1 + P_RandomKey(4));
 			}
 		}
 	}
@@ -5080,7 +5078,7 @@ static void P_Boss7Thinker(mobj_t *mobj)
 			var2 = 2*TICRATE + (80<<16);
 
 			A_LobShot(mobj);
-			S_StartSound(0, sfx_begoop);
+			S_StartSoundFromEverywhere(sfx_begoop);
 		}
 	}
 	else if (mobj->state == &states[S_BLACKEGG_SHOOT2])
@@ -5104,7 +5102,7 @@ static void P_Boss7Thinker(mobj_t *mobj)
 		S_StopSound(missile);
 
 		if (leveltime & 1)
-			S_StartSound(0, sfx_beshot);
+			S_StartSoundFromEverywhere(sfx_beshot);
 	}
 	else if (mobj->state == &states[S_BLACKEGG_JUMP1] && mobj->tics == 1)
 	{
@@ -5237,7 +5235,7 @@ static void P_Boss7Thinker(mobj_t *mobj)
 		fixed_t x,y,z;
 		mobj_t *mo2;
 
-		S_StartSound(0, sfx_befall);
+		S_StartSoundFromEverywhere(sfx_befall);
 
 		z = mobj->floorz;
 		for (j = 0; j < 2; j++)
@@ -5283,13 +5281,13 @@ static void P_Boss7Thinker(mobj_t *mobj)
 			P_DamageMobj(players[i].mo, mobj, mobj, 1, 0);
 
 			// Laugh
-			S_StartSound(0, sfx_bewar1 + P_RandomKey(4));
+			S_StartSoundFromEverywhere(sfx_bewar1 + P_RandomKey(4));
 		}
 
 		P_SetMobjState(mobj, mobj->info->spawnstate);
 	}
 	else if (mobj->state == &states[mobj->info->deathstate] && mobj->tics == mobj->state->tics)
-		S_StartSound(0, sfx_bedie1 + (P_RandomFixed() & 1));
+		S_StartSoundFromEverywhere(sfx_bedie1 + (P_RandomFixed() & 1));
 
 }
 
@@ -5298,7 +5296,7 @@ static void P_Boss7Thinker(mobj_t *mobj)
 					mobj->movedir = InvAngle(mobj->movedir);\
 				mobj->threshold = 6 + (FixedMul(24<<FRACBITS, FixedDiv((mobj->info->spawnhealth - mobj->health)<<FRACBITS, (mobj->info->spawnhealth-1)<<FRACBITS))>>FRACBITS);\
 				if (mobj->info->activesound)\
-					S_StartSound(mobj, mobj->info->activesound);\
+					S_StartSoundFromMobj(mobj, mobj->info->activesound);\
 				if (mobj->info->painchance)\
 					P_SetMobjState(mobj, mobj->info->painchance);\
 				mobj->flags2 &= ~MF2_INVERTAIMABLE;\
@@ -5523,7 +5521,7 @@ static void P_Boss9Thinker(mobj_t *mobj)
 							missile->z -= missile->fuse*missile->momz;
 							P_SetThingPosition(missile);
 
-							S_StartSound(mobj, sfx_s3kb3);
+							S_StartSoundFromMobj(mobj, sfx_s3kb3);
 						}
 					}
 				}
@@ -5591,7 +5589,7 @@ static void P_Boss9Thinker(mobj_t *mobj)
 				if (!(mobj->threshold%4)) {
 					mobj->angle = R_PointToAngle2(mobj->x, mobj->y, mobj->target->x + mobj->target->momx*4, mobj->target->y + mobj->target->momy*4);
 					if (!mobj->reactiontime)
-						S_StartSound(mobj, sfx_zoom); // zoom!
+						S_StartSoundFromMobj(mobj, sfx_zoom); // zoom!
 				}
 			}
 			// else -- Pausing between energy ball shots
@@ -5612,7 +5610,7 @@ static void P_Boss9Thinker(mobj_t *mobj)
 				{
 					mobj_t *missile;
 					if (mobj->info->seesound)
-						S_StartSound(mobj, mobj->info->seesound);
+						S_StartSoundFromMobj(mobj, mobj->info->seesound);
 					P_SetMobjState(mobj, mobj->info->missilestate);
 					if (mobj->extravalue1 == 3)
 						mobj->reactiontime = TICRATE/16;
@@ -5700,7 +5698,7 @@ static void P_Boss9Thinker(mobj_t *mobj)
 						return;
 					mobj->threshold--;
 					if (!mobj->threshold) { // failed bounce!
-						S_StartSound(mobj, sfx_mspogo);
+						S_StartSoundFromMobj(mobj, sfx_mspogo);
 						P_BounceMove(mobj);
 						mobj->angle = R_PointToAngle2(mobj->momx, mobj->momy,0,0);
 						mobj->momz = 4*FRACUNIT;
@@ -5713,13 +5711,13 @@ static void P_Boss9Thinker(mobj_t *mobj)
 					else if (!(mobj->threshold%4))
 					{ // We've decided to lock onto the player this bounce.
 						P_SetMobjState(mobj, mobj->state->nextstate);
-						S_StartSound(mobj, sfx_s3k5a);
+						S_StartSoundFromMobj(mobj, sfx_s3k5a);
 						mobj->angle = R_PointToAngle2(mobj->x, mobj->y, mobj->target->x + mobj->target->momx*4, mobj->target->y + mobj->target->momy*4);
 						mobj->reactiontime = TICRATE - 5*(mobj->info->damage - mobj->health); // targetting time
 					}
 					else
 					{ // No homing, just use P_BounceMove
-						S_StartSound(mobj, sfx_s3kaa); // make the bounces distinct...
+						S_StartSoundFromMobj(mobj, sfx_s3kaa); // make the bounces distinct...
 						P_BounceMove(mobj);
 						mobj->angle = R_PointToAngle2(0,0,mobj->momx,mobj->momy);
 						mobj->reactiontime = 1; // TICRATE/4; // just a pause before you bounce away
@@ -5740,7 +5738,7 @@ static void P_Boss9Thinker(mobj_t *mobj)
 			{
 				if (P_MobjWasRemoved(mobj))
 					return;
-				S_StartSound(mobj, sfx_mspogo);
+				S_StartSoundFromMobj(mobj, sfx_mspogo);
 				P_BounceMove(mobj);
 				mobj->angle = R_PointToAngle2(mobj->momx, mobj->momy,0,0);
 			}
@@ -5818,7 +5816,7 @@ static void P_Boss9Thinker(mobj_t *mobj)
 			default:
 				// Fly up and prepare for an attack!
 				// We have to charge up first, so let's go up into the air
-				S_StartSound(mobj, sfx_beflap);
+				S_StartSoundFromMobj(mobj, sfx_beflap);
 				P_SetMobjState(mobj, mobj->info->raisestate);
 				if (mobj->floorz >= mobj->target->floorz)
 					mobj->watertop = mobj->floorz + 256*FRACUNIT;
@@ -5876,7 +5874,7 @@ static void P_Boss9Thinker(mobj_t *mobj)
 				mobj->fuse = 3*TICRATE;
 				mobj->flags |= MF_PAIN;
 				if (mobj->info->attacksound)
-					S_StartSound(mobj, mobj->info->attacksound);
+					S_StartSoundFromMobj(mobj, mobj->info->attacksound);
 				A_FaceTarget(mobj);
 
 				break;
@@ -5898,7 +5896,7 @@ static void P_Boss9Thinker(mobj_t *mobj)
 					else
 						mobj->movedir = 2;
 					if (mobj->info->seesound)
-						S_StartSound(mobj, mobj->info->seesound);
+						S_StartSoundFromMobj(mobj, mobj->info->seesound);
 					P_SetMobjState(mobj, mobj->info->seestate);
 					if (mobj->movedir == 2)
 						mobj->threshold = 12; // bounce 12 times
@@ -6073,7 +6071,7 @@ static void P_MoveHoop(mobj_t *mobj)
 {
 	const fixed_t fuse = (mobj->fuse*mobj->extravalue2);
 	const angle_t fa = mobj->movedir*(FINEANGLES/mobj->extravalue1);
-	matrix_t m;
+	oldmatrix_t m;
 	vector4_t v;
 	vector4_t res;
 	fixed_t finalx, finaly, finalz;
@@ -6114,7 +6112,7 @@ void P_SpawnHoopOfSomething(fixed_t x, fixed_t y, fixed_t z, fixed_t radius, INT
 {
 	mobj_t *mobj;
 	INT32 i;
-	matrix_t m;
+	oldmatrix_t m;
 	vector4_t v;
 	vector4_t res;
 	fixed_t finalx, finaly, finalz;
@@ -6183,7 +6181,7 @@ void P_SpawnParaloop(fixed_t x, fixed_t y, fixed_t z, fixed_t radius, INT32 numb
 {
 	mobj_t *mobj;
 	INT32 i;
-	matrix_t m;
+	oldmatrix_t m;
 	vector4_t v;
 	vector4_t res;
 	fixed_t finalx, finaly, finalz, dist;
@@ -6374,7 +6372,7 @@ static void P_NightsItemChase(mobj_t *thing)
 //
 void P_MaceRotate(mobj_t *center, INT32 baserot, INT32 baseprevrot)
 {
-	matrix_t m;
+	oldmatrix_t m;
 	vector4_t unit_lengthways, unit_sideways, pos_lengthways, pos_sideways;
 	vector4_t res;
 	fixed_t radius, dist = 0, zstore;
@@ -6458,7 +6456,7 @@ void P_MaceRotate(mobj_t *center, INT32 baserot, INT32 baseprevrot)
 
 		if (dosound && (mobj->flags2 & MF2_BOSSNOTRAP))
 		{
-			S_StartSound(mobj, mobj->info->activesound);
+			S_StartSoundFromMobj(mobj, mobj->info->activesound);
 			dosound = false;
 		}
 
@@ -6901,7 +6899,7 @@ static void P_KoopaThinker(mobj_t *koopa)
 		if (P_MobjWasRemoved(flame))
 			return;
 		flame->momx = -FixedMul(flame->info->speed, flame->scale);
-		S_StartSound(flame, sfx_koopfr);
+		S_StartSoundFromMobj(flame, sfx_koopfr);
 	}
 	else if (P_RandomChance(5*FRACUNIT/256))
 	{
@@ -7013,14 +7011,6 @@ static void P_MobjScaleThink(mobj_t *mobj)
 		mobj->z -= (mobj->height - oldheight)/2;
 	else if (correctionType == 2)
 		mobj->z -= mobj->height - oldheight;
-
-	if (mobj->scale == mobj->destscale)
-		/// \todo Lua hook for "reached destscale"?
-		switch (mobj->type)
-		{
-		default:
-			break;
-		}
 }
 
 static void P_MaceSceneryThink(mobj_t *mobj)
@@ -7160,7 +7150,7 @@ static void P_FlameJetSceneryThink(mobj_t *mobj)
 	strength = (mobj->movedir ? mobj->movedir : 80)<<(FRACBITS-2);
 
 	P_InstaThrust(flame, flame->angle, strength);
-	S_StartSound(flame, sfx_fire);
+	S_StartSoundFromMobj(flame, sfx_fire);
 }
 
 static void P_VerticalFlameJetSceneryThink(mobj_t *mobj)
@@ -7203,7 +7193,7 @@ static void P_VerticalFlameJetSceneryThink(mobj_t *mobj)
 		P_SetMobjState(flame, S_FLAMEJETFLAME7);
 	}
 	P_InstaThrust(flame, mobj->angle, FixedDiv(mobj->fuse*FRACUNIT, 3*FRACUNIT));
-	S_StartSound(flame, sfx_fire);
+	S_StartSoundFromMobj(flame, sfx_fire);
 }
 
 static boolean P_ParticleGenSceneryThink(mobj_t *mobj)
@@ -7392,7 +7382,7 @@ static void P_RosySceneryThink(mobj_t *mobj)
 						mobj->target->momx = mobj->momx;
 						mobj->target->momy = mobj->momy;
 						P_SetMobjState(mobj, (stat = S_ROSY_HUG));
-						S_StartSound(mobj, sfx_cdpcm6);
+						S_StartSoundFromMobj(mobj, sfx_cdpcm6);
 						mobj->angle = angletoplayer;
 					}
 				}
@@ -7429,7 +7419,7 @@ static void P_RosySceneryThink(mobj_t *mobj)
 				if (mobj->cvmem < (love ? 5*TICRATE : 0))
 				{
 					P_SetMobjState(mobj, (stat = S_ROSY_PAIN));
-					S_StartSound(mobj, sfx_cdpcm7);
+					S_StartSoundFromMobj(mobj, sfx_cdpcm7);
 				}
 				else
 					P_SetMobjState(mobj, (stat = S_ROSY_JUMP));
@@ -7450,7 +7440,7 @@ static void P_RosySceneryThink(mobj_t *mobj)
 				if (player->exiting || --mobj->cvmem < TICRATE)
 				{
 					P_SetMobjState(mobj, (stat = S_ROSY_HUG));
-					S_StartSound(mobj, sfx_cdpcm6);
+					S_StartSoundFromMobj(mobj, sfx_cdpcm6);
 					mobj->angle = R_PointToAngle2(mobj->x, mobj->y, mobj->target->x, mobj->target->y);
 					mobj->target->momx = mobj->momx;
 					mobj->target->momy = mobj->momy;
@@ -7475,7 +7465,7 @@ static void P_RosySceneryThink(mobj_t *mobj)
 			mobj->z += P_MobjFlip(mobj);
 			mobj->momx = mobj->momy = 0;
 			P_SetObjectMomZ(mobj, 6 << FRACBITS, false);
-			S_StartSound(mobj, sfx_cdfm02);
+			S_StartSoundFromMobj(mobj, sfx_cdfm02);
 		}
 
 		if (makeheart)
@@ -7700,7 +7690,7 @@ static void P_MobjSceneryThink(mobj_t *mobj)
 		{
 			mobj->health = 0;
 			P_SetMobjState(mobj, mobj->info->deathstate);
-			S_StartSound(mobj, mobj->info->deathsound + P_RandomKey(mobj->info->mass));
+			S_StartSoundFromMobj(mobj, mobj->info->deathsound + P_RandomKey(mobj->info->mass));
 			return;
 		}
 		break;
@@ -8094,7 +8084,7 @@ static boolean P_MobjBossThink(mobj_t *mobj)
 		}
 		if (mobj->momz && mobj->z + mobj->momz <= mobj->floorz)
 		{
-			S_StartSound(mobj, sfx_befall);
+			S_StartSoundFromMobj(mobj, sfx_befall);
 			if (mobj->state != states + S_CYBRAKDEMON_DIE8)
 				P_SetMobjState(mobj, S_CYBRAKDEMON_DIE8);
 		}
@@ -8124,7 +8114,7 @@ static boolean P_MobjDeadThink(mobj_t *mobj)
 		{
 			if (!mobj->fuse)
 			{
-				S_StartSound(mobj, sfx_s3k77);
+				S_StartSoundFromMobj(mobj, sfx_s3k77);
 				mobj->flags2 |= MF2_DONTDRAW;
 				mobj->fuse = TICRATE;
 			}
@@ -8178,7 +8168,7 @@ static boolean P_MobjDeadThink(mobj_t *mobj)
 				mo2->angle = fa << ANGLETOFINESHIFT;
 
 				if (!i && !(mobj->fuse & 2))
-					S_StartSound(mo2, mobj->info->deathsound);
+					S_StartSoundFromMobj(mo2, mobj->info->deathsound);
 
 				flicky = P_InternalFlickySpawn(mo2, 0, 8*FRACUNIT, false, -1);
 				if (!flicky)
@@ -8217,7 +8207,7 @@ static boolean P_MobjDeadThink(mobj_t *mobj)
 					mobj->z + (P_RandomKey(mobj->height >> FRACBITS) << FRACBITS),
 					MT_SONIC3KBOSSEXPLODE);
 				if (!P_MobjWasRemoved(explosion))
-					S_StartSound(explosion, sfx_s3kb4);
+					S_StartSoundFromMobj(explosion, sfx_s3kb4);
 			}
 			if (mobj->movedir == DMG_DROWNED)
 				P_SetObjectMomZ(mobj, -FRACUNIT/2, true); // slower fall from drowning
@@ -8236,7 +8226,7 @@ static boolean P_MobjDeadThink(mobj_t *mobj)
 				mobj->z + (P_RandomKey(mobj->height >> FRACBITS) << FRACBITS),
 				MT_SONIC3KBOSSEXPLODE);
 			if (!P_MobjWasRemoved(explosion))
-				S_StartSound(explosion, sfx_s3kb4);
+				S_StartSoundFromMobj(explosion, sfx_s3kb4);
 		}
 		P_SetObjectMomZ(mobj, -2*FRACUNIT/3, true);
 	}
@@ -8329,7 +8319,7 @@ static void P_ArrowThink(mobj_t *mobj)
 		if (!(mobj->extravalue1) && (mobj->momz < 0))
 		{
 			mobj->extravalue1 = 1;
-			S_StartSound(mobj, mobj->info->activesound);
+			S_StartSoundFromMobj(mobj, mobj->info->activesound);
 		}
 		if (leveltime & 1)
 		{
@@ -8360,7 +8350,7 @@ static void P_BumbleboreThink(mobj_t *mobj)
 			mobj->momy >>= 1;
 			if (++mobj->movefactor == 4)
 			{
-				S_StartSound(mobj, mobj->info->seesound);
+				S_StartSoundFromMobj(mobj, mobj->info->seesound);
 				mobj->momx = mobj->momy = mobj->momz = 0;
 				mobj->flags = (mobj->flags|MF_PAIN) & ~MF_NOGRAVITY;
 				P_SetMobjState(mobj, mobj->info->meleestate);
@@ -8374,7 +8364,7 @@ static void P_BumbleboreThink(mobj_t *mobj)
 		if (P_IsObjectOnGround(mobj))
 		{
 			S_StopSound(mobj);
-			S_StartSound(mobj, mobj->info->attacksound);
+			S_StartSoundFromMobj(mobj, mobj->info->attacksound);
 			mobj->flags = (mobj->flags | MF_NOGRAVITY) & ~MF_PAIN;
 			mobj->momx = mobj->momy = mobj->momz = 0;
 			P_SetMobjState(mobj, mobj->info->painstate);
@@ -8545,7 +8535,7 @@ static boolean P_EggRobo1Think(mobj_t *mobj)
 		if (mobj->movecount)
 		{
 			if (!(--mobj->movecount))
-				S_StartSound(mobj, mobj->info->deathsound);
+				S_StartSoundFromMobj(mobj, mobj->info->deathsound);
 		}
 		else
 		{
@@ -8623,7 +8613,7 @@ static boolean P_EggRobo1Think(mobj_t *mobj)
 						mobj->x - basex,
 						mobj->y - basey)
 						< mobj->scale)
-						S_StartSound(mobj, mobj->info->seesound);
+						S_StartSoundFromMobj(mobj, mobj->info->seesound);
 
 					P_MoveOrigin(mobj,
 						(15*(mobj->x >> 4)) + (basex >> 4) + P_ReturnThrustX(mobj, mobj->angle, SPECTATORRADIUS >> 4),
@@ -9105,7 +9095,7 @@ static void P_PterabyteThink(mobj_t *mobj)
 
 		P_SetMobjState(mobj, S_PTERABYTE_SWOOPDOWN);
 		mobj->extravalue1++;
-		S_StartSound(mobj, mobj->info->attacksound);
+		S_StartSoundFromMobj(mobj, mobj->info->attacksound);
 		time = FixedDiv(hdist, hspeed);
 		mobj->angle = R_PointToAngle2(mobj->x, mobj->y, mobj->target->x, mobj->target->y);
 		fa = (mobj->angle >> ANGLETOFINESHIFT) & FINEMASK;
@@ -9171,7 +9161,7 @@ static void P_DragonbomberThink(mobj_t *mobj)
 					mine->angle = segment->angle;
 					P_InstaThrust(mine, mobj->angle, P_AproxDistance(mobj->momx, mobj->momy) >> 1);
 					P_SetObjectMomZ(mine, -2*FRACUNIT, true);
-					S_StartSound(mine, mine->info->seesound);
+					S_StartSoundFromMobj(mine, mine->info->seesound);
 				}
 				P_SetMobjState(segment, segment->info->raisestate);
 				mobj->threshold = mobj->info->painchance;
@@ -9334,7 +9324,7 @@ static void P_PointPushThink(mobj_t *mobj)
 	yl = (unsigned)(mobj->y - radius - bmaporgy)>>MAPBLOCKSHIFT;
 	yh = (unsigned)(mobj->y + radius - bmaporgy)>>MAPBLOCKSHIFT;
 
-	P_DoBlockThingsIterate(xl, yl, xh, yh, PIT_PushThing);
+	P_DoBlockThingsIterate(xl, yl, xh, yh, PIT_PushThing, pushmobj);
 }
 
 static boolean P_MobjRegularThink(mobj_t *mobj)
@@ -9415,7 +9405,7 @@ static boolean P_MobjRegularThink(mobj_t *mobj)
 					mobj->z = mobj->floorz;
 
 				if (leveltime % mobj->info->painchance == 0)
-					S_StartSound(mobj, mobj->info->activesound);
+					S_StartSoundFromMobj(mobj, mobj->info->activesound);
 
 				if ((statenum_t)(mobj->state - states) != mobj->info->seestate)
 					P_SetMobjState(mobj, mobj->info->seestate);
@@ -9509,7 +9499,7 @@ static boolean P_MobjRegularThink(mobj_t *mobj)
 		if (mobj->state - states == S_SMASHSPIKE_FALL && P_IsObjectOnGround(mobj))
 		{
 			P_SetMobjState(mobj, S_SMASHSPIKE_STOMP1);
-			S_StartSound(mobj, sfx_spsmsh);
+			S_StartSoundFromMobj(mobj, sfx_spsmsh);
 		}
 		else if (mobj->state - states == S_SMASHSPIKE_RISE2 && P_MobjFlip(mobj)*(mobj->z - mobj->movecount) >= 0)
 		{
@@ -9881,13 +9871,13 @@ static void P_FiringThink(mobj_t *mobj)
 	if (mobj->health <= 0)
 		return;
 
-	if (mobj->state->action.acp1 == (actionf_p1)A_Boss1Laser)
+	if (mobj->state->action == (actionf_p1)A_Boss1Laser)
 	{
 		if (mobj->state->tics > 1)
 		{
 			var1 = mobj->state->var1;
 			var2 = mobj->state->var2 & 65535;
-			mobj->state->action.acp1(mobj);
+			mobj->state->action(mobj);
 		}
 	}
 	else if (leveltime & 1) // Fire mode
@@ -9915,7 +9905,7 @@ static void P_FiringThink(mobj_t *mobj)
 				missile->flags2 |= MF2_SUPERFIRE;
 
 			if (mobj->info->attacksound)
-				S_StartSound(missile, mobj->info->attacksound);
+				S_StartSoundFromMobj(missile, mobj->info->attacksound);
 		}
 	}
 	else
@@ -10000,9 +9990,9 @@ static void P_FlagFuseThink(mobj_t *mobj)
 
 		// Assumedly in splitscreen players will be on opposing teams
 		if (players[consoleplayer].ctfteam == 1 || splitscreen)
-			S_StartSound(NULL, sfx_hoop1);
+			S_StartSoundFromEverywhere(sfx_hoop1);
 		else if (players[consoleplayer].ctfteam == 2)
-			S_StartSound(NULL, sfx_hoop3);
+			S_StartSoundFromEverywhere(sfx_hoop3);
 
 		redflag = flagmo;
 	}
@@ -10013,9 +10003,9 @@ static void P_FlagFuseThink(mobj_t *mobj)
 
 		// Assumedly in splitscreen players will be on opposing teams
 		if (players[consoleplayer].ctfteam == 2 || splitscreen)
-			S_StartSound(NULL, sfx_hoop1);
+			S_StartSoundFromEverywhere(sfx_hoop1);
 		else if (players[consoleplayer].ctfteam == 1)
-			S_StartSound(NULL, sfx_hoop3);
+			S_StartSoundFromEverywhere(sfx_hoop3);
 
 		blueflag = flagmo;
 	}
@@ -10082,14 +10072,14 @@ static boolean P_FuseThink(mobj_t *mobj)
 		{
 			mobj->fuse = 30;
 			P_SetMobjState(mobj, S_LAVAFALL_TELL);
-			S_StartSound(mobj, mobj->info->seesound);
+			S_StartSoundFromMobj(mobj, mobj->info->seesound);
 		}
 		else if (mobj->state - states == S_LAVAFALL_TELL)
 		{
 			mobj->fuse = 40;
 			P_SetMobjState(mobj, S_LAVAFALL_SHOOT);
 			S_StopSound(mobj);
-			S_StartSound(mobj, mobj->info->attacksound);
+			S_StartSoundFromMobj(mobj, mobj->info->attacksound);
 		}
 		else
 		{
@@ -10108,19 +10098,19 @@ static boolean P_FuseThink(mobj_t *mobj)
 			P_SetMobjState(mobj, mobj->info->spawnstate);
 			mobj->fuse = 100;
 			S_StopSound(mobj);
-			S_StartSound(mobj, sfx_s3k8c);
+			S_StartSoundFromMobj(mobj, sfx_s3k8c);
 		}
 		else if (mobj->extravalue2 == 1)
 		{
 			mobj->fuse = 50;
-			S_StartSound(mobj, sfx_s3ka3);
+			S_StartSoundFromMobj(mobj, sfx_s3ka3);
 		}
 		else
 		{
 			P_SetMobjState(mobj, mobj->info->meleestate);
 			mobj->fuse = 100;
 			S_StopSound(mobj);
-			S_StartSound(mobj, sfx_s3kc2l);
+			S_StartSoundFromMobj(mobj, sfx_s3kc2l);
 		}
 		return false;
 	case MT_PLAYER:
@@ -10139,6 +10129,7 @@ static boolean P_FuseThink(mobj_t *mobj)
 //
 void P_MobjThinker(mobj_t *mobj)
 {
+	boolean ispushable;
 	I_Assert(mobj != NULL);
 	I_Assert(!P_MobjWasRemoved(mobj));
 
@@ -10164,8 +10155,10 @@ void P_MobjThinker(mobj_t *mobj)
 
 	tmfloorthing = tmhitthing = NULL;
 
+	ispushable = mobj->flags & MF_PUSHABLE || (mobj->info->flags & MF_PUSHABLE && mobj->fuse);
+
 	// Sector flag MSF_TRIGGERLINE_MOBJ allows ANY mobj to trigger a linedef exec
-	P_CheckMobjTrigger(mobj, false);
+	P_CheckMobjTrigger(mobj, ispushable);
 
 	if (mobj->scale != mobj->destscale)
 		P_MobjScaleThink(mobj); // Slowly scale up/down to reach your destscale.
@@ -10209,7 +10202,7 @@ void P_MobjThinker(mobj_t *mobj)
 
 	// if it's pushable, or if it would be pushable other than temporary disablement, use the
 	// separate thinker
-	if (mobj->flags & MF_PUSHABLE || (mobj->info->flags & MF_PUSHABLE && mobj->fuse))
+	if (ispushable)
 	{
 		if (!P_MobjPushableThink(mobj))
 			return;
@@ -10240,7 +10233,7 @@ void P_MobjThinker(mobj_t *mobj)
 		if (leveltime % mobj->health)
 			return;
 		if (mobj->threshold)
-			S_StartSound(mobj, mobj->threshold);
+			S_StartSoundFromMobj(mobj, mobj->threshold);
 		return;
 	}
 
@@ -10384,8 +10377,6 @@ void P_PushableThinker(mobj_t *mobj)
 {
 	I_Assert(mobj != NULL);
 	I_Assert(!P_MobjWasRemoved(mobj));
-
-	P_CheckMobjTrigger(mobj, true);
 
 	// it has to be pushable RIGHT NOW for this part to happen
 	if (mobj->flags & MF_PUSHABLE && !(mobj->momx || mobj->momy))
@@ -10648,7 +10639,7 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type, ...)
 	}
 
 	// this is officially a mobj, declared as soon as possible.
-	mobj->thinker.function.acp1 = (actionf_p1)P_MobjThinker;
+	mobj->thinker.function = (actionf_p1)P_MobjThinker;
 	mobj->type = type;
 	mobj->info = info;
 
@@ -10834,7 +10825,7 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type, ...)
 					ball->threshold = ball->radius + mobj->radius + FixedMul(ball->info->painchance, ball->scale);
 
 					var1 = ball->state->var1, var2 = ball->state->var2;
-					ball->state->action.acp1(ball);
+					ball->state->action(ball);
 				}
 			}
 			break;
@@ -11056,7 +11047,7 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type, ...)
 	}
 
 	// Call action functions when the state is set
-	if (st->action.acp1 && (mobj->flags & MF_RUNSPAWNFUNC))
+	if (st->action && (mobj->flags & MF_RUNSPAWNFUNC))
 	{
 		if (levelloading)
 		{
@@ -11071,7 +11062,7 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type, ...)
 			var1 = st->var1;
 			var2 = st->var2;
 			astate = st;
-			st->action.acp1(mobj);
+			st->action(mobj);
 			// DANGER! This can cause P_SpawnMobj to return NULL!
 			// Avoid using MF_RUNSPAWNFUNC on mobjs whose spawn state expects target or tracer to already be set!
 			if (P_MobjWasRemoved(mobj))
@@ -11119,7 +11110,7 @@ static precipmobj_t *P_SpawnPrecipMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype
 	mobj->z = z;
 	mobj->momz = mobjinfo[type].speed;
 
-	mobj->thinker.function.acp1 = (actionf_p1)P_NullPrecipThinker;
+	mobj->thinker.function = (actionf_p1)P_NullPrecipThinker;
 	P_AddThinker(THINK_PRECIP, &mobj->thinker);
 
 	CalculatePrecipFloor(mobj);
@@ -11140,14 +11131,14 @@ static inline precipmobj_t *P_SpawnRainMobj(fixed_t x, fixed_t y, fixed_t z, mob
 {
 	precipmobj_t *mo = P_SpawnPrecipMobj(x,y,z,type);
 	mo->precipflags |= PCF_RAIN;
-	//mo->thinker.function.acp1 = (actionf_p1)P_RainThinker;
+	//mo->thinker.function = (actionf_p1)P_RainThinker;
 	return mo;
 }
 
 static inline precipmobj_t *P_SpawnSnowMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type)
 {
 	precipmobj_t *mo = P_SpawnPrecipMobj(x,y,z,type);
-	//mo->thinker.function.acp1 = (actionf_p1)P_SnowThinker;
+	//mo->thinker.function = (actionf_p1)P_SnowThinker;
 	return mo;
 }
 
@@ -11301,7 +11292,7 @@ void P_RemovePrecipMobj(precipmobj_t *mobj)
 void P_RemoveSavegameMobj(mobj_t *mobj)
 {
 	// unlink from sector and block lists
-	if (((thinker_t *)mobj)->function.acp1 == (actionf_p1)P_NullPrecipThinker)
+	if (((thinker_t *)mobj)->function == (actionf_p1)P_NullPrecipThinker)
 	{
 		P_UnsetPrecipThingPosition((precipmobj_t *)mobj);
 
@@ -11509,7 +11500,7 @@ void P_PrecipitationEffects(void)
 		volume = 255;
 
 	if (sounds_rain && (!leveltime || leveltime % 80 == 1))
-		S_StartSoundAtVolume(players[displayplayer].mo, sfx_rainin, volume);
+	S_StartSoundFromMobjVol(players[displayplayer].mo, sfx_rainin, volume);
 
 	if (!sounds_thunder)
 		return;
@@ -11517,7 +11508,7 @@ void P_PrecipitationEffects(void)
 	if (effects_lightning && lightningStrike && volume)
 	{
 		// Large, close thunder sounds to go with our lightning.
-		S_StartSoundAtVolume(players[displayplayer].mo, sfx_litng1 + M_RandomKey(4), volume);
+		S_StartSoundFromMobjVol(players[displayplayer].mo, sfx_litng1 + M_RandomKey(4), volume);
 	}
 	else if (thunderchance < 20)
 	{
@@ -11525,7 +11516,7 @@ void P_PrecipitationEffects(void)
 		if (volume < 80)
 			volume = 80;
 
-		S_StartSoundAtVolume(players[displayplayer].mo, sfx_athun1 + M_RandomKey(2), volume);
+		S_StartSoundFromMobjVol(players[displayplayer].mo, sfx_athun1 + M_RandomKey(2), volume);
 	}
 }
 
@@ -13199,7 +13190,7 @@ static boolean P_SetupSpawnedMapThing(mapthing_t *mthing, mobj_t *mobj, boolean 
 		{
 			P_SetMobjState(mobj, mobj->info->meleestate);
 			mobj->extravalue2 = 2;
-			S_StartSound(mobj, sfx_s3kc2l);
+			S_StartSoundFromMobj(mobj, sfx_s3kc2l);
 		}
 		break;
 	case MT_BIGFERN:
@@ -13574,7 +13565,7 @@ void P_SpawnHoop(mapthing_t *mthing)
 	mobj_t *mobj = NULL;
 	mobj_t *nextmobj = NULL;
 	mobj_t *hoopcenter;
-	matrix_t pitchmatrix, yawmatrix;
+	oldmatrix_t pitchmatrix, yawmatrix;
 	fixed_t radius = mthing->args[0] << FRACBITS;
 	fixed_t sizefactor = 4*FRACUNIT;
 	fixed_t hoopsize = radius/sizefactor;
@@ -13757,7 +13748,7 @@ static void P_SpawnItemCircle(mapthing_t *mthing, mobjtype_t *itemtypes, UINT8 n
 	angle_t angle = FixedAngle(mthing->angle << FRACBITS);
 	angle_t fa;
 	INT32 i;
-	matrix_t m;
+	oldmatrix_t m;
 	vector4_t v, res;
 
 	for (i = 0; i < numitemtypes; i++)
@@ -13957,7 +13948,7 @@ mobj_t *P_SpawnXYZMissile(mobj_t *source, mobj_t *dest, mobjtype_t type,
 	}
 
 	if (th->info->seesound)
-		S_StartSound(th, th->info->seesound);
+		S_StartSoundFromMobj(th, th->info->seesound);
 
 	P_SetTarget(&th->target, source); // where it came from
 	an = R_PointToAngle2(x, y, dest->x, dest->y);
@@ -14020,7 +14011,7 @@ mobj_t *P_SpawnAlteredDirectionMissile(mobj_t *source, mobjtype_t type, fixed_t 
 	}
 
 	if (th->info->seesound)
-		S_StartSound(th, th->info->seesound);
+		S_StartSoundFromMobj(th, th->info->seesound);
 
 	P_SetTarget(&th->target, source->target); // where it came from
 	an = R_PointToAngle2(0, 0, source->momx, source->momy) + (ANG1*shiftingAngle);
@@ -14086,7 +14077,7 @@ mobj_t *P_SpawnPointMissile(mobj_t *source, fixed_t xa, fixed_t ya, fixed_t za, 
 	}
 
 	if (th->info->seesound)
-		S_StartSound(th, th->info->seesound);
+		S_StartSoundFromMobj(th, th->info->seesound);
 
 	P_SetTarget(&th->target, source); // where it came from
 	an = R_PointToAngle2(x, y, xa, ya);
@@ -14160,7 +14151,7 @@ mobj_t *P_SpawnMissile(mobj_t *source, mobj_t *dest, mobjtype_t type)
 	}
 
 	if (th->info->seesound)
-		S_StartSound(source, th->info->seesound);
+		S_StartSoundFromMobj(source, th->info->seesound);
 
 	P_SetTarget(&th->target, source); // where it came from
 
@@ -14254,7 +14245,7 @@ mobj_t *P_SPMAngle(mobj_t *source, mobjtype_t type, angle_t angle, UINT8 allowai
 
 	// The rail ring has no unique thrown object, so we must do this.
 	if (th->info->seesound && !(th->flags2 & MF2_RAILRING))
-		S_StartSound(source, th->info->seesound);
+		S_StartSoundFromMobj(source, th->info->seesound);
 
 	P_SetTarget(&th->target, source);
 
@@ -14371,4 +14362,12 @@ mobj_t *P_SpawnMobjFromMobj(mobj_t *mobj, fixed_t xofs, fixed_t yofs, fixed_t zo
 	newmobj->old_spriteyoffset = mobj->old_spriteyoffset;
 
 	return newmobj;
+}
+
+boolean P_IsMobjInPainState(mobj_t *mobj)
+{
+	if (mobj->player)
+		return P_IsPlayerInState(mobj->player, S_PLAY_PAIN);
+	else
+		return (mobj->state == &states[mobj->info->painstate]);
 }

@@ -171,6 +171,8 @@ static const struct {
 	{META_SKINCOLOR,    "skincolor_t"},
 	{META_COLORRAMP,    "skincolor_t.ramp"},
 	{META_SPRITEINFO,   "spriteinfo_t"},
+	{META_SPRITEINFOFRAMELIST,"spriteinfoframe_t[]"},
+	{META_SPRITEINFOFRAME,"spriteinfoframe_t"},
 	{META_PIVOTLIST,    "spriteframepivot_t[]"},
 	{META_FRAMEPIVOT,   "spriteframepivot_t"},
 
@@ -189,19 +191,15 @@ static const struct {
 	{META_SKINSPRITESLIST,   "skin_t.skinsprites[]"},
 	{META_SKINSPRITESCOMPAT, "skin_t.sprites"}, // TODO: 2.3: Delete
 
+	{META_MUSICDEF,     "musicdef_t"},
+
 	{META_VERTEX,       "vertex_t"},
 	{META_LINE,         "line_t"},
 	{META_SIDE,         "side_t"},
 	{META_SUBSECTOR,    "subsector_t"},
 	{META_SECTOR,       "sector_t"},
 	{META_FFLOOR,       "ffloor_t"},
-#ifdef HAVE_LUA_SEGS
-	{META_SEG,          "seg_t"},
-	{META_NODE,         "node_t"},
-#endif
 	{META_SLOPE,        "slope_t"},
-	{META_VECTOR2,      "vector2_t"},
-	{META_VECTOR3,      "vector3_t"},
 	{META_MAPHEADER,    "mapheader_t"},
 
 	{META_POLYOBJ,      "polyobj_t"},
@@ -220,10 +218,6 @@ static const struct {
 
 	{META_THINGARGS,     "mapthing.args"},
 	{META_THINGSTRINGARGS, "mapthing.stringargs"},
-#ifdef HAVE_LUA_SEGS
-	{META_NODEBBOX,     "node_t.bbox"},
-	{META_NODECHILDREN, "node_t.children"},
-#endif
 
 	{META_BBOX,         "bbox"},
 
@@ -238,7 +232,16 @@ static const struct {
 	{META_LUABANKS,     "luabanks[]"},
 
 	{META_KEYEVENT,     "keyevent_t"},
+	{META_TEXTEVENT,    "textevent_t"},
 	{META_MOUSE,        "mouse_t"},
+
+	{META_INTERCEPT,	"intercept_t"},
+
+	{META_VECTOR2,      "vector2_t"},
+	{META_VECTOR3,      "vector3_t"},
+	{META_MATRIX,       "matrix_t"},
+	{META_QUATERNION,   "quaternion_t"},
+
 	{NULL,              NULL}
 };
 
@@ -2925,6 +2928,121 @@ static int lib_evStartCrumble(lua_State *L)
 	return 0;
 }
 
+static int lib_pStartMoveFloor(lua_State *L)
+{
+	NOHUD
+	INLEVEL
+	sector_t* sec = NULL;
+
+	if (!lua_isnone(L, 1) && lua_isuserdata(L, 1))
+		sec = *((sector_t**)luaL_checkudata(L, 1, META_SECTOR));
+	if (!sec)
+		return LUA_ErrInvalid(L, "sector_t");
+	fixed_t destheight = luaL_checkfixed(L, 2);
+	fixed_t speed = luaL_checkfixed(L, 3);
+	if (speed <= 0)
+		return luaL_error(L, "argument #3 must be greater than 0");
+
+	floormove_t* floor;
+	floor = Z_Calloc(sizeof(*floor), PU_LEVSPEC, NULL);
+	if (sec->floordata != NULL)
+	{
+		P_RemoveThinker(sec->floordata);
+		sec->floordata = NULL;
+		sec->floorspeed = 0;
+	}
+	sec->floordata = floor;
+	P_AddThinker(THINK_MAIN, &floor->thinker);
+	floor->thinker.function = (actionf_p1)T_MoveFloor;
+	floor->sector = sec;
+	floor->speed = speed;
+	floor->texture = -1;
+	floor->type = -1;
+	floor->floordestheight = destheight;
+	floor->direction = destheight >= sec->floorheight ? 1 : -1;
+	R_CreateInterpolator_SectorPlane(&floor->thinker, sec, true);
+
+	return 0;
+}
+
+static int lib_pStopMoveFloor(lua_State *L)
+{
+	NOHUD
+	INLEVEL
+	sector_t* sec = NULL;
+
+	if (!lua_isnone(L, 1) && lua_isuserdata(L, 1))
+		sec = *((sector_t**)luaL_checkudata(L, 1, META_SECTOR));
+	if (!sec)
+		return LUA_ErrInvalid(L, "sector_t");
+
+	if (sec->floordata != NULL) // Override movement on new lua call.
+	{
+		P_RemoveThinker(sec->floordata);
+		sec->floorspeed = 0;
+		sec->floordata = NULL;
+	}
+	return 0;
+}
+
+
+static int lib_pStartMoveCeiling(lua_State *L)
+{
+	NOHUD
+	INLEVEL
+	sector_t* sec = NULL;
+
+	if (!lua_isnone(L, 1) && lua_isuserdata(L, 1))
+		sec = *((sector_t**)luaL_checkudata(L, 1, META_SECTOR));
+	if (!sec)
+		return LUA_ErrInvalid(L, "sector_t");
+	fixed_t destheight = luaL_checkfixed(L, 2);
+	fixed_t speed = luaL_checkfixed(L, 3);
+	if (speed <= 0)
+		return luaL_error(L, "argument #3 must be greater than 0");
+
+	ceiling_t* ceiling;
+	ceiling = Z_Calloc(sizeof(*ceiling), PU_LEVSPEC, NULL);
+	if (sec->ceilingdata != NULL)
+	{
+		P_RemoveThinker(sec->ceilingdata);
+		sec->ceilingdata = NULL;
+		sec->ceilspeed = 0;
+	}
+	sec->ceilingdata = ceiling;
+	P_AddThinker(THINK_MAIN, &ceiling->thinker);
+	ceiling->thinker.function = (actionf_p1)T_MoveCeiling;
+	ceiling->sector = sec;
+	ceiling->speed = speed;
+	ceiling->texture = -1;
+	ceiling->type = -1;
+	ceiling->direction = destheight >= sec->ceilingheight ? 1 : -1;
+	ceiling->topheight = ceiling->bottomheight = destheight;
+	R_CreateInterpolator_SectorPlane(&ceiling->thinker, sec, true);
+
+	return 0;
+}
+
+static int lib_pStopMoveCeiling(lua_State *L)
+{
+	NOHUD
+	INLEVEL
+	sector_t* sec = NULL;
+
+	if (!lua_isnone(L, 1) && lua_isuserdata(L, 1))
+		sec = *((sector_t**)luaL_checkudata(L, 1, META_SECTOR));
+	if (!sec)
+		return LUA_ErrInvalid(L, "sector_t");
+
+	if (sec->ceilingdata != NULL)
+	{
+		P_RemoveThinker(sec->ceilingdata);
+		sec->ceilspeed = 0;
+		sec->ceilingdata = NULL;
+	}
+	return 0;
+}
+
 // P_SLOPES
 ////////////
 
@@ -3166,7 +3284,10 @@ static int lib_rCheckTextureNumForName(lua_State *L)
 {
 	const char *name = luaL_checkstring(L, 1);
 	//HUDSAFE
-	lua_pushinteger(L, R_CheckTextureNumForName(name));
+	INT32 num = R_CheckTextureNumForName(name, TEXTURETYPE_TEXTURE);
+	if (num == -1)
+		num = R_CheckTextureNumForName(name, TEXTURETYPE_FLAT);
+	lua_pushinteger(L, num);
 	return 1;
 }
 
@@ -3254,10 +3375,10 @@ static int GetValidSoundOrigin(lua_State *L, void **origin)
 			return LUA_ErrInvalid(L, "sector_t");
 
 		*origin = &((sector_t *)(*origin))->soundorg;
-		return 1;
+		return 2;
 	}
 
-	return LUA_ErrInvalid(L, "mobj_t/sector_t");
+	return 0;
 }
 
 static int lib_sStartSound(lua_State *L)
@@ -3276,15 +3397,23 @@ static int lib_sStartSound(lua_State *L)
 		if (!player)
 			return LUA_ErrInvalid(L, "player_t");
 	}
-	if (!lua_isnil(L, 1))
-		if (!GetValidSoundOrigin(L, &origin))
-			return 0;
-	if (!player || P_IsLocalPlayer(player))
+	if (player == NULL || P_IsLocalPlayer(player))
 	{
-		if (hud_running || hook_cmd_running)
-			origin = NULL;	// HUD rendering and CMD building startsound shouldn't have an origin, just remove it instead of having a retarded error.
-
-		S_StartSound(origin, sound_id);
+		if (lua_isnil(L, 1))
+			S_StartSoundFromEverywhere(sound_id);
+		else
+		{
+			int origintype = GetValidSoundOrigin(L, &origin);
+			if (origintype == 1)
+				S_StartSoundFromMobj(origin, sound_id);
+			else if (origintype == 2)
+			{
+				origin = *((sector_t**)luaL_checkudata(L, 1, META_SECTOR)); // Restore this (other functions still use soundorg outright)
+				S_StartSoundFromSector(origin, sound_id);
+			}
+			else
+				return LUA_ErrInvalid(L, "mobj_t/sector_t");
+		}
 	}
 	return 0;
 }
@@ -3305,12 +3434,25 @@ static int lib_sStartSoundAtVolume(lua_State *L)
 		if (!player)
 			return LUA_ErrInvalid(L, "player_t");
 	}
-	if (!lua_isnil(L, 1))
-		if (!GetValidSoundOrigin(L, &origin))
-			return LUA_ErrInvalid(L, "mobj_t/sector_t");
+	if (player == NULL || P_IsLocalPlayer(player))
+	{
+		if (lua_isnil(L, 1))
+			S_StartSoundFromEverywhereVol(sound_id, volume);
+		else
+		{
+			int origintype = GetValidSoundOrigin(L, &origin);
+			if (origintype == 1)
+				S_StartSoundFromMobjVol(origin, sound_id, volume);
+			else if (origintype == 2)
+			{
+				origin = *((sector_t**)luaL_checkudata(L, 1, META_SECTOR)); // Restore this (other functions still use soundorg outright)
+				S_StartSoundFromSectorVol(origin, sound_id, volume);
+			}
+			else
+				return LUA_ErrInvalid(L, "mobj_t/sector_t");
+		}
 
-	if (!player || P_IsLocalPlayer(player))
-		S_StartSoundAtVolume(origin, sound_id, volume);
+	}
 	return 0;
 }
 
@@ -3735,6 +3877,73 @@ static int lib_sResumeMusic(lua_State *L)
 	return 1;
 }
 
+enum musicdef_e
+{
+	musicdef_name,
+	musicdef_title,
+	musicdef_alttitle,
+	musicdef_authors
+};
+
+static const char *const musicdef_opt[] = {
+	"name",
+	"title",
+	"alttitle",
+	"authors",
+	NULL,
+};
+
+static int musicdef_fields_ref = LUA_NOREF;
+
+static int musicdef_get(lua_State *L)
+{
+	musicdef_t *musicdef = *((musicdef_t **)luaL_checkudata(L, 1, META_MUSICDEF));
+	enum musicdef_e field = Lua_optoption(L, 2, -1, musicdef_fields_ref);
+	lua_settop(L, 2);
+
+	if (!musicdef)
+		return LUA_ErrInvalid(L, "musicdef_t");
+
+	switch (field)
+	{
+	case musicdef_name:
+		lua_pushstring(L, musicdef->name);
+		break;
+	case musicdef_title:
+		lua_pushstring(L, musicdef->title);
+		break;
+	case musicdef_alttitle:
+		lua_pushstring(L, musicdef->alttitle);
+		break;
+	case musicdef_authors:
+		lua_pushstring(L, musicdef->authors);
+		break;
+	default:
+		lua_getfield(L, LUA_REGISTRYINDEX, LREG_EXTVARS);
+		I_Assert(lua_istable(L, -1));
+		lua_pushlightuserdata(L, musicdef);
+		lua_rawget(L, -2);
+		if (!lua_istable(L, -1)) { // no extra values table
+			CONS_Debug(DBG_LUA, M_GetText("'%s' has no extvars table or field named '%s'; returning nil.\n"), "musicdef_t", lua_tostring(L, 2));
+			return 0;
+		}
+		lua_pushvalue(L, 2); // field name
+		lua_gettable(L, -2);
+		if (lua_isnil(L, -1)) // no value for this field
+			CONS_Debug(DBG_LUA, M_GetText("'%s' has no field named '%s'; returning nil.\n"), "musicdef_t", lua_tostring(L, 2));
+		break;
+	}
+
+	return 1;
+}
+
+static int lib_sMusicInfo(lua_State *L)
+{
+	const char *music_name = lua_tolstring(L, 1, NULL);
+	LUA_PushUserdata(L, S_MusicInfo(music_name), META_MUSICDEF);
+	return 1;
+}
+
 // G_GAME
 ////////////
 
@@ -3874,6 +4083,34 @@ static int lib_gAddGametype(lua_State *L)
 
 	// done
 	CONS_Printf("Added gametype %s\n", Gametype_Names[newgtidx]);
+	return 0;
+}
+
+// Lua exclusive function to unlock Lua Conditions
+// Up to Lua scripter
+static int lib_gUnlockCondition(lua_State* L)
+{
+	int id = luaL_checkinteger(L, 1) - 1;
+	boolean global = luaL_checkboolean(L, 2);
+
+	if (id <= 0 || id > MAXLUACONDITIONS)
+	{
+		luaL_error(L, "Lua condition %d out of range (1 - %d)", id + 1, MAXLUACONDITIONS);
+		return 0;
+	}
+
+	if (global)
+	{
+		serverGamedata->lua[id] = true;
+		M_SilentUpdateUnlockablesAndEmblems(serverGamedata);
+	}
+
+	clientGamedata->lua[id] = true;
+	if (M_UpdateUnlockablesAndExtraEmblems(clientGamedata))
+	{
+		S_StartSoundFromEverywhere(sfx_s3k68);
+	}
+
 	return 0;
 }
 
@@ -4171,21 +4408,26 @@ static int lib_gSetCustomExitVars(lua_State *L)
 
 	// LUA EXTENSION: Custom exit like support
 	// Supported:
-	//	G_SetCustomExitVars();               [reset to defaults]
-	//	G_SetCustomExitVars(int)             [nextmap override only]
-	//	G_SetCustomExitVars(nil, int)        [skipstats only]
-	//	G_SetCustomExitVars(int, int)        [both of the above]
-	//	G_SetCustomExitVars(int, int, int)   [nextmapoverride, skipstats and nextgametype]
+	//	G_SetCustomExitVars();					[reset to defaults]
+	//	G_SetCustomExitVars(int)				[nextmap override only]
+	//	G_SetCustomExitVars(nil, int)			[skipstats only]
+	//	G_SetCustomExitVars(int, int)			[both of the above]
+	//	G_SetCustomExitVars(int, int, int)		[nextmapoverride, skipstats and nextgametype]
+	//	G_SetCustomExitVars(int, int, int, int) [nextmapoverride, skipstats, nextgametype and keepcutscenes]
 
 	nextmapoverride = 0;
 	skipstats = 0;
 	nextgametype = -1;
+	keepcutscene = false;
 
 	if (n >= 1)
 	{
 		nextmapoverride = (INT16)luaL_optinteger(L, 1, 0);
 		skipstats = (INT16)luaL_optinteger(L, 2, 0);
 		nextgametype = (INT16)luaL_optinteger(L, 3, -1);
+		
+		if (!lua_isnil(L, 4))
+			keepcutscene = luaL_checkboolean(L, 4);
 	}
 
 	return 0;
@@ -4556,6 +4798,10 @@ static luaL_Reg lib[] = {
 	{"P_StartQuake",lib_pStartQuake},
 	{"EV_CrumbleChain",lib_evCrumbleChain},
 	{"EV_StartCrumble",lib_evStartCrumble},
+	{"P_StartMoveFloor",lib_pStartMoveFloor},
+	{"P_StopMoveFloor",lib_pStopMoveFloor},
+	{"P_StartMoveCeiling",lib_pStartMoveCeiling},
+	{"P_StopMoveCeiling",lib_pStopMoveCeiling},
 
 	// p_slopes
 	{"P_GetZAt",lib_pGetZAt},
@@ -4620,11 +4866,13 @@ static luaL_Reg lib[] = {
 	{"S_GetMusicLoopPoint",lib_sGetMusicLoopPoint},
 	{"S_PauseMusic",lib_sPauseMusic},
 	{"S_ResumeMusic", lib_sResumeMusic},
+	{"S_MusicInfo", lib_sMusicInfo},
 
 	// g_game
 	{"G_AddGametype", lib_gAddGametype},
 	{"G_AddPlayer", lib_gAddPlayer},
 	{"G_RemovePlayer", lib_gRemovePlayer},
+	{"G_UnlockCondition", lib_gUnlockCondition},
 	{"G_SetUsedCheats", lib_gSetUsedCheats},
 	{"G_BuildMapName",lib_gBuildMapName},
 	{"G_BuildMapTitle",lib_gBuildMapTitle},
@@ -4658,6 +4906,11 @@ static luaL_Reg lib[] = {
 
 int LUA_BaseLib(lua_State *L)
 {
+	// musicdef_t
+	// Sound should have its whole own file for Lua, but this will do for now.
+	LUA_RegisterUserdataMetatable(L, META_MUSICDEF, musicdef_get, NULL, NULL);
+	musicdef_fields_ref = Lua_CreateFieldTable(L, musicdef_opt);
+
 	// Set metatable for string
 	lua_pushliteral(L, "");  // dummy string
 	lua_getmetatable(L, -1);  // get string metatable

@@ -130,6 +130,10 @@ boolean P_TryCameraMove(fixed_t x, fixed_t y, camera_t *thiscam);
 void P_SlideCameraMove(camera_t *thiscam);
 boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcalled);
 pflags_t P_GetJumpFlags(player_t *player);
+statenum_t P_GetCanonicalPlayerState(player_t *player, statenum_t state);
+boolean P_IsPlayerInState(player_t *player, statenum_t state);
+boolean P_IsPlayerInSuperTransformationState(player_t *player);
+boolean P_IsPlayerInNightsTransformationState(player_t *player);
 boolean P_PlayerInPain(player_t *player);
 void P_DoPlayerPain(player_t *player, mobj_t *source, mobj_t *inflictor);
 void P_ResetPlayer(player_t *player);
@@ -216,9 +220,9 @@ void P_DoMetalJetFume(player_t *player, mobj_t *fume);
 void P_DoFollowMobj(player_t *player, mobj_t *followmobj);
 
 void P_PlayLivesJingle(player_t *player);
-#define P_PlayRinglossSound(s)	S_StartSound(s, (mariomode) ? sfx_mario8 : sfx_altow1 + P_RandomKey(4));
-#define P_PlayDeathSound(s)		S_StartSound(s, sfx_altdi1 + P_RandomKey(4));
-#define P_PlayVictorySound(s)	S_StartSound(s, sfx_victr1 + P_RandomKey(4));
+#define P_PlayRinglossSound(s)	S_StartSoundFromMobj(s, (mariomode) ? sfx_mario8 : sfx_altow1 + P_RandomKey(4));
+#define P_PlayDeathSound(s)		S_StartSoundFromMobj(s, sfx_altdi1 + P_RandomKey(4));
+#define P_PlayVictorySound(s)	S_StartSoundFromMobj(s, sfx_victr1 + P_RandomKey(4));
 
 boolean P_GetLives(player_t *player);
 boolean P_SpectatorJoinGame(player_t *player);
@@ -304,7 +308,7 @@ void P_SceneryThinker(mobj_t *mobj);
 // To test it in Lua, check mobj.valid
 FUNCINLINE static ATTRINLINE boolean P_MobjWasRemoved(mobj_t *mobj)
 {
-	return mobj == NULL || mobj->thinker.function.acp1 != (actionf_p1)P_MobjThinker;
+	return mobj == NULL || mobj->thinker.function != (actionf_p1)P_MobjThinker;
 }
 
 fixed_t P_MobjFloorZ(sector_t *sector, sector_t *boundsec, fixed_t x, fixed_t y, fixed_t radius, line_t *line, boolean lowest, boolean perfect);
@@ -553,5 +557,6 @@ void P_DoSuperDetransformation(player_t *player);
 void P_ExplodeMissile(mobj_t *mo);
 void P_CheckGravity(mobj_t *mo, boolean affect);
 void P_SetPitchRollFromSlope(mobj_t *mo, pslope_t *slope);
+boolean P_IsMobjInPainState(mobj_t *mobj);
 
 #endif // __P_LOCAL__
