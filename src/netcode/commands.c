@@ -21,7 +21,7 @@
 #include "../byteptr.h"
 #include "../d_main.h"
 #include "../g_game.h"
-#include "../m_menu.h" // M_ClearMenus
+#include "../m_menu.h"
 #include "../w_wad.h"
 #include "../z_zone.h"
 #include "../doomstat.h"
@@ -400,7 +400,7 @@ void Command_connect(void)
 		return;
 	}
 
-	// StarManiaKG: allow us to join servers from where ever the heck we want //
+	// StarManiaKG: allow us to join servers from anywhere at any time //
 	if (Playing() || titledemo)
 	{
 		M_ClearMenus(true);
@@ -432,11 +432,6 @@ void Command_connect(void)
 		if (netgame && !stricmp(COM_Argv(1), "node"))
 		{
 			servernode = (SINT8)atoi(COM_Argv(2));
-		}
-		else if (netgame)
-		{
-			CONS_Printf(M_GetText("You cannot connect while in a game. End this game first.\n"));
-			return;
 		}
 		else if (I_NetOpenSocket)
 		{
