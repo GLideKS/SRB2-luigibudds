@@ -48,7 +48,7 @@ consvar_t cv_tpscounter = CVAR_INIT ("showtps", "No", CV_SAVE, ticrate_cons_t, N
 consvar_t cv_compactinfo = CVAR_INIT ("compactinfo", "No", CV_SAVE, CV_YesNo, NULL);
 
 //this is for the server connection screen Lul
-consvar_t cv_compactaddonlist = CVAR_INIT ("compactaddons", "Yes", CV_SAVE, CV_YesNo, NULL);
+consvar_t cv_compactaddonlist = CVAR_INIT ("compactaddons", "No", CV_SAVE, CV_YesNo, NULL);
 
 
 static void CV_palette_OnChange(void);
