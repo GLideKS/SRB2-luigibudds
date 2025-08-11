@@ -101,6 +101,8 @@ typedef off_t off64_t;
  #endif
 #endif
 
+boolean attemptingrejoin = false;
+
 static CV_PossibleValue_t screenshot_cons_t[] = {{0, "Default"}, {1, "HOME"}, {2, "SRB2"}, {3, "CUSTOM"}, {0, NULL}};
 consvar_t cv_screenshot_option = CVAR_INIT ("screenshot_option", "Default", CV_SAVE|CV_CALL, screenshot_cons_t, Screenshot_option_Onchange);
 consvar_t cv_screenshot_folder = CVAR_INIT ("screenshot_folder", "", CV_SAVE, NULL, NULL);
@@ -214,6 +216,8 @@ void M_AddToJoinedIPs(char *address, char *servname)
 	// and add the new IP at the start of the table!
 	strlcpy(joinedIPlist[0][0], address, MAX_LOGIP);
 	strlcpy(joinedIPlist[0][1], servname, MAX_LOGIP);
+
+	attemptingrejoin = false;
 }
 
 

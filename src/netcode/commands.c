@@ -410,6 +410,7 @@ void Command_connect(void)
 	}
 
 	server = false;
+	size_t arg_offset = 0;
 /*
 	if (!stricmp(COM_Argv(1), "self"))
 	{
@@ -421,12 +422,18 @@ void Command_connect(void)
 	else
 */
 	{
+		if (netgame && !stricmp(COM_Argv(1), "rejoin"))
+		{
+			attemptingrejoin = true;
+			arg_offset++; //special case for rejoin menu
+		}
+
 		// used in menu to connect to a server in the list
 		if (netgame && !stricmp(COM_Argv(1), "node"))
 		{
 			servernode = (SINT8)atoi(COM_Argv(2));
 		}
-		else if (netgame)
+		else if (netgame && !arg_offset)
 		{
 			CONS_Printf(M_GetText("You cannot connect while in a game. End this game first.\n"));
 			return;
@@ -441,14 +448,15 @@ void Command_connect(void)
 				servernode = BROADCASTADDR;
 			else if (I_NetMakeNodewPort)
 			{
-				if (COM_Argc() >= 3) // address AND port
-					servernode = I_NetMakeNodewPort(COM_Argv(1), COM_Argv(2));
+				if (COM_Argc() >= 3 + arg_offset) // address AND port
+					servernode = I_NetMakeNodewPort(COM_Argv(1 + arg_offset), COM_Argv(2 + arg_offset));
 				else // address only, or address:port
-					servernode = I_NetMakeNode(COM_Argv(1));
+					servernode = I_NetMakeNode(COM_Argv(1 + arg_offset));
 				
 				// Last IPs joined:
 				// Keep the address we typed in memory so that we can save it if we *succesfully* join the server
-				strlcpy(joinedIP, COM_Argv(1), MAX_LOGIP);
+				if (arg_offset == 0)
+					strlcpy(joinedIP, COM_Argv(1), MAX_LOGIP);
 			}
 			else
 			{
