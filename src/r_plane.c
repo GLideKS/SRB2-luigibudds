@@ -418,6 +418,9 @@ visplane_t *R_FindPlane(sector_t *sector, fixed_t height, INT32 picnum, INT32 li
 	offset_x = ((INT64)offset_x * xscale) / FRACUNIT;
 	offset_y = ((INT64)offset_y * yscale) / FRACUNIT;
 
+	if (slope != NULL)
+		lightlevel += (slope->lightOffset / 8);
+
 	// This appears to fix the Nimbus Ruins sky bug.
 	if (picnum == skyflatnum && pfloor)
 	{
