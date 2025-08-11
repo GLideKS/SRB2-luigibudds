@@ -134,6 +134,8 @@ void W_Shutdown(void)
 			Z_Free(wad->lumpinfo[wad->numlumps].longname);
 			Z_Free(wad->lumpinfo[wad->numlumps].fullname);
 		}
+		M_AATreeFree(wad->startfolders);
+		M_AATreeFree(wad->endfolders);
 
 		Z_Free(wad->lumpinfo);
 		Z_Free(wad);
@@ -972,6 +974,8 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup, boole
 	fseek(handle, 0, SEEK_END);
 	wadfile->filesize = (unsigned)ftell(handle);
 	wadfile->type = type;
+	wadfile->startfolders = M_AATreeAlloc(0);
+	wadfile->endfolders = M_AATreeAlloc(0);
 
 	// already generated, just copy it over
 	M_Memcpy(&wadfile->md5sum, &md5sum, 16);
@@ -1166,6 +1170,8 @@ UINT16 W_InitFolder(const char *path, boolean mainfile, boolean startup)
 	wadfile->lumpinfo = lumpinfo;
 	wadfile->important = important;
 	wadfile->filesize = 0;
+	wadfile->startfolders = M_AATreeAlloc(0);
+	wadfile->endfolders = M_AATreeAlloc(0);
 
 	for (i = 0; i < numlumps; i++)
 		wadfile->filesize += lumpinfo[i].disksize;
@@ -1332,6 +1338,16 @@ W_CheckNumForMarkerStartPwad (const char *name, UINT16 wad, UINT16 startlump)
 	return marker;
 }
 
+static INT32 W_CheckFolderKeys(void* key1, void* key2)
+{
+	return strcmp((char *)key1, (char *)key2);
+}
+
+static void W_DeallocFolderKey(void* key)
+{
+	Z_Free(key);
+}
+
 // Look for the first lump from a folder.
 UINT16 W_CheckNumForFolderStartPK3(const char *name, UINT16 wad, UINT16 startlump)
 {
@@ -1339,6 +1355,11 @@ UINT16 W_CheckNumForFolderStartPK3(const char *name, UINT16 wad, UINT16 startlum
 	INT32 i;
 	lumpinfo_t *lump_p = wadfiles[wad]->lumpinfo + startlump;
 	name_length = strlen(name);
+
+	void *val = M_AATreeGet(wadfiles[wad]->startfolders, Z_StrDup(name), W_CheckFolderKeys, W_DeallocFolderKey);
+	if (val != NULL)
+		return (uintptr_t)val;
+
 	for (i = startlump; i < wadfiles[wad]->numlumps; i++, lump_p++)
 	{
 		if (strnicmp(name, lump_p->fullname, name_length) == 0)
@@ -1346,9 +1367,11 @@ UINT16 W_CheckNumForFolderStartPK3(const char *name, UINT16 wad, UINT16 startlum
 			/* SLADE is special and puts a single directory entry. Skip that. */
 			if (strlen(lump_p->fullname) == name_length)
 				i++;
+			M_AATreeSet(wadfiles[wad]->startfolders, Z_StrDup(name), (void *)(uintptr_t)i, W_CheckFolderKeys, W_DeallocFolderKey);
 			return i;
 		}
 	}
+	M_AATreeSet(wadfiles[wad]->startfolders, Z_StrDup(name), (void *)INT16_MAX, W_CheckFolderKeys, W_DeallocFolderKey);
 	return INT16_MAX;
 }
 
@@ -1360,11 +1383,17 @@ UINT16 W_CheckNumForFolderEndPK3(const char *name, UINT16 wad, UINT16 startlump)
 	INT32 i;
 	lumpinfo_t *lump_p = wadfiles[wad]->lumpinfo + startlump;
 	size_t name_length = strlen(name);
+	
+	void *val = M_AATreeGet(wadfiles[wad]->endfolders, Z_StrDup(name), W_CheckFolderKeys, W_DeallocFolderKey);
+	if (val != NULL)
+		return (uintptr_t)val;
+	
 	for (i = startlump; i < wadfiles[wad]->numlumps; i++, lump_p++)
 	{
 		if (strnicmp(name, lump_p->fullname, name_length))
 			break;
 	}
+	M_AATreeSet(wadfiles[wad]->endfolders, Z_StrDup(name), (void *)(uintptr_t)i, W_CheckFolderKeys, W_DeallocFolderKey);
 	return i;
 }
 
