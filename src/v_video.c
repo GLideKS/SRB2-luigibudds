@@ -1337,6 +1337,7 @@ void V_DrawFill(INT32 x, INT32 y, INT32 w, INT32 h, INT32 c)
 	}
 }
 
+// lua modders best dream
 void V_DrawFixedFill(fixed_t x, fixed_t y, fixed_t w, fixed_t h, INT32 c)
 {
 	UINT8 *dest;
@@ -1548,7 +1549,7 @@ static UINT32 V_GetHWConsBackColor(void)
 	switch (cons_backcolor.value)
 	{
 		case 0:		r = 0xff; g = 0xff; b = 0xff;	break; 	// White
-		case 1:		r = 0x01; g = 0x01; b = 0x01;	break; 	// Black
+		case 1:		r = 0x01; g = 0x01; b = 0x01;	break; 	// Black -- it was gray, not totally black
 		case 2:		r = 0xde; g = 0xb8; b = 0x87;	break;	// Sepia
 		case 3:		r = 0x40; g = 0x20; b = 0x10;	break; 	// Brown
 		case 4:		r = 0xfa; g = 0x80; b = 0x72;	break; 	// Pink
@@ -1566,6 +1567,7 @@ static UINT32 V_GetHWConsBackColor(void)
 		case 16:	r = 0x00; g = 0x00; b = 0xff;	break; 	// Blue
 		case 17:	r = 0xff; g = 0x00; b = 0xff;	break; 	// Purple
 		case 18:	r = 0xee; g = 0x82; b = 0xee;	break; 	// Lavender
+		case 19:	r = 0x80; g = 0x80; b = 0x80;	break; 	// Gray
 		// Default green
 		default:	r = 0x00; g = 0x80; b = 0x00;	break;
 	}
@@ -2090,30 +2092,34 @@ void V_DrawPromptBack(INT32 boxheight, INT32 color)
 	if (rendermode == render_opengl)
 	{
 		UINT32 hwcolor;
+		UINT8 r, g, b;
 		switch (color)
 		{
-			case 0:		hwcolor = 0xffffff00;	break; 	// White
-			case 1:		hwcolor = 0x00000000;	break; 	// Black // Note this is different from V_DrawFadeConsBack
-			case 2:		hwcolor = 0xdeb88700;	break;	// Sepia
-			case 3:		hwcolor = 0x40201000;	break; 	// Brown
-			case 4:		hwcolor = 0xfa807200;	break; 	// Pink
-			case 5:		hwcolor = 0xff69b400;	break; 	// Raspberry
-			case 6:		hwcolor = 0xff000000;	break; 	// Red
-			case 7:		hwcolor = 0xffd68300;	break;	// Creamsicle
-			case 8:		hwcolor = 0xff800000;	break; 	// Orange
-			case 9:		hwcolor = 0xdaa52000;	break; 	// Gold
-			case 10:	hwcolor = 0x80800000;	break; 	// Yellow
-			case 11:	hwcolor = 0x00ff0000;	break; 	// Emerald
-			case 12:	hwcolor = 0x00800000;	break; 	// Green
-			case 13:	hwcolor = 0x4080ff00;	break; 	// Cyan
-			case 14:	hwcolor = 0x4682b400;	break; 	// Steel
-			case 15:	hwcolor = 0x1e90ff00;	break;	// Periwinkle
-			case 16:	hwcolor = 0x0000ff00;	break; 	// Blue
-			case 17:	hwcolor = 0xff00ff00;	break; 	// Purple
-			case 18:	hwcolor = 0xee82ee00;	break; 	// Lavender
+			case 0:		r = 0xff; g = 0xff; b = 0xff;	break; 	// White
+			case 1:		r = 0x00; g = 0x00; b = 0x00;	break; 	// Black 
+			case 2:		r = 0xde; g = 0xb8; b = 0x87;	break;	// Sepia
+			case 3:		r = 0x40; g = 0x20; b = 0x10;	break; 	// Brown
+			case 4:		r = 0xfa; g = 0x80; b = 0x72;	break; 	// Pink
+			case 5:		r = 0xff; g = 0x69; b = 0xb4;	break; 	// Raspberry
+			case 6:		r = 0xff; g = 0x00; b = 0x00;	break; 	// Red
+			case 7:		r = 0xff; g = 0xd6; b = 0x83;	break;	// Creamsicle
+			case 8:		r = 0xff; g = 0x80; b = 0x00;	break; 	// Orange
+			case 9:		r = 0xda; g = 0xa5; b = 0x20;	break; 	// Gold
+			case 10:	r = 0x80; g = 0x80; b = 0x00;	break; 	// Yellow
+			case 11:	r = 0x00; g = 0xff; b = 0x00;	break; 	// Emerald
+			case 12:	r = 0x00; g = 0x80; b = 0x00;	break; 	// Green
+			case 13:	r = 0x40; g = 0x80; b = 0xff;	break; 	// Cyan
+			case 14:	r = 0x46; g = 0x82; b = 0xb4;	break; 	// Steel
+			case 15:	r = 0x1e; g = 0x90; b = 0xff;	break;	// Periwinkle
+			case 16:	r = 0x00; g = 0x00; b = 0xff;	break; 	// Blue
+			case 17:	r = 0xff; g = 0x00; b = 0xff;	break; 	// Purple
+			case 18:	r = 0xee; g = 0x82; b = 0xee;	break; 	// Lavender
+			case 19:	r = 0x80; g = 0x80; b = 0x80;	break; 	// Gray
 			// Default green
-			default:	hwcolor = 0x00800000;	break;
+			default:	r = 0x00; g = 0x80; b = 0x00;	break;
 		}
+		V_CubeApply(&r, &g, &b);
+		hwcolor = (((r << 24) | (g << 16) | (b << 8)));
 		HWR_DrawTutorialBack(hwcolor, boxheight);
 		return;
 	}

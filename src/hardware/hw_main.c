@@ -190,8 +190,11 @@ void HWR_Lighting(FSurfaceInfo *Surface, INT32 light_level, extracolormap_t *col
 	// Clamp the light level, since it can sometimes go out of the 0-255 range from animations
 	light_level = min(max(light_level, 0), 255);
 
-	V_CubeApply(&tint_color.s.red, &tint_color.s.green, &tint_color.s.blue);
-	V_CubeApply(&fade_color.s.red, &fade_color.s.green, &fade_color.s.blue);
+	if(!HWR_ShouldUsePaletteRendering()) // In palette rendering mode, changes to the color profile are taken into account
+	{
+		V_CubeApply(&tint_color.s.red, &tint_color.s.green, &tint_color.s.blue);
+		V_CubeApply(&fade_color.s.red, &fade_color.s.green, &fade_color.s.blue);
+	}
 	Surface->PolyColor.rgba = poly_color.rgba;
 	Surface->TintColor.rgba = tint_color.rgba;
 	Surface->FadeColor.rgba = fade_color.rgba;
@@ -212,7 +215,7 @@ UINT8 HWR_FogBlockAlpha(INT32 light, extracolormap_t *colormap) // Let's see if 
 
 	realcolor.rgba = (colormap != NULL) ? colormap->rgba : 0x00000000;
 
-	if (cv_glshaders.value && gl_shadersavailable)
+	if (HWR_UseShader())
 	{
 		surfcolor.s.alpha = (255 - light);
 	}

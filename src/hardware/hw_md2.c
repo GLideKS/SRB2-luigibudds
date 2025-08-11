@@ -1311,12 +1311,11 @@ boolean HWR_DrawModel(gl_vissprite_t *spr)
 		sector_t *sector = spr->mobj->subsector->sector;
 		UINT8 lightlevel = 255;
 		extracolormap_t *colormap = NULL;
-
 		if (sector->numlights)
 		{
 			INT32 light;
 
-			light = R_GetPlaneLight(sector, spr->mobj->z + spr->mobj->height, false); // Always use the light at the top instead of whatever I was doing before
+			light = P_GetSectorLightNumAt(sector, spr->mobj->x, spr->mobj->y, spr->mobj->z + spr->mobj->height);
 
 			if (R_ThingIsFullDark(spr->mobj))
 				lightlevel = 0;
@@ -1325,8 +1324,11 @@ boolean HWR_DrawModel(gl_vissprite_t *spr)
 			else if (!R_ThingIsFullBright(spr->mobj))
 				lightlevel = max(min(255, *sector->lightlist[light].lightlevel), 0);
 
-			if (*sector->lightlist[light].extra_colormap)
-				colormap = *sector->lightlist[light].extra_colormap;
+			if (!(spr->mobj->renderflags & RF_NOCOLORMAPS))
+			{
+				if (*sector->lightlist[light].extra_colormap)
+					colormap = *sector->lightlist[light].extra_colormap;
+			}
 		}
 		else
 		{
@@ -1337,11 +1339,14 @@ boolean HWR_DrawModel(gl_vissprite_t *spr)
 			else if (!R_ThingIsFullBright(spr->mobj))
 				lightlevel = max(min(255, sector->lightlevel), 0);
 
-			if (sector->extra_colormap)
-				colormap = sector->extra_colormap;
+			if (!(spr->mobj->renderflags & RF_NOCOLORMAPS))
+			{
+				if (sector->extra_colormap)
+					colormap = sector->extra_colormap;
+			}			
 		}
-
 		HWR_Lighting(&Surf, lightlevel, colormap);
+			
 	}
 	else
 		Surf.PolyColor.rgba = 0xFFFFFFFF;
@@ -1653,6 +1658,8 @@ boolean HWR_DrawModel(gl_vissprite_t *spr)
 			{
 				fixed_t camAngleDiff = AngleFixed(viewangle) - FLOAT_TO_FIXED(p.angley); // dumb reconversion back, I know
 
+				anglef *= flip ? -1 : 1; // Adjust for flipping
+
 				p.rollangle = FIXED_TO_FLOAT(anglef);
 				p.roll = true;
 
@@ -1690,6 +1697,16 @@ boolean HWR_DrawModel(gl_vissprite_t *spr)
 
 			float ox = xs * FIXED_TO_FLOAT(interp.spritexoffset);
 			float oy = ys * FIXED_TO_FLOAT(interp.spriteyoffset);
+
+			SINT8 flipoffset = 1;
+
+			if ((spr->mobj->renderflags & RF_FLIPOFFSETS) && flip)
+			{
+				flipoffset = -1;
+			}
+
+			ox *= flipoffset;
+			oy *= flipoffset;
 
 			// offset perpendicular to the camera angle
 			p.x -= ox * gl_viewsin;
