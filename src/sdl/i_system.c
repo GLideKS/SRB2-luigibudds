@@ -2481,6 +2481,7 @@ void I_Quit(void)
 	SDLforceUngrabMouse();
 	quiting = SDL_FALSE;
 	M_SaveConfig(NULL); //save game config, cvars..
+	M_SaveJoinedIPs(); // Not in dedicated because you shouldnt be able to connect there
 	D_SaveBan(); // save the ban list
 	G_SaveGameData(clientGamedata); // Tails 12-08-2002
 	//added:16-02-98: when recording a demo, should exit using 'q' key,

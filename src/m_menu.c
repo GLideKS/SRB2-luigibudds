@@ -306,9 +306,13 @@ static void M_StartServer(INT32 choice);
 static void M_ServerOptions(INT32 choice);
 static void M_StartServerMenu(INT32 choice);
 void M_ConnectMenu(INT32 choice);
+void M_RejoinMenu(INT32 choice);
 static void M_ConnectMenuModChecks(INT32 choice);
+static void M_RejoinMenuModChecks(INT32 choice);
 static void M_Refresh(INT32 choice);
+static void M_RefreshRejoins(INT32 choice);
 static void M_Connect(INT32 choice);
+static void M_RejoinConnect(INT32 choice);
 static void M_ChooseRoom(INT32 choice);
 menu_t MP_MainDef;
 
@@ -389,6 +393,7 @@ static void M_DrawVideoMode(void);
 static void M_DrawColorMenu(void);
 static void M_DrawScreenshotMenu(void);
 static void M_DrawMonitorToggles(void);
+static void M_DrawRejoinMenu(void);
 static void M_DrawConnectMenu(void);
 static void M_DrawMPMainMenu(void);
 static void M_DrawRoomMenu(void);
@@ -939,13 +944,30 @@ static menuitem_t MP_MainMenu[] =
 {
 	{IT_HEADER, NULL, "Join a game", NULL, 0},
 	{IT_STRING|IT_CALL,       NULL, "Server browser...",     M_ConnectMenuModChecks,          12},
-	{IT_STRING|IT_KEYHANDLER, NULL, "Specify server address:", M_HandleConnectIP,    22},
-	{IT_HEADER, NULL, "Host a game", NULL, 54},
-	{IT_STRING|IT_CALL,       NULL, "Internet/LAN...",       M_StartServerMenu,      66},
-	{IT_STRING|IT_CALL,       NULL, "Splitscreen...",        M_StartSplitServerMenu, 76},
-	{IT_HEADER, NULL, "Player setup", NULL, 94},
-	{IT_STRING|IT_CALL,       NULL, "Player 1...",           M_SetupMultiPlayer,    106},
-	{IT_STRING|IT_CALL,       NULL, "Player 2... ",          M_SetupMultiPlayer2,   116},
+	{IT_STRING|IT_KEYHANDLER, NULL, "Specify server address:", M_HandleConnectIP,    		  22},
+	{IT_STRING|IT_CALL,       NULL, "Rejoin previous servers...",     M_RejoinMenuModChecks,          48},
+	{IT_HEADER, NULL, "Host a game", NULL, 67}, // + 16
+	{IT_STRING|IT_CALL,       NULL, "Internet/LAN...",       M_StartServerMenu,      79},
+	{IT_STRING|IT_CALL,       NULL, "Splitscreen...",        M_StartSplitServerMenu, 89},
+	{IT_HEADER, NULL, "Player setup", NULL, 105},
+	{IT_STRING|IT_CALL,       NULL, "Player 1...",           M_SetupMultiPlayer,    117},
+	{IT_STRING|IT_CALL,       NULL, "Player 2... ",          M_SetupMultiPlayer2,   127},
+};
+
+static menuitem_t MP_RejoinMenu[] =
+{
+	{IT_HEADER, NULL, "Rejoin a server", NULL, 0},
+	// number of spaces must match NUMLOGIP
+	{IT_STRING|IT_CALL,       NULL, "Refresh",    M_RefreshRejoins,      12 + 30},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          22 + 35},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          34 + 35},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          46 + 35},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          58 + 35},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          70 + 35},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          82 + 35},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          94 + 35},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          106+ 35},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          118+ 35},
 };
 
 static menuitem_t MP_ServerMenu[] =
@@ -1995,6 +2017,19 @@ menu_t MP_ConnectDef =
 	&MP_MainDef,
 	MP_ConnectMenu,
 	M_DrawConnectMenu,
+	27,24,
+	0,
+	M_CancelConnect
+};
+
+menu_t MP_RejoinDef =
+{
+	MTREE2(MN_MP_MAIN, MN_MP_SERVER),
+	"M_MULTI",
+	sizeof (MP_RejoinMenu)/sizeof (menuitem_t),
+	&MP_MainDef,
+	MP_RejoinMenu,
+	M_DrawRejoinMenu,
 	27,24,
 	0,
 	M_CancelConnect
@@ -11176,6 +11211,18 @@ static void M_Connect(INT32 choice)
 	COM_BufAddText(va("connect node %d\n", serverlist[choice-FIRSTSERVERLINE + serverlistpage * SERVERS_PER_PAGE].node));
 }
 
+static void M_RejoinConnect(INT32 choice)
+{
+	// do not call menuexitfunc
+	M_ClearMenus(false);
+
+	UINT8 index = choice - 2;
+	if (!(joinedIPlist[index][0][0]))
+		return;
+
+	COM_BufAddText(va("connect rejoin %s\n", joinedIPlist[index][0]));
+}
+
 static void M_Refresh(INT32 choice)
 {
 	(void)choice;
@@ -11195,6 +11242,15 @@ static void M_Refresh(INT32 choice)
 
 	// first page of servers
 	serverlistpage = 0;
+}
+
+static void M_RefreshRejoins(INT32 choice)
+{
+	(void)choice;
+
+	// Clear joinedIPlist
+	M_InitJoinedIPArray();
+	M_LoadJoinedIPs();
 }
 
 static INT32 menuRoomIndex = 0;
@@ -11262,6 +11318,80 @@ static void M_DrawRoomMenu(void)
 		V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT/2, 0, waiting_message);
 		V_DrawCenteredString(BASEVIDWIDTH/2, (BASEVIDHEIGHT/2)+12, 0, "Please wait.");
 	}
+}
+
+static void M_DrawRejoinMenu(void)
+{
+	UINT16 i;
+	INT32 x = currentMenu->x;
+	INT32 y = currentMenu->y;
+	UINT8 count = 0;
+	UINT8 index;
+
+	V_DrawFill(x - 2, y + (12+2), BASEVIDWIDTH - (x*2), 24, 159);
+	V_DrawString(x, y + (12+4), V_ALLOWLOWERCASE,
+		"Addresses of servers you join will");
+	V_DrawString(x, y + (22+4), V_ALLOWLOWERCASE,
+		"be saved here.");
+	V_DrawFill(1, y + (22+30 + 2), 318, 1, 0);
+
+	for (i = 2; i < NUMLOGIP + 2; i++)
+		MP_RejoinMenu[i].status = IT_STRING | IT_SPACE;
+	
+	// now, iterate through our saved IPs
+	for (index = 0; index < NUMLOGIP; index++)
+	{
+		char str[MAX_LOGIP];
+		char str_ip[MAX_LOGIP];
+		boolean namepassed = false;
+		INT32 highlight = (itemOn == index + 2 ? V_YELLOWMAP : 0);
+
+		if (joinedIPlist[index][1][0])	// Try drawing server name
+		{
+			strlcpy(str, joinedIPlist[index][1], MAX_LOGIP);
+			namepassed = true;
+		}
+
+		if (joinedIPlist[index][0][0])
+		{
+			if (!namepassed)	// If that fails, get the address
+				strlcpy(str, joinedIPlist[index][0], MAX_LOGIP);
+			strlcpy(str_ip, joinedIPlist[index][0], MAX_LOGIP);
+		}
+		else if (!namepassed)
+		{
+			V_DrawFill(currentMenu->x - 2,
+				y + (22 + 35),
+				BASEVIDWIDTH - (x*2), 12,
+				V_TRANSLUCENT|((index & 1) ? 29 : 21)
+			);
+			V_DrawString(x, y + (22 + 35), V_GRAYMAP,
+				"---");
+			y += 12;
+			continue;
+		}
+
+		// min width is probably like 268px (sorry for shitty formatting)
+		V_DrawFill(currentMenu->x - 2,
+			y + (22 + 35),
+			BASEVIDWIDTH - (x*2), 12,
+			(itemOn == index + 2) ? 153 : ((index & 1) ? 159 : 156)
+		);
+		V_DrawString(x, y + (22 + 35), V_ALLOWLOWERCASE|highlight,
+			str);
+		V_DrawSmallString(x, y + (22 + 35) + 8, V_ALLOWLOWERCASE|highlight,
+			str_ip);
+		
+		MP_RejoinMenu[index + 2].status = IT_STRING | IT_CALL;
+		count++;
+		y += 12;
+	}
+
+	if (!count)
+		V_DrawString(x, y + (22 + 35), 0,
+			"No servers found.");
+
+	M_DrawGenericMenu();
 }
 
 static void M_DrawConnectMenu(void)
@@ -11537,6 +11667,33 @@ static void M_ConnectMenuModChecks(INT32 choice)
 	}
 
 	M_ConnectMenu(-1);
+}
+
+// lol
+void M_RejoinMenu(INT32 choice)
+{
+	(void)choice;
+	// modified game check: no longer handled
+	// we don't request a restart unless the filelist differs
+
+	M_SetupNextMenu(&MP_RejoinDef);
+	itemOn = 1;
+	M_UpdateItemOn();
+	M_Refresh(0);
+}
+
+static void M_RejoinMenuModChecks(INT32 choice)
+{
+	(void)choice;
+	// okay never mind we want to COMMUNICATE to the player pre-emptively instead of letting them try and then get confused when it doesn't work
+
+	if (modifiedgame)
+	{
+		M_StartMessage(M_GetText("You have add-ons loaded.\nYou won't be able to join netgames!\n\nTo play online, restart the game\nand don't load any addons.\nSRB2 will automatically add\neverything you need when you join.\n\n(Press a key)\n"),M_RejoinMenu,MM_EVENTHANDLER);
+		return;
+	}
+
+	M_RejoinMenu(-1);
 }
 
 UINT32 roomIds[NUM_LIST_ROOMS];
@@ -11859,15 +12016,15 @@ static void M_DrawMPMainMenu(void)
 
 	// use generic drawer for cursor, items and title
 	M_DrawGenericMenu();
+	
+	V_DrawRightAlignedString(BASEVIDWIDTH-x, y+79,
+		((itemOn == 5) ? V_YELLOWMAP : 0), va("(2-%d players)", MAXPLAYERS));
 
-	V_DrawRightAlignedString(BASEVIDWIDTH-x, y+66,
-		((itemOn == 4) ? V_YELLOWMAP : 0), va("(2-%d players)", MAXPLAYERS));
+	V_DrawRightAlignedString(BASEVIDWIDTH-x, y+89,
+		((itemOn == 6) ? V_YELLOWMAP : 0), "(2 players)");
 
-	V_DrawRightAlignedString(BASEVIDWIDTH-x, y+76,
-		((itemOn == 5) ? V_YELLOWMAP : 0), "(2 players)");
-
-	V_DrawRightAlignedString(BASEVIDWIDTH-x, y+116,
-		((itemOn == 8) ? V_YELLOWMAP : 0), "(splitscreen)");
+	V_DrawRightAlignedString(BASEVIDWIDTH-x, y+127,
+		((itemOn == 9) ? V_YELLOWMAP : 0), "(splitscreen)");
 
 	M_DrawConnectIP();
 }

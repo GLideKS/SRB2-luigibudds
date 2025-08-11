@@ -1776,7 +1776,7 @@ static void R_ProjectSprite(mobj_t *thing)
 	fixed_t gz = 0, gzt = 0;
 	INT32 heightsec, phs;
 	INT32 light = 0;
-	fixed_t this_scale;
+	fixed_t this_scale, highresscale;
 	fixed_t spritexscale, spriteyscale;
 	fixed_t spritexscale_scaled, spriteyscale_scaled;
 
@@ -1989,9 +1989,14 @@ static void R_ProjectSprite(mobj_t *thing)
 
 	if (thing->skin && ((skin_t *)thing->skin)->flags & SF_HIRES)
 	{
-		fixed_t highresscale = ((skin_t *)thing->skin)->highresscale;
-		spritexscale = FixedMul(spritexscale, highresscale);
-		spriteyscale = FixedMul(spriteyscale, highresscale);
+		fixed_t high_res = ((skin_t *)thing->skin)->highresscale;
+		spritexscale = FixedMul(spritexscale, high_res);
+		spriteyscale = FixedMul(spriteyscale, high_res);
+		highresscale = high_res;
+	}
+	else
+	{
+		highresscale = FRACUNIT;
 	}
 
 	if (spritexscale < 1 || spriteyscale < 1)
@@ -2012,8 +2017,8 @@ static void R_ProjectSprite(mobj_t *thing)
 		if ((thing->renderflags & RF_FLIPOFFSETS) && flip)
 			flipoffset = -1;
 
-		spr_offset += interp.spritexoffset * flipoffset;
-		spr_topoffset += interp.spriteyoffset * flipoffset;
+		spr_offset += FixedDiv(interp.spritexoffset, highresscale) * flipoffset;
+		spr_topoffset += FixedDiv(interp.spriteyoffset, highresscale) * flipoffset;
 	}
 
 	if (flip)

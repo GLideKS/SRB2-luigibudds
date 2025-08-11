@@ -45,6 +45,27 @@ long int M_SavedSize(void);
 // the file where game vars and settings are saved
 #define CONFIGFILENAME "config.cfg"
 
+// The file where we'll save the last IPs we joined
+#define IPLOGFILE "srb2savedips.txt"
+#define IPLOGFILESEP ";"
+#define NUMLOGIP 9
+#define MAX_LOGIP 255
+
+// Array where we'll store addresses to display for last servers joined
+// {address, servame}
+extern char joinedIPlist[NUMLOGIP][2][MAX_LOGIP];
+
+// Keep the address we're joining in mind until we've finished joining.
+// Since we don't wanna add an IP address we aren't even sure worked out.
+extern char joinedIP[MAX_LOGIP];
+// Attempting to rejoin a server from the rejoin menu
+extern boolean attemptingrejoin;
+
+void M_InitJoinedIPArray(void);
+void M_AddToJoinedIPs(char *address, char *servname);
+void M_SaveJoinedIPs(void);
+void M_LoadJoinedIPs(void);
+
 INT32 M_MapNumber(char first, char second);
 
 boolean FIL_WriteFile(char const *name, const void *source, size_t length);
