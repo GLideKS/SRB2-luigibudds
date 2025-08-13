@@ -11324,7 +11324,6 @@ static void M_DrawRejoinMenu(void)
 	UINT16 i;
 	INT32 x = currentMenu->x;
 	INT32 y = currentMenu->y;
-	UINT8 count = 0;
 	UINT8 index;
 
 	V_DrawFill(x - 2, y + (12+2), BASEVIDWIDTH - (x*2), 24, 159);
@@ -11332,7 +11331,7 @@ static void M_DrawRejoinMenu(void)
 		"Addresses of servers you join will");
 	V_DrawString(x, y + (22+4), V_ALLOWLOWERCASE,
 		"be saved here.");
-	V_DrawFill(1, y + (22+30 + 2), 318, 1, 0);
+	M_DrawLevelPlatterHeader(y + (22+15 + 2), "", true, false);
 
 	for (i = 2; i < NUMLOGIP + 2; i++)
 		MP_RejoinMenu[i].status = IT_STRING | IT_SPACE;
@@ -11382,13 +11381,9 @@ static void M_DrawRejoinMenu(void)
 			str_ip);
 		
 		MP_RejoinMenu[index + 2].status = IT_STRING | IT_CALL;
-		count++;
 		y += 12;
 	}
 
-	if (!count)
-		V_DrawString(x, y + (22 + 35), 0,
-			"No servers found.");
 
 	M_DrawGenericMenu();
 }
@@ -11640,6 +11635,7 @@ void M_ConnectMenu(INT32 choice)
 	// we don't request a restart unless the filelist differs
 
 	// first page of servers
+	attemptingrejoin = false;
 	serverlistpage = 0;
 	if (cv_masterserver_room_id.value < 0)
 	{
