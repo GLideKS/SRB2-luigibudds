@@ -1151,7 +1151,7 @@ void R_SetupFrame(player_t *player)
 		}
 	}
 
-	if (quake.time && !ispaused)
+	if (cv_earthquake.value && quake.time && !ispaused)
 	{
 		fixed_t ir = quake.intensity>>1;
         /*
@@ -1720,6 +1720,8 @@ void R_RegisterEngineStuff(void)
 	CV_RegisterVar(&cv_cam_saveheight[0][1]);
 	CV_RegisterVar(&cv_cam_saveheight[1][0]);
 	CV_RegisterVar(&cv_cam_saveheight[1][1]);
+
+	CV_RegisterVar(&cv_earthquake);
 
 	CV_RegisterVar(&cv_showhud);
 	CV_RegisterVar(&cv_translucenthud);

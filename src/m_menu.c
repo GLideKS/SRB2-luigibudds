@@ -1374,17 +1374,18 @@ static menuitem_t OP_VideoOptionsMenu[] =
 	{IT_STRING | IT_CVAR, NULL, "NiGHTS Hoop Draw Dist.",    &cv_drawdist_nights, 176},
 	{IT_STRING | IT_CVAR, NULL, "Pitch/Roll Rotation",    	 &cv_pitchroll_rotation, 181},
 	{IT_STRING | IT_CVAR, NULL, "Ring Racers Screen Quakes", &cv_ringracers_quakes, 186},
+    {IT_STRING | IT_CVAR, NULL, "Screenshake Effects", &cv_earthquake, 191},
 
-	{IT_HEADER, NULL, "Diagnostic", NULL, 195},
-	{IT_STRING | IT_CVAR, NULL, "Show FPS",                  &cv_ticrate,         201},
-	{IT_STRING | IT_CVAR, NULL, "Clear Before Redraw",       &cv_homremoval,      206},
-	{IT_STRING | IT_CVAR, NULL, "Show \"FOCUS LOST\"",       &cv_showfocuslost,   211},
-	{IT_STRING | IT_CVAR, NULL, "Show Movie Info",           &cv_moviemodeinfo,   216},
+	{IT_HEADER, NULL, "Diagnostic", NULL, 198},
+	{IT_STRING | IT_CVAR, NULL, "Show FPS",                  &cv_ticrate,         203},
+	{IT_STRING | IT_CVAR, NULL, "Clear Before Redraw",       &cv_homremoval,      208},
+	{IT_STRING | IT_CVAR, NULL, "Show \"FOCUS LOST\"",       &cv_showfocuslost,   213},
+	{IT_STRING | IT_CVAR, NULL, "Show Movie Info",           &cv_moviemodeinfo,   218},
 
 #ifdef HWRENDER
-	{IT_HEADER, NULL, "Renderer", NULL, 225},
-	{IT_CALL | IT_STRING, NULL, "OpenGL Options...",         M_OpenGLOptionsMenu, 231},
-	{IT_STRING | IT_CVAR, NULL, "FPS Cap",                   &cv_fpscap,          236},
+	{IT_HEADER, NULL, "Renderer", NULL, 224},
+	{IT_CALL | IT_STRING, NULL, "OpenGL Options...",         M_OpenGLOptionsMenu, 233},
+	{IT_STRING | IT_CVAR, NULL, "FPS Cap",                   &cv_fpscap,          238},
 #endif
 };
 

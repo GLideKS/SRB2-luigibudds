@@ -194,6 +194,13 @@ void M_AddToJoinedIPs(char *address, char *servname)
 {
 	UINT8 i = 0;
 
+	// Don't log local connections...
+	if (stricmp(address, "localhost") == 0
+	 || stricmp(address, "self") == 0)
+	{
+		return;
+	}
+
 	// Check for dupes...
 	for (i = 0; i < NUMLOGIP-1; i++) // intentionally not < NUMLOGIP
 	{
@@ -204,7 +211,7 @@ void M_AddToJoinedIPs(char *address, char *servname)
 		}
 	}
 
-	CONS_Printf("Adding %s (%s) to list of manually joined IPs\n", servname, address);
+	CONS_Printf("Adding %s (%s) to list of joined servers\n", servname, address);
 
 	// Start by moving every IP up 1 slot (dropping the last IP in the table)
 	for (; i; i--)

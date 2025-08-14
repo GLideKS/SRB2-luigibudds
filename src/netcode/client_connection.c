@@ -1713,6 +1713,7 @@ void CL_ConnectToServer(void)
 	displayplayer = consoleplayer;
 
 	// At this point we've succesfully joined the server, if we joined by IP (ie: a valid joinedIP string), save it!
+	// TODO: using cv_servername wont properly fetch the server name if we're still in waitingforplayers
 	strcpy(tmpsave, cv_servername.string);
 	tmpsave[255] = '\0';
 
