@@ -563,28 +563,6 @@ void V_DrawStretchyFixedPatch(fixed_t x, fixed_t y, fixed_t pscale, fixed_t vsca
 	}
 
 	dup = vid.dup;
-	{
-		fixed_t offsetx = 0, offsety = 0;
-
-		// left offset
-		if (scrn & V_FLIP)
-			offsetx = FixedMul((patch->width - patch->leftoffset)<<FRACBITS, pscale) + 1;
-		else
-			offsetx = FixedMul(patch->leftoffset<<FRACBITS, pscale);
-
-		// top offset
-		offsety = FixedMul(patch->topoffset<<FRACBITS, vscale);
-		if (scrn & V_NOSCALESTART)
-		{
-			offsetx *= dup;
-			offsety *= dup;
-		}
-
-		// Subtract the offsets from x/y positions
-		x -= offsetx;
-		y -= offsety;
-	}
-
 	if (scrn & V_SCALEPATCHMASK) switch (scrn & V_SCALEPATCHMASK)
 	{
 		case V_NOSCALEPATCH:
@@ -603,6 +581,23 @@ void V_DrawStretchyFixedPatch(fixed_t x, fixed_t y, fixed_t pscale, fixed_t vsca
 		vdup = vscale * dup;
 	colfrac = FixedDiv(FRACUNIT, fdup);
 	rowfrac = FixedDiv(FRACUNIT, vdup);
+
+	{
+		fixed_t offsetx = 0, offsety = 0;
+
+		// left offset
+		if (scrn & V_FLIP)
+			offsetx = FixedMul((patch->width - patch->leftoffset)<<FRACBITS, pscale) + 1;
+		else
+			offsetx = FixedMul(patch->leftoffset<<FRACBITS, pscale);
+
+		// top offset
+		offsety = FixedMul(patch->topoffset<<FRACBITS, vscale);
+
+		// Subtract the offsets from x/y positions
+		x -= offsetx;
+		y -= offsety;
+	}
 
 	if (splitscreen && (scrn & V_PERPLAYER))
 	{
@@ -742,11 +737,11 @@ void V_DrawStretchyFixedPatch(fixed_t x, fixed_t y, fixed_t pscale, fixed_t vsca
 	{
 		pwidth = patch->width<<FRACBITS;
 		pwidth = FixedMul(pwidth, pscale);
-		pwidth *= vid.dup;
+		pwidth *= dup;
 		pwidth >>= FRACBITS;
 	}
 	else
-		pwidth = patch->width * vid.dup;
+		pwidth = patch->width * dup;
 
 	deststart = desttop;
 	destend = desttop + pwidth;

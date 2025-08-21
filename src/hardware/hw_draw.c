@@ -95,6 +95,19 @@ void HWR_DrawStretchyFixedPatch(patch_t *gpatch, fixed_t x, fixed_t y, fixed_t p
 
 	dup = (float)vid.dup;
 
+	switch (option & V_SCALEPATCHMASK)
+	{
+	case V_NOSCALEPATCH:
+		dup = 1.0f;
+		break;
+	case V_SMALLSCALEPATCH:
+		dup = (float)vid.smalldup;
+		break;
+	case V_MEDSCALEPATCH:
+		dup = (float)vid.meddup;
+		break;
+	}
+
     float pscale_temp = FIXED_TO_FLOAT(pscale);
 	fscalew = pscale_temp;
 	if (vscale != pscale)
@@ -118,27 +131,8 @@ void HWR_DrawStretchyFixedPatch(patch_t *gpatch, fixed_t x, fixed_t y, fixed_t p
 		// TODO: make some kind of vertical version of V_FLIP
 		offsety = (float)(gpatch->topoffset) * fscaleh;
 
-		if (option & V_NOSCALESTART)
-		{
-			offsetx *= dup;
-			offsety *= dup;
-		}
-
 		cx -= offsetx;
 		cy -= offsety;
-	}
-
-	switch (option & V_SCALEPATCHMASK)
-	{
-	case V_NOSCALEPATCH:
-		dup = 1.0f;
-		break;
-	case V_SMALLSCALEPATCH:
-		dup = (float)vid.smalldup;
-		break;
-	case V_MEDSCALEPATCH:
-		dup = (float)vid.meddup;
-		break;
 	}
 
 	if (splitscreen && (option & V_PERPLAYER))

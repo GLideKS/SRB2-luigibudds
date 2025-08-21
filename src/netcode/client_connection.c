@@ -261,14 +261,12 @@ static void CL_DrawConnectionStatus(void)
 			
 			UINT32 ping = (UINT32)serverlist[joinnode].info.time;
 			if (cv_pingmeasurement.value)
-			{
-				V_DrawThinString(12 + 80, 28, V_ALLOWLOWERCASE, va("Delay: %s%.1fd",
+				V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, 18, V_ALLOWLOWERCASE, va("%s%.1f delay",
 					(ping < 128 ? "\x83" : (ping < 256 ? "\x82" : "\x85")),
 					HU_pingMSToDelay(ping)
 				));
-			}
 			else
-				V_DrawThinString(12 + 80, 28, V_ALLOWLOWERCASE, va("Ping: %s%ums",
+				V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, 18, V_ALLOWLOWERCASE, va("%s%ums",
 					(ping < 128 ? "\x83" : (ping < 256 ? "\x82" : "\x85")),
 					ping
 				));
@@ -342,8 +340,8 @@ static void CL_DrawConnectionStatus(void)
 			{
 				V_DrawString(12, 74, V_ALLOWLOWERCASE|V_YELLOWMAP, "Addons");
 
-#define maxcharlen (20 + 3) // 3 for the 3 dots
-#define charsonside 10
+#define charsonside (small_mode ? 18 : 10)
+#define maxcharlen ((charsonside*2) + 3) // 3 for the 3 dots
 				INT32 i;
 				INT32 count = 0;
 				INT32 x = 14;
@@ -361,41 +359,39 @@ static void CL_DrawConnectionStatus(void)
 					
 					fileneeded_t addon_file = fileneeded[i];
 					strncpy(file_name, addon_file.filename, MAX_WADPATH);
-					if ((UINT8)(strlen(file_name)+1) > maxcharlen && !small_mode)
+					if ((UINT8)(strlen(file_name)+1) > maxcharlen)
 						V_DrawThinString(x, y, V_ALLOWLOWERCASE|V_6WIDTHSPACE,
 							va("\x82[#%.2d]\x80: %.*s...%s",i+1, charsonside, file_name, file_name+strlen(file_name)-((charsonside+1)))
 						);
 					else
-					{
 						V_DrawThinString(x, y, V_ALLOWLOWERCASE|V_6WIDTHSPACE,
 							va("\x82[#%.2d]\x80: %s",i+1, file_name)
 						);
 
-						// make sure we have the space
-						if (small_mode)
+					// make sure we have the space
+					if (small_mode)
+					{
+						float file_size = ((float)addon_file.totalsize);
+						UINT8 size_mode = 0; // regular bytes
+						//in megabytes
+						if (file_size >= (1024.0f * 1024.0f))
 						{
-							float file_size = ((float)addon_file.totalsize);
-							UINT8 size_mode = 0; // regular bytes
-							//in megabytes
-							if (file_size >= (1024.0f * 1024.0f))
-							{
-								size_mode = 1;
-								file_size /= (1024.0f * 1024.0f);
-							}
-							// KB
-							else if (file_size >= 1024.0f)
-							{
-								size_mode = 2;
-								file_size /= 1024.0f;
-							}
-
-							V_DrawRightAlignedThinString(x + 288,
-								y, V_YELLOWMAP|V_ALLOWLOWERCASE,
-								// "~" since its approx this size, we mightve lost some
-								// accuracy from only having 4 bytes carry the size
-								va("~%.1f%s", file_size, size_mode == 0 ? "b" : (size_mode == 2 ? "kb" : "mb"))
-							);
+							size_mode = 1;
+							file_size /= (1024.0f * 1024.0f);
 						}
+						// KB
+						else if (file_size >= 1024.0f)
+						{
+							size_mode = 2;
+							file_size /= 1024.0f;
+						}
+
+						V_DrawRightAlignedThinString(x + 288,
+							y, V_YELLOWMAP|V_ALLOWLOWERCASE,
+							// "~" since its approx this size, we mightve lost some
+							// accuracy from only having 4 bytes carry the size
+							va("~%.1f %s", file_size, size_mode == 0 ? "b" : (size_mode == 2 ? "kb" : "mb"))
+						);
 					}
 
 					y += 9;
@@ -432,7 +428,7 @@ static void CL_DrawConnectionStatus(void)
 					totalsize /= 1024.0f;
 				}
 				
-				V_DrawRightAlignedThinString(BASEVIDWIDTH - 22, 74,
+				V_DrawRightAlignedThinString(BASEVIDWIDTH - 18, 75,
 					V_ALLOWLOWERCASE|V_YELLOWMAP,
 					va("~%.1f%s total", (float)totalsize, size_mode == 0 ? "b" : (size_mode == 2 ? "kb" : "mb"))
 				);
@@ -462,7 +458,7 @@ static void CL_DrawConnectionStatus(void)
 			V_DrawFill(8, BASEVIDHEIGHT - 14, BASEVIDWIDTH - 16, 13, 159);
 			V_DrawThinString(
 				16, BASEVIDHEIGHT - 11,
-				V_ALLOWLOWERCASE, "[""\x82""ESC""\x80""] = Back to MS"
+				V_ALLOWLOWERCASE, "[""\x82""ESC""\x80""] = Back"
 			);
 			if (fileneedednum > 0)
 			{
