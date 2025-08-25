@@ -2959,6 +2959,11 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 				quake.intensity = 8<<FRACBITS;
 			if (!quake.radius)
 				quake.radius = 512<<FRACBITS;
+			
+			if (quake.time)
+				quake.minus = quake.intensity / quake.time;
+			else
+				quake.minus = 0;
 			break;
 		}
 

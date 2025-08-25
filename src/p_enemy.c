@@ -12784,6 +12784,7 @@ void A_MineExplode(void *data)
 	quake.radius = 512*FRACUNIT;
 	quake.intensity = 8*FRACUNIT;
 	quake.time = TICRATE/3;
+	quake.minus = quake.intensity / quake.time;
 
 	P_RadiusAttack(actor, actor->tracer, 192*FRACUNIT, DMG_CANHURTSELF, true);
 	P_MobjCheckWater(actor);
@@ -13822,6 +13823,7 @@ void A_Boss5BombExplode(void *data)
 		quake.epicenter = &q_epicenter;
 	}
 	quake.radius = 20*actor->radius;
+	quake.minus = quake.intensity / quake.time;
 }
 
 static mobj_t *dustdevil;
@@ -14108,7 +14110,8 @@ void A_TNTExplode(void *data)
 	quake.time = TICRATE/6;
 	quake.epicenter = &epicenter;
 	quake.radius = 512*FRACUNIT;
-
+	quake.minus = quake.intensity / quake.time;
+	
 	if (locvar1)
 	{
 		P_DustRing(locvar1, 4, actor->x, actor->y, actor->z+actor->height, 64, 0, FRACUNIT, actor->scale);
