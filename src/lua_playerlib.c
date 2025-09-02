@@ -1361,7 +1361,8 @@ static int player_set(lua_State *L)
 		plr->outofcoop = lua_toboolean(L, 3);
 		break;
 	case player_muted:
-		return NOSET;
+		plr->muted = lua_toboolean(L, 3);
+		break;
 	case player_bot:
 		return NOSET;
 	case player_botleader:

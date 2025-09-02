@@ -48,7 +48,7 @@ static INT32 cl_vs_sa_scrolltime = 0;
 static INT16 cl_vs_sa_animcount = 8;
 #define MAXBIGADDONS (11)
 //Shortcut for `fileneedednum - cap`
-#define ADDONSCROLLCAP (cv_compactaddonlist.value ? (MAXBIGADDONS*2) : MAXBIGADDONS)
+#define ADDONSCROLLCAP (MAXBIGADDONS)
 
 static UINT16 cl_lastcheckedfilecount = 0;	// used for full file list
 
@@ -340,20 +340,18 @@ static void CL_DrawConnectionStatus(void)
 			{
 				V_DrawString(12, 74, V_ALLOWLOWERCASE|V_YELLOWMAP, "Addons");
 
-#define charsonside (small_mode ? 18 : 10)
+#define charsonside (18)
 #define maxcharlen ((charsonside*2) + 3) // 3 for the 3 dots
 				INT32 i;
 				INT32 count = 0;
 				INT32 x = 14;
 				INT32 y = 84;
-				//if true, each entry will take up all the space on the menu (a bit confusing, i know)
-				boolean small_mode = (!cv_compactaddonlist.value) ? true : fileneedednum <= MAXBIGADDONS;
 				char file_name[MAX_WADPATH+1];
 				for (i = cl_vs_sa_scroll; i < fileneedednum; i++)
 				{
 					if (i & 1)
 						V_DrawFill(x,y-1,
-							(small_mode) ? 288 : 146, 9,
+							288, 9,
 							156
 						);
 					
@@ -368,8 +366,6 @@ static void CL_DrawConnectionStatus(void)
 							va("\x82[#%.2d]\x80: %s",i+1, file_name)
 						);
 
-					// make sure we have the space
-					if (small_mode)
 					{
 						float file_size = ((float)addon_file.totalsize);
 						UINT8 size_mode = 0; // regular bytes
@@ -398,10 +394,7 @@ static void CL_DrawConnectionStatus(void)
 					count++;
 					if (count == MAXBIGADDONS)
 					{
-						if (small_mode)
-							break;
-						x = BASEVIDWIDTH/2;
-						y = 84;
+						break;
 					}
 					// Cannot draw any more
 					if (count == MAXBIGADDONS*2)
@@ -435,7 +428,7 @@ static void CL_DrawConnectionStatus(void)
 
 				// draw the little arrows
 				// We probably have space for a scroll bar here now
-				if (fileneedednum >= (MAXBIGADDONS*2))
+				if (fileneedednum >= (MAXBIGADDONS))
 				{
 					// up arrow
 					if (cl_vs_sa_scroll)
@@ -1519,12 +1512,12 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 				}
 				cl_vs_sa_tapped = true;
 			}
-			else if (!(cl_vs_showaddons && fileneedednum > (MAXBIGADDONS*2)))
+			else if (!(cl_vs_showaddons && fileneedednum > MAXBIGADDONS))
 				cl_vs_sa_tapped = false;
 			
 			// i never said my C code was GOOD...
 			// maybe some macros could clean this up
-			if (cl_vs_showaddons && fileneedednum > (MAXBIGADDONS*2))
+			if (cl_vs_showaddons && fileneedednum > MAXBIGADDONS)
 			{
 				if (gamekeydown[KEY_DOWNARROW])
 				{
@@ -1551,8 +1544,8 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 							cl_vs_sa_scroll -= 1;
 							S_StartSound(NULL, sfx_menu1);
 						}
-						if (cl_vs_sa_scroll < 0) cl_vs_sa_scroll = 0;
-						if (!cl_vs_sa_tapped) cl_vs_sa_scrolltime = 0;
+						if (cl_vs_sa_scroll < 0) { cl_vs_sa_scroll = 0; }
+						if (!cl_vs_sa_tapped) { cl_vs_sa_scrolltime = 0; } 
 					}
 					cl_vs_sa_tapped = true;
 					cl_vs_sa_scrolltime++;

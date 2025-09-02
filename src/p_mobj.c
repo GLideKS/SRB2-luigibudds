@@ -1410,29 +1410,40 @@ void P_CheckGravity(mobj_t *mo, boolean affect)
 	}
 }
 
+static angle_t P_AngleLerp(fixed_t frac, angle_t from, angle_t to)
+{
+	return from + FixedMul(to - from, frac);
+}
+
 //
 // P_SetPitchRollFromSlope
 //
 void P_SetPitchRollFromSlope(mobj_t *mo, pslope_t *slope)
 {
-#if 1
+	angle_t dest_pitch = 0;
+	angle_t dest_roll = 0;
+	angle_t dest_frac = (mo->eflags & MFE_JUSTHITFLOOR) ? FRACUNIT : FRACUNIT/4;
+
 	if (slope)
 	{
 		fixed_t tempz = slope->normal.z;
 		fixed_t tempy = slope->normal.y;
 		fixed_t tempx = slope->normal.x;
 
-		mo->pitch = R_PointToAngle2(0, 0, FixedSqrt(FixedMul(tempy, tempy) + FixedMul(tempz, tempz)), tempx);
-		mo->roll = R_PointToAngle2(0, 0, tempz, tempy);
+		dest_pitch = R_PointToAngle2(0, 0, FixedSqrt(FixedMul(tempy, tempy) + FixedMul(tempz, tempz)), tempx);
+		dest_roll = R_PointToAngle2(0, 0, tempz, tempy);
+	}
+
+	if (cv_pitchroll_easing.value)
+	{
+		mo->pitch = P_AngleLerp(dest_frac, mo->pitch, dest_pitch);
+		mo->roll = P_AngleLerp(dest_frac, mo->roll, dest_roll);
 	}
 	else
 	{
-		mo->pitch = mo->roll = 0;
+		mo->pitch = dest_pitch;
+		mo->roll = dest_roll;
 	}
-#else
-	(void)mo;
-	(void)slope;
-#endif
 }
 
 //
@@ -10204,6 +10215,30 @@ void P_MobjThinker(mobj_t *mobj)
 				mobj->frame = (mobj->frame & ~FF_TRANSMASK) | (((NUMTRANSMAPS-1) - mobj->fuse / 2) << FF_TRANSSHIFT);
 		}
 	}
+
+	// Bad place to put this i feel
+	if (cv_pitchroll_easing.value && !P_IsObjectOnGround(mobj) && (((mobj->flags & MF_NOGRAVITY)|(mobj->eflags & MFE_NOPITCHROLLEASING)) == 0))
+	{
+		boolean canease = true; //(mobj->momz * P_MobjFlip(mobj) >= FixedMul(-3*FRACUNIT, mobj->scale));
+		
+		// dont make yourself up-right if youre still going up from a wall transfer
+		if (mobj->player != NULL)
+		{
+			angle_t rolltotal = mobj->pitch + mobj->roll;
+			if (rolltotal > ANGLE_180)
+				rolltotal -= ANGLE_180;
+			
+			if (rolltotal == ANGLE_90 && mobj->momz * P_MobjFlip(mobj) > 0)
+				canease = false;
+		}
+		if (canease)
+		{
+			static fixed_t lerpfrac = FRACUNIT/16;
+			mobj->pitch = P_AngleLerp(lerpfrac, mobj->pitch, 0);
+			mobj->roll = P_AngleLerp(lerpfrac, mobj->roll, 0);
+		}
+	}
+	mobj->eflags &= ~MFE_NOPITCHROLLEASING;
 
 	// Special thinker for scenery objects
 	if (mobj->flags & MF_SCENERY)

@@ -216,7 +216,6 @@ void SCR_Startup(void)
 	CV_RegisterVar(&cv_ticrate);
 	CV_RegisterVar(&cv_tpscounter);
 	CV_RegisterVar(&cv_compactinfo);
-	CV_RegisterVar(&cv_compactaddonlist);
 	CV_RegisterVar(&cv_constextsize);
 
 	V_SetPalette(0);

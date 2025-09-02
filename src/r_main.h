@@ -130,6 +130,7 @@ extern consvar_t cv_renderhitbox, cv_renderhitboxinterpolation, cv_renderhitboxg
 extern consvar_t cv_renderwalls, cv_renderfloors, cv_renderthings;
 extern consvar_t cv_ffloorclip, cv_spriteclip;
 extern consvar_t cv_pitchroll_rotation;
+extern consvar_t cv_pitchroll_easing;
 
 extern boolean r_renderwalls;
 extern boolean r_renderfloors;

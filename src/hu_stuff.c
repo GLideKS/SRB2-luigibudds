@@ -818,9 +818,9 @@ static void Got_Saycmd(UINT8 **p, INT32 playernum)
 		else // To your team
 		{
 			if (players[playernum].ctfteam == 1) // red
-				prefix = va("%s[TEAM]", skincolor_redteam);
+				prefix = va("%s[TEAM]", GetChatColorFromSkinColor(skincolor_redteam));
 			else if (players[playernum].ctfteam == 2) // blue
-				prefix = va("%s[TEAM]", skincolor_blueteam);
+				prefix = va("%s[TEAM]", GetChatColorFromSkinColor(skincolor_blueteam));
 			else
 				prefix = "\x83"; // makes sure this doesn't implode if you sayteam on non-team gamemodes
 

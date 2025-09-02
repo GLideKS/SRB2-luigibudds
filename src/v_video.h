@@ -28,7 +28,7 @@
 
 extern UINT8 *screens[5];
 
-extern consvar_t cv_ticrate, cv_tpscounter, cv_compactinfo, cv_compactaddonlist, cv_constextsize,
+extern consvar_t cv_ticrate, cv_tpscounter, cv_compactinfo, cv_constextsize,
 cv_globalgamma, cv_globalsaturation,
 cv_rhue, cv_yhue, cv_ghue, cv_chue, cv_bhue, cv_mhue,
 cv_rgamma, cv_ygamma, cv_ggamma, cv_cgamma, cv_bgamma, cv_mgamma,

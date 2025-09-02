@@ -168,6 +168,7 @@ consvar_t cv_fov = CVAR_INIT ("fov", "90", CV_SAVE|CV_FLOAT|CV_CALL, fov_cons_t,
 consvar_t cv_fovchange = CVAR_INIT ("fovchange", "Off", CV_SAVE, CV_OnOff, NULL);
 consvar_t cv_maxportals = CVAR_INIT ("maxportals", "2", CV_SAVE, maxportals_cons_t, NULL);
 consvar_t cv_pitchroll_rotation = CVAR_INIT ("pitchroll-tation", "On", CV_SAVE, CV_OnOff, NULL);
+consvar_t cv_pitchroll_easing = CVAR_INIT ("pitchroll-easing", "On", CV_SAVE, CV_OnOff, NULL);
 
 consvar_t cv_renderview = CVAR_INIT ("renderview", "On", 0, CV_OnOff, NULL);
 consvar_t cv_renderwalls = CVAR_INIT ("r_renderwalls", "On", 0, CV_OnOff, NULL);
@@ -1674,6 +1675,7 @@ void R_RegisterEngineStuff(void)
 	CV_RegisterVar(&cv_fovchange);
 	CV_RegisterVar(&cv_fov);
 	CV_RegisterVar(&cv_pitchroll_rotation);
+	CV_RegisterVar(&cv_pitchroll_easing);
 
 	CV_RegisterVar(&cv_chasecam);
 	CV_RegisterVar(&cv_chasecam2);
