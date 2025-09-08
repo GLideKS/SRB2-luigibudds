@@ -32,6 +32,7 @@
 #include "../r_bsp.h"
 #include "../r_fps.h"
 #include "../r_main.h"
+#include "../r_translation.h"
 #include "../m_misc.h"
 #include "../w_wad.h"
 #include "../z_zone.h"
@@ -612,6 +613,10 @@ modelfound:
 // 0.0722 to blue
 #define SETBRIGHTNESS(brightness,r,g,b) \
 	brightness = (UINT8)(((1063*(UINT16)(r))/5000) + ((3576*(UINT16)(g))/5000) + ((361*(UINT16)(b))/5000))
+#define GETLUMINOUSITY(r,g,b) \
+	(UINT8)(((299*(UINT16)(r))/1000) + ((587*(UINT16)(g))/1000) + ((57*(UINT16)(b))/500))
+#define SAVE_NEW_COLORS(r,g,b) \
+	new_r = r; new_g = g; new_b = b;
 
 static void HWR_CreateBlendedTexture(patch_t *gpatch, patch_t *blendgpatch, GLMipmap_t *grMipmap, INT32 skinnum, skincolornum_t color)
 {
@@ -624,6 +629,7 @@ static void HWR_CreateBlendedTexture(patch_t *gpatch, patch_t *blendgpatch, GLMi
 	UINT8 cutoff[16]; // Brightness cutoff before using the next color
 	UINT8 translen = 0;
 	UINT8 i;
+	UINT8 new_r,new_g,new_b = 0;
 
 	blendcolor = V_GetColor(0); // initialize
 	memset(translation, 0, sizeof(translation));
@@ -688,11 +694,21 @@ static void HWR_CreateBlendedTexture(patch_t *gpatch, patch_t *blendgpatch, GLMi
 
 	while (size--)
 	{
+		SAVE_NEW_COLORS(image->s.red, image->s.green, image->s.blue)
+
 		if (skinnum == TC_ALLWHITE)
 		{
 			// Turn everything white
 			cur->s.red = cur->s.green = cur->s.blue = 255;
 			cur->s.alpha = image->s.alpha;
+			SAVE_NEW_COLORS(cur->s.red, cur->s.green, cur->s.blue)
+		}
+		else if (skinnum == TC_ALLBLACK)
+		{
+			// Turn everything black
+			cur->s.red = cur->s.green = cur->s.blue = 0;
+			cur->s.alpha = image->s.alpha;
+			SAVE_NEW_COLORS(cur->s.red, cur->s.green, cur->s.blue)
 		}
 		else
 		{
@@ -943,7 +959,7 @@ static void HWR_CreateBlendedTexture(patch_t *gpatch, patch_t *blendgpatch, GLMi
 					cur->s.blue = (UINT8)tempcolor;
 					cur->s.alpha = image->s.alpha;
 				}
-
+				SAVE_NEW_COLORS(cur->s.red, cur->s.green, cur->s.blue)
 skippixel:
 
 				// *Now* we can do Metal Sonic's flashing
@@ -968,6 +984,23 @@ skippixel:
 						cur->s.red = cur->s.green = cur->s.blue = (255 - image->s.blue);
 					}
 				}
+				else if (skinnum == TC_INVERT)
+				{
+					cur->s.red = 255 - new_r;
+					cur->s.green = 255 - new_g;
+					cur->s.blue = 255 - new_b;
+					cur->s.alpha = image->s.alpha;
+				}
+				else if (skinnum == TC_GRAYSCALE)
+				{
+					// so called luminosity method
+					// 0.299 red
+					// 0.587 green
+					// 0.114 blue
+					UINT8 weighted = GETLUMINOUSITY(new_r,new_g,new_b);
+					cur->s.red = cur->s.green = cur->s.blue = weighted;
+					cur->s.alpha = image->s.alpha;
+				}
 			}
 		}
 
@@ -981,6 +1014,8 @@ skippixel:
 }
 
 #undef SETBRIGHTNESS
+#undef GETLUMINOUSITY
+#undef SAVE_NEW_COLORS
 
 static void HWR_GetBlendedTexture(patch_t *patch, patch_t *blendpatch, INT32 skinnum, const UINT8 *colormap, skincolornum_t color)
 {
@@ -1484,7 +1519,7 @@ boolean HWR_DrawModel(gl_vissprite_t *spr)
 		if (gpatch && hwrPatch && hwrPatch->mipmap->format) // else if meant that if a texture couldn't be loaded, it would just end up using something else's texture
 		{
 			INT32 skinnum = TC_DEFAULT;
-
+			
 			if ((spr->mobj->flags & (MF_ENEMY|MF_BOSS)) && (spr->mobj->flags2 & MF2_FRET) && !(spr->mobj->flags & MF_GRENADEBOUNCE) && (leveltime & 1)) // Bosses "flash"
 			{
 				if (spr->mobj->type == MT_CYBRAKDEMON || spr->mobj->colorized)
@@ -1513,6 +1548,24 @@ boolean HWR_DrawModel(gl_vissprite_t *spr)
 					skinnum = TC_DEFAULT;
 			}
 
+			int dashmode_transid  = R_FindCustomTranslation("DashMode");
+			int allwhite_transid  = R_FindCustomTranslation("AllWhite");
+			int allblack_transid  = R_FindCustomTranslation("AllBlack");
+			int invert_transid    = R_FindCustomTranslation("Invert");
+			int grayscale_transid = R_FindCustomTranslation("Grayscale");
+
+			// no switch-cases here...
+			if (spr->mobj->translation == dashmode_transid)
+				skinnum = TC_DASHMODE;
+			else if (spr->mobj->translation == allwhite_transid)
+				skinnum = TC_ALLWHITE;
+			else if (spr->mobj->translation == allblack_transid)
+				skinnum = TC_ALLBLACK;
+			else if (spr->mobj->translation == invert_transid)
+				skinnum = TC_INVERT;
+			else if (spr->mobj->translation == grayscale_transid)
+				skinnum = TC_GRAYSCALE;
+			
 			// Translation or skin number found
 			HWR_GetBlendedTexture(gpatch, blendgpatch, skinnum, spr->colormap, (skincolornum_t)spr->mobj->color);
 		}

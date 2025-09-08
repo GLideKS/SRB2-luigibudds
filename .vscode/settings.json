@@ -29,6 +29,8 @@
         "utility": "c",
         "xmemory": "c",
         "xstring": "c",
-        "xtr1common": "c"
+        "xtr1common": "c",
+        "algorithm": "c",
+        "limits": "c"
     }
 }

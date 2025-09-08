@@ -86,7 +86,12 @@ enum
 	TC_BLINK,      // For item blinking, according to kart
 	TC_DASHMODE,   // For Metal Sonic's dashmode
 
-	TC_DEFAULT
+	TC_DEFAULT,
+
+	// these are for the inbuilt zdoom translations
+	TC_GRAYSCALE,
+	TC_ALLBLACK,
+	TC_INVERT,
 };
 
 INT32 R_SkinTranslationToCacheIndex(INT32 translation);
