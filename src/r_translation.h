@@ -24,7 +24,8 @@ typedef enum
 	REMAP_ADD_COLOURISATION,
 	REMAP_ADD_DESATURATION,
 	REMAP_ADD_TINT,
-	REMAP_ADD_INVERT
+	REMAP_ADD_INVERT,
+	REMAP_BLANK
 } paletteremaptype_t;
 
 typedef struct

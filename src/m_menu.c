@@ -186,7 +186,7 @@ static fixed_t char_scroll = 0;
 static tic_t keydown = 0;
 
 // now THIS is cool!
-static tic_t gc_spin_down = 0;
+static tic_t gc_ralt_down = 0;
 static boolean addons_forcelocal = false; 
 
 // Lua
@@ -3255,13 +3255,13 @@ boolean M_Responder(event_t *ev)
 				// added 5-2-98 remap virtual keys (mouse & joystick buttons)
 				switch (ch)
 				{
-                    case KEY_LSHIFT:
+                    case KEY_RALT:
                         if (keydown == 1)
                         {
-                            if (gc_spin_down == 0)
-                                gc_spin_down = 2;
+                            if (gc_ralt_down == 0)
+                                gc_ralt_down = 2;
                             else
-                                gc_spin_down = 0;
+                                gc_ralt_down = 0;
                         }
                         break;
 					case KEY_MOUSE1:
@@ -6507,7 +6507,7 @@ static void M_DrawAddons(void)
 	size_t t, b; // top and bottom item #s to draw in directory
 	const UINT8 *flashcol = NULL;
 	UINT8 hilicol;
-    boolean locally = (gc_spin_down > 0 || addons_forcelocal);
+    boolean locally = (gc_ralt_down > 0 || addons_forcelocal);
 
 	// hack - need to refresh at end of frame to handle addfile...
 	if (refreshdirmenu & M_AddonsRefresh())
@@ -6527,7 +6527,7 @@ static void M_DrawAddons(void)
     else
     {
         V_DrawCenteredString(BASEVIDWIDTH/2, 5, V_ALLOWLOWERCASE,
-            va("Loading locally. %s", addons_forcelocal ? "" : "(L-SHIFT)")
+            va("Loading locally. %s", addons_forcelocal ? "" : "(R-ALT)")
         );
     }
 #ifdef ENFORCE_WAD_LIMIT
@@ -6551,7 +6551,10 @@ static void M_DrawAddons(void)
 
 	hilicol = 0; // white
 
-#define boxwidth (MAXSTRINGLENGTH*8+6)
+// 29 pixels of padding on both sides (58)
+// #define boxwidth (MAXSTRINGLENGTH*8+6)
+#define boxwidth ((vid.width / vid.dup) - 58)
+	x -= (boxwidth - (MAXSTRINGLENGTH*8+6))/2;
 
 	m = (BASEVIDHEIGHT - currentMenu->y + 2) - (y - 1);
 
@@ -6603,11 +6606,9 @@ static void M_DrawAddons(void)
 	// draw the scrollbar!
 	V_DrawFill((x-21) + boxwidth-1, (y - 1) + i, 1, m, hilicol);
 
-#undef boxwidth
-
 	// draw up arrow that bobs up and down
 	if (t != 0)
-		V_DrawString(19, y+4 - (skullAnimCounter/5), highlightflags, "\x1A");
+		V_DrawString(x - 34, y+4 - (skullAnimCounter/5), highlightflags, "\x1A");
 
 	// make the selection box flash yellow
 	if (skullAnimCounter < 4)
@@ -6638,7 +6639,7 @@ static void M_DrawAddons(void)
 			}
 
 			// draw name of the item, use ... if too long
-#define charsonside 14
+#define charsonside (((boxwidth - x) / 16) - 1)
 			if (dirmenu[i][DIR_LEN] > (charsonside*2 + 3))
 				V_DrawString(x, y+4, flags, va("%.*s...%s", charsonside, dirmenu[i]+DIR_STRING, dirmenu[i]+DIR_STRING+dirmenu[i][DIR_LEN]-(charsonside+1)));
 #undef charsonside
@@ -6648,43 +6649,46 @@ static void M_DrawAddons(void)
 #undef type
 		y += 16;
 	}
+#undef boxwidth
 
 	// draw down arrow that bobs down and up
 	if (b != sizedirmenu - 1)
-		V_DrawString(19, y-12 + (skullAnimCounter/5), highlightflags, "\x1B");
+		V_DrawString(x - 34, y-12 + (skullAnimCounter/5), highlightflags, "\x1B");
 
 	// draw search box
 	y = BASEVIDHEIGHT - currentMenu->y + 1;
 
-    if (locally)
-    {
-        // V_DrawFill(x+5, y+5, width*8+6, boxlines*8+6, 159);
-        V_DrawFill(x - 22,  y + 4, (MAXSTRINGLENGTH)*8 + 8, 16, 159);   // outline
-        V_DrawFill(x - 21,  y + 5, (MAXSTRINGLENGTH)*8 + 6, 14, 157);
-    }
-    else
-    {
-        M_DrawTextBox(x - (21 + 5), y, MAXSTRINGLENGTH, 1);
-    }
-    
-	if (menusearch[0])
-		V_DrawString(x - 18, y + 8, V_ALLOWLOWERCASE, menusearch+1);
+	static INT32 tbox_width = ((MAXSTRINGLENGTH)*8 + 6);
+	INT32 textbox_x = (BASEVIDWIDTH/2) - tbox_width/2;
+	if (locally)
+	{
+		// V_DrawFill(x+5, y+5, width*8+6, boxlines*8+6, 159);
+		V_DrawFill(textbox_x - 1,  y + 4, (MAXSTRINGLENGTH)*8 + 8, 16, 159);   // outline
+		V_DrawFill(textbox_x,  y + 5, (MAXSTRINGLENGTH)*8 + 6, 14, 157);
+	}
 	else
-		V_DrawString(x - 18, y + 8, V_ALLOWLOWERCASE|V_TRANSLUCENT, "Type to search...");
+	{
+		M_DrawTextBox(textbox_x - 5, y, MAXSTRINGLENGTH, 1);
+	}
+
+	if (menusearch[0])
+		V_DrawString(textbox_x + 3, y + 8, V_ALLOWLOWERCASE, menusearch+1);
+	else
+		V_DrawString(textbox_x + 3, y + 8, V_ALLOWLOWERCASE|V_TRANSLUCENT, "Type to search...");
 	if (skullAnimCounter < 4)
-		V_DrawCharacter(x - 18 + V_StringWidth(menusearch+1, 0), y + 8,
+		V_DrawCharacter(textbox_x + 3 + V_StringWidth(menusearch+1, 0), y + 8,
 			'_' | 0x80, false);
 
 	// draw search icon
-	x -= (21 + 5 + 16);
-	V_DrawSmallScaledPatch(x, y + 4, (menusearch[0] ? 0 : V_TRANSLUCENT), addonsp[NUM_EXT+3]);
+	textbox_x -= (16 + 5);
+	V_DrawSmallScaledPatch(textbox_x, y + 4, (menusearch[0] ? 0 : V_TRANSLUCENT), addonsp[NUM_EXT+3]);
 
 	// draw save icon
-	x = BASEVIDWIDTH - x - 16;
-	V_DrawSmallScaledPatch(x, y + 4, (!usedCheats ? 0 : V_TRANSLUCENT), addonsp[NUM_EXT+4]);
+	textbox_x += tbox_width + 16 + 5;
+	V_DrawSmallScaledPatch(textbox_x, y + 4, (!usedCheats ? 0 : V_TRANSLUCENT), addonsp[NUM_EXT+4]);
 
 	if (modifiedgame)
-		V_DrawSmallScaledPatch(x, y + 4, 0, addonsp[NUM_EXT+2]);
+		V_DrawSmallScaledPatch(textbox_x, y + 4, 0, addonsp[NUM_EXT+2]);
 }
 
 static void M_AddonExec(INT32 ch)
@@ -6754,7 +6758,7 @@ static void M_HandleAddons(INT32 choice)
 #endif
 	}
 
-    boolean locally = (gc_spin_down > 0 || addons_forcelocal);
+    boolean locally = (gc_ralt_down > 0 || addons_forcelocal);
     
 	switch (choice)
 	{
@@ -6873,7 +6877,7 @@ static void M_HandleAddons(INT32 choice)
 	if (exitmenu)
 	{
         addons_forcelocal = false;
-        gc_spin_down = 0;
+        gc_ralt_down = 0;
 		closefilemenu(true);
 
 		// secrets disabled by addfile...

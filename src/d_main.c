@@ -604,6 +604,7 @@ static void D_Display(void)
 	// focus lost moved to M_Drawer
 
 	CON_Drawer();
+	ST_ReallyCoolAndUsefulGIFDrawer();
 
 	PS_STOP_TIMING(ps_uitime);
 
@@ -655,8 +656,6 @@ static void D_Display(void)
 	else
 		wipetypepost = -1;
 
-	//should be safe to draw this here...
-	ST_ReallyCoolAndUsefulGIFDrawer();
 	NetUpdate(); // send out any new accumulation
 
 	// It's safe to end the game now.

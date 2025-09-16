@@ -1138,7 +1138,7 @@ extracolormap_t *R_AddColormaps(extracolormap_t *exc_augend, extracolormap_t *ex
 
 // Thanks to quake2 source!
 // utils3/qdata/images.c
-UINT8 NearestPaletteColor(UINT8 r, UINT8 g, UINT8 b, RGBA_t *palette)
+FUNCINLINE ATTRINLINE UINT8 NearestPaletteColor(UINT8 r, UINT8 g, UINT8 b, RGBA_t *palette)
 {
 	int dr, dg, db;
 	int distortion, bestdistortion = 256 * 256 * 4, bestcolor = 0, i;

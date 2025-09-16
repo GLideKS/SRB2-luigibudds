@@ -504,6 +504,8 @@ static void PaletteRemap_Apply(UINT8 *remap, paletteremap_t *data)
 	case REMAP_ADD_INVERT:
 		PaletteRemap_DoInvert(remap, start, end);
 		break;
+	default:
+		break;
 	}
 }
 

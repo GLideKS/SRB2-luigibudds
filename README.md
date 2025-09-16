@@ -61,7 +61,7 @@ You can compile the source code normally (see "Compiling") and put the binary in
 - v.interpolate/v.interpLatch(boolean/int) : See [SRB2K Saturn's documentation](https://github.com/Indev450/SRB2Kart-Saturn/blob/Saturn/LUASTUFF.md)
 - v.drawFixedFill : Same as v.drawFill, but x, y, width, and height arguments are all in fixed point scale.
 # For "uncappedgame" HUD hooks:
-- v.timeFraction() : Returns the value of `rendertimefrac` [0 - FRACUNIT]. "The fraction of a tic being drawn (for interpolation between two tics)"
+- v.timeFraction() : Returns the value of `rendertimefrac` [0, FRACUNIT]. "The fraction of a tic being drawn (for interpolation between two tics)"
 - v.deltaTics() : Returns the value of `renderdeltatics`. "Evaluated delta tics for this frame (how many tics since the last frame)"
 - v.isNewTic() : Returns whether the current render is the start of a new gamelogic tic or not. (boolean)
 - v.usingInterpolation() : Returns whether or not frame interpolation is enabled. (boolean)

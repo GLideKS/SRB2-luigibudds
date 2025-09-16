@@ -31,6 +31,15 @@
         "xstring": "c",
         "xtr1common": "c",
         "algorithm": "c",
-        "limits": "c"
+        "limits": "c",
+        "charconv": "c",
+        "atomic": "c",
+        "vector": "c",
+        "xlocale": "c",
+        "xlocnum": "c",
+        "xtree": "c",
+        "initializer_list": "c",
+        "locale": "c",
+        "cstdlib": "c"
     }
 }
