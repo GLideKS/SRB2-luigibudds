@@ -338,29 +338,30 @@ static int camera_get(lua_State *L)
 
 	// cameras should always be valid unless I'm a nutter
 	I_Assert(cam != NULL);
+	boolean awayvalid = (r_viewmobj != NULL && !P_MobjWasRemoved(r_viewmobj) && (stplyr && stplyr->mo != NULL && r_viewmobj != stplyr->mo));
 
 	switch (field)
 	{
 	case camera_chase:
 		lua_pushboolean(L, cam->chase);
 		break;
-	case camera_aiming:
-		lua_pushangle(L, cam->aiming);
-		break;
 	case camera_x:
-	    lua_pushinteger(L, cam->x + quake.x);
+	    lua_pushinteger(L, (awayvalid ? r_viewmobj->x : cam->x) + quake.x);
 		break;
 	case camera_y:
-	    lua_pushinteger(L, cam->y + quake.y);
+	    lua_pushinteger(L, (awayvalid ? r_viewmobj->y : cam->y) + quake.y);
 		break;
 	case camera_z:
-	    lua_pushinteger(L, cam->z + quake.z);
+	    lua_pushinteger(L, (awayvalid ? r_viewmobj->z + 20*FRACUNIT : cam->z) + quake.z);
 		break;
 	case camera_reset:
 		lua_pushboolean(L, cam->reset);
 		break;
 	case camera_angle:
-		lua_pushangle(L, cam->angle);
+		lua_pushangle(L, (awayvalid ? newview->angle : cam->angle));
+		break;
+	case camera_aiming:
+		lua_pushangle(L, (awayvalid ? newview->aim : cam->aiming));
 		break;
 	case camera_subsector:
 		LUA_PushUserdata(L, cam->subsector, META_SUBSECTOR);
