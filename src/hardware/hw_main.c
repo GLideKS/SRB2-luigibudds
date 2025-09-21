@@ -3206,6 +3206,10 @@ static void HWR_SplitSprite(gl_vissprite_t *spr)
 		blend |= PF_ColorMapped;
 	}
 
+	// if sprite has PF_ALWAYSONTOP, draw on top of everything.
+	if (spr->mobj->renderflags & RF_ALWAYSONTOP)
+		blend |= PF_NoDepthTest;
+	
 	alpha = Surf.PolyColor.s.alpha;
 
 	// Start with the lightlevel and colormap from the top of the sprite
@@ -3720,6 +3724,10 @@ static void HWR_DrawSprite(gl_vissprite_t *spr)
 			blend |= PF_ColorMapped;
 		}
 
+		// if sprite has PF_ALWAYSONTOP, draw on top of everything.
+		if (spr->mobj->renderflags & RF_ALWAYSONTOP)
+			blend |= PF_NoDepthTest;
+		
 		HWR_ProcessPolygon(&Surf, wallVerts, 4, blend|PF_Modulated, shader, false);
 
 		if (use_linkdraw_hack)

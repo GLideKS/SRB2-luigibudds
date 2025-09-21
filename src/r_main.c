@@ -70,6 +70,7 @@ mobj_t *r_viewmobj;
 boolean r_renderwalls;
 boolean r_renderfloors;
 boolean r_renderthings;
+boolean r_inskybox;
 
 fixed_t rendertimefrac;
 fixed_t renderdeltatics;
@@ -1616,6 +1617,7 @@ void R_RenderPlayerView(player_t *player)
 
 			masks = realloc(masks, (++nummasks)*sizeof(maskcount_t));
 
+			r_inskybox = portal->is_skybox;
 			Mask_Pre(&masks[nummasks - 1]);
 			curdrawsegs = ds_p;
 
@@ -1635,6 +1637,8 @@ void R_RenderPlayerView(player_t *player)
 			Portal_AddPlanePortals(cv_skybox.value && !portal->is_skybox);
 
 			Mask_Post(&masks[nummasks - 1]);
+
+			r_inskybox = false;
 
 			R_ClipSprites(ds_p - (masks[nummasks - 1].drawsegs[1] - masks[nummasks - 1].drawsegs[0]), portal);
 

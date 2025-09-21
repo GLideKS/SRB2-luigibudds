@@ -2775,6 +2775,12 @@ void R_AddSprites(sector_t *sec, INT32 lightlevel)
 	hoop_limit_dist = (fixed_t)(cv_drawdist_nights.value) << FRACBITS;
 	for (thing = sec->thinglist; thing; thing = thing->snext)
 	{
+		// do not render in skybox
+		if ((thing->renderflags & RF_HIDEINSKYBOX) && r_inskybox)
+		{
+			continue;
+		}
+
 		if (R_ThingWithinDist(thing, limit_dist, hoop_limit_dist))
 		{
 			const INT32 oldobjectsdrawn = objectsdrawn;
@@ -3217,6 +3223,8 @@ static void R_CreateDrawNodes(maskcount_t* mask, drawnode_t* head, boolean temps
 
 	for (rover = vsprsortedhead.prev; rover != &vsprsortedhead; rover = rover->prev)
 	{
+		const INT32 ontopflag = (rover->renderflags & RF_ALWAYSONTOP);
+		
 		if (rover->szt > vid.height || rover->sz < 0)
 			continue;
 
@@ -3224,6 +3232,25 @@ static void R_CreateDrawNodes(maskcount_t* mask, drawnode_t* head, boolean temps
 
 		for (r2 = head->next; r2 != head; r2 = r2->next)
 		{
+			if (ontopflag)
+			{
+				// Only sort behind other sprites; sorts in
+				// front of everything else.
+				if (!r2->sprite)
+				{
+					continue;
+				}
+
+				// Only sort behind other RF_ALWAYSONTOP sprites.
+				// This avoids sorting behind a sprite that is
+				// behind level geometry and thus sorting this
+				// one behind level geometry too.
+				if (r2->sprite->renderflags ^ ontopflag)
+				{
+					continue;
+				}
+			}
+
 			if (r2->plane)
 			{
 				fixed_t planeobjectz, planecameraz;
@@ -3536,6 +3563,16 @@ static void R_ClipVisSprite(vissprite_t *spr, INT32 x1, INT32 x2, portal_t* port
 	fixed_t		lowscale;
 	INT32		silhouette;
 
+	if (spr->renderflags & RF_ALWAYSONTOP)
+	{
+		for (x = x1; x <= x2; x++)
+		{
+			spr->clipbot[x] = (INT16)viewheight;
+			spr->cliptop[x] = (INT16)-1;
+		}
+		return;
+	}
+	
 	for (x = x1; x <= x2; x++)
 		spr->clipbot[x] = spr->cliptop[x] = -2;
 

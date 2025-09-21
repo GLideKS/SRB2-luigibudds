@@ -37,6 +37,12 @@ INT32 Takis_PushGlobals(lua_State *L, const char *word)
         else
             lua_pushboolean(L, false);
 		return 1;
+    } else if (fastcmp(word, "takis_lumpname")) {
+		if (!lua_lumploading)
+			lua_pushnil(L);
+		else if (lua_lumpname[0])
+			lua_pushstring(L, lua_lumpname);
+		return 1;
 	}
     return 0;
 }

@@ -952,6 +952,9 @@ typedef enum
 	RF_SHADOWDRAW       = 0x00004000,  // Stretches and skews the sprite like a shadow.
 	RF_SHADOWEFFECTS    = 0x00008000,  // Scales and becomes transparent like a shadow.
 	RF_DROPSHADOW       = (RF_SHADOWDRAW | RF_SHADOWEFFECTS | RF_FULLDARK),
+
+	RF_ALWAYSONTOP		= 0x00010000,  // Sprite is drawn on top of level geometry
+	RF_HIDEINSKYBOX		= 0x00020000,  // do not render in skybox
 } renderflags_t;
 
 typedef enum

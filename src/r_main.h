@@ -135,6 +135,7 @@ extern consvar_t cv_pitchroll_easing;
 extern boolean r_renderwalls;
 extern boolean r_renderfloors;
 extern boolean r_renderthings;
+extern boolean r_inskybox;
 
 // Called by startup code.
 void R_Init(void);

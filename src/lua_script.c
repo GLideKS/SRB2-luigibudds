@@ -616,6 +616,7 @@ void LUA_ClearExtVars(void)
 // (i.e. they were called in hooks or coroutines etc)
 INT32 lua_lumploading = 0;
 INT32 lua_locallyloading = 0;
+char *lua_lumpname = NULL;
 
 // Load a script from a MYFILE
 static inline boolean LUA_LoadFile(MYFILE *f, char *name)
@@ -698,7 +699,8 @@ static inline MYFILE *LUA_GetFile(UINT16 wad, UINT16 lump, char **name)
 		sprintf(*name, "%s|%s", wadfiles[wad]->filename, lump_p->fullname);
 		(*name)[len] = '\0'; // annoying that index takes priority over dereference, but w/e
 	}
-
+	lua_lumpname = malloc(len+1);
+	strcpy(lua_lumpname, *name);
 	return f;
 }
 
