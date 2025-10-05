@@ -1,7 +1,7 @@
 // SONIC ROBO BLAST 2
 //-----------------------------------------------------------------------------
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2025 by Sonic Team Junior.
+// Copyright (C) 1999-2024 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -14,202 +14,127 @@
 #include "r_fps.h"
 #include "r_main.h"
 #include "r_splats.h"
-#include "r_things.h"
 #include "r_bsp.h"
 #include "p_local.h"
 #include "p_slopes.h"
 #include "w_wad.h"
 #include "z_zone.h"
 
-#define NEARZ 1.0
+struct rastery_s *prastertab; // for ASM code
+
+static struct rastery_s rastertab[MAXVIDHEIGHT];
+static void prepare_rastertab(void);
 
 // ==========================================================================
 //                                                               FLOOR SPLATS
 // ==========================================================================
 
-static struct rasteryfix_s
+static void R_RasterizeFloorSplat(floorsplat_t *pSplat, vector2_t *verts, vissprite_t *vis);
+
+static void rasterize_segment_tex(INT32 x1, INT32 y1, INT32 x2, INT32 y2, INT32 tv1, INT32 tv2, INT32 tc, INT32 dir)
 {
-	fixed_t minx, maxx; // for each raster line starting at line 0
-} rastertab[MAXVIDHEIGHT];
-
-static void R_RasterizeFloorSplat(floorsplat_t *pSplat, vector2_t *verts, int start, int end, boolean backface);
-
-static void RasterizeSegment(INT32 x1, INT32 y1, INT32 x2, INT32 y2)
-{
-	fixed_t x, dx;
-	INT32 count;
-
-	if (y1 == y2)
-		return;
-
-	if (y2 > y1)
 	{
-		count = (y2 - y1) + 1;
-		dx = FixedDiv((x2 - x1) << FRACBITS, count << FRACBITS);
-		x = x1 << FRACBITS;
+		fixed_t xs, xe, count;
+		fixed_t dx0, dx1;
 
-		while (count-- > 0)
-		{
-			if (x > rastertab[y1].maxx)
-				rastertab[y1].maxx = x;
-			x += dx;
-			y1++;
-		}
-	}
-	else
-	{
-		count = (y1 - y2) + 1;
-		dx = FixedDiv((x1 - x2) << FRACBITS, count << FRACBITS);
-		x = x2 << FRACBITS;
-
-		while (count-- > 0)
-		{
-			if (x < rastertab[y2].minx)
-				rastertab[y2].minx = x;
-			x += dx;
-			y2++;
-		}
-	}
-}
-
-static void ProjectTriangle(dvector3_t *transformed, floorsplat_t *pSplat)
-{
-	vector2_t v2d[3];
-
-	boolean backface = false;
-
-	for (unsigned i = 0; i < 3; i++)
-	{
-		// Do not project the triangle if there are vertices behind the camera
-		if (transformed[i].y < NEARZ)
+		if (y1 == y2)
 			return;
 
-		if (transformed[i].z > 0)
-			backface = true;
-
-#if 1
-		// note: y from view above of map, is distance far away
-		double xscale = FixedToDouble(projection) / transformed[i].y;
-		double yscale = -FixedToDouble(projectiony) / transformed[i].y;
-
-		// projection
-		v2d[i].x = (int)(FixedToDouble(centerxfrac) + (transformed[i].x * xscale));
-		v2d[i].y = (int)(FixedToDouble(centeryfrac) + (transformed[i].z * yscale));
-#else
-		// note: y from view above of map, is distance far away
-		fixed_t xscale = FixedDiv(projection, transformed[i].y);
-		fixed_t yscale = -FixedDiv(projectiony, transformed[i].y);
-
-		// projection
-		v2d[i].x = (centerxfrac + FixedMul(transformed[i].x, xscale))>>FRACBITS;
-		v2d[i].y = (centeryfrac + FixedMul(transformed[i].z, yscale))>>FRACBITS;
-#endif
-	}
-
-	R_RasterizeFloorSplat(pSplat, v2d, 0, 2, backface);
-}
-
-static void ClipTransform(dvector3_t *front, dvector3_t *behind)
-{
-#if 1
-	double ratio = (NEARZ - front->y) / (front->y - behind->y);
-	behind->x = front->x + ((front->x - behind->x) / ratio);
-	behind->z = front->z + ((front->z - behind->z) / ratio);
-#else
-	fixed_t ratio = FixedDiv(NEARZ - front->y, front->y - behind->y);
-	behind->x = front->x - FixedDiv(front->x - behind->x, ratio);
-	behind->z = front->z - FixedDiv(front->z - behind->z, ratio);
-#endif
-	behind->y = NEARZ;
-}
-
-static void TransformTriangle(vector3_t *triangle, vissprite_t *spr, floorsplat_t *pSplat)
-{
-	fixed_t x = spr->mobj->x - pSplat->x;
-	fixed_t y = spr->mobj->y - pSplat->y;
-	angle_t angle = spr->viewpoint.angle >> ANGLETOFINESHIFT;
-	fixed_t ca = FINECOSINE(angle);
-	fixed_t sa = FINESINE(angle);
-
-	dvector3_t transformed[3];
-
-	unsigned numfront = 0;
-	unsigned numbehind = 0;
-	unsigned front_idx[3];
-	unsigned behind_idx[3];
-
-	for (unsigned i = 0; i < 3; i++)
-	{
-		vector3_t *v3d = &triangle[i];
-
-		// transform the origin point
-		fixed_t tr_x = v3d->x - spr->viewpoint.x;
-		fixed_t tr_y = v3d->y - spr->viewpoint.y;
-
-		// rotation around vertical y axis
-		transformed[i].x = FixedToDouble(FixedMul(tr_x, sa) - FixedMul(tr_y, ca));
-		transformed[i].y = FixedToDouble(FixedMul(tr_x, ca) + FixedMul(tr_y, sa));
-		transformed[i].z = FixedToDouble(v3d->z - spr->viewpoint.z);
-
-		// Store which vertices are behind or in front of the camera, for clipping
-		if (transformed[i].y < NEARZ)
+		if (y2 > y1)
 		{
-			behind_idx[numbehind] = i;
-			numbehind++;
+			count = (y2-y1)+1;
+
+			dx0 = FixedDiv((x2-x1)<<FRACBITS, count<<FRACBITS);
+			dx1 = FixedDiv((tv2-tv1)<<FRACBITS, count<<FRACBITS);
+
+			xs = x1 << FRACBITS;
+			xe = tv1 << FRACBITS;
+			tc <<= FRACBITS;
+
+			if (dir == 0)
+			{
+				for (;;)
+				{
+					rastertab[y1].maxx = xs;
+					rastertab[y1].tx2 = xe;
+					rastertab[y1].ty2 = tc;
+
+					xs += dx0;
+					xe += dx1;
+					y1++;
+
+					if (count-- < 1) break;
+				}
+			}
+			else
+			{
+				for (;;)
+				{
+					rastertab[y1].maxx = xs;
+					rastertab[y1].tx2 = tc;
+					rastertab[y1].ty2 = xe;
+
+					xs += dx0;
+					xe += dx1;
+					y1++;
+
+					if (count-- < 1) break;
+				}
+			}
 		}
 		else
 		{
-			front_idx[numfront] = i;
-			numfront++;
+			count = (y1-y2)+1;
+
+			dx0 = FixedDiv((x1-x2)<<FRACBITS, count<<FRACBITS);
+			dx1 = FixedDiv((tv1-tv2)<<FRACBITS, count<<FRACBITS);
+
+			xs = x2 << FRACBITS;
+			xe = tv2 << FRACBITS;
+			tc <<= FRACBITS;
+
+			if (dir == 0)
+			{
+				for (;;)
+				{
+					rastertab[y2].minx = xs;
+					rastertab[y2].tx1 = xe;
+					rastertab[y2].ty1 = tc;
+
+					xs += dx0;
+					xe += dx1;
+					y2++;
+
+					if (count-- < 1) break;
+				}
+			}
+			else
+			{
+				for (;;)
+				{
+					rastertab[y2].minx = xs;
+					rastertab[y2].tx1 = tc;
+					rastertab[y2].ty1 = xe;
+
+					xs += dx0;
+					xe += dx1;
+					y2++;
+
+					if (count-- < 1) break;
+				}
+			}
 		}
 	}
-
-	// All vertices are behind the camera
-	if (numbehind == 3)
-	{
-		return;
-	}
-	// An entire edge is behind the camera
-	else if (numbehind == 2)
-	{
-		// Clip vertices
-		for (unsigned i = 0; i < 2; i++)
-		{
-			ClipTransform(&transformed[front_idx[0]], &transformed[behind_idx[i]]);
-		}
-	}
-	// Only one vertex is behind the camera
-	else if (numbehind == 1)
-	{
-		// Make a new triangle and clip it
-		dvector3_t transformed2[3];
-
-		transformed2[0] = transformed[front_idx[1]];
-
-		for (unsigned i = 0; i < 2; i++)
-		{
-			transformed2[i + 1] = transformed[behind_idx[0]];
-
-			ClipTransform(&transformed[front_idx[i]], &transformed2[i + 1]);
-		}
-
-		// Project the new triangle
-		ProjectTriangle(transformed2, pSplat);
-
-		// Modify the first triangle so that it shares a vertex with the second one
-		transformed[behind_idx[0]] = transformed2[2];
-	}
-
-	// Project the triangle
-	ProjectTriangle(transformed, pSplat);
 }
 
-boolean R_AddFloorSplat(vissprite_t *spr)
+void R_DrawFloorSplat(vissprite_t *spr)
 {
-	floorsplat_t *splat = NULL;
+	floorsplat_t splat;
 	mobj_t *mobj = spr->mobj;
-	fixed_t tr_x, tr_y;
+	fixed_t tr_x, tr_y, rot_x, rot_y, rot_z;
 
+	vector3_t *v3d;
+	vector2_t v2d[4];
 	vector2_t rotated[4];
 
 	fixed_t x, y;
@@ -219,7 +144,6 @@ boolean R_AddFloorSplat(vissprite_t *spr)
 	fixed_t xscale, yscale;
 	fixed_t xoffset, yoffset;
 	fixed_t leftoffset, topoffset;
-	fixed_t splatscale;
 	INT32 i;
 
 	boolean hflip = (spr->xiscale < 0);
@@ -234,55 +158,55 @@ boolean R_AddFloorSplat(vissprite_t *spr)
 		flipflags |= PICFLAGS_YFLIP;
 
 	if (!mobj || P_MobjWasRemoved(mobj))
-		return false;
+		return;
 
 	Patch_GenerateFlat(spr->patch, flipflags);
-	void *pic = spr->patch->flats[flipflags];
-	if (pic == NULL)
-		return false;
+	splat.pic = spr->patch->flats[flipflags];
+	if (splat.pic == NULL)
+		return;
 
-	splat = &spr->splat;
-	splat->pic = pic;
-
-	splatscale = mobj->scale;
+	splat.mobj = mobj;
+	splat.width = spr->patch->width;
+	splat.height = spr->patch->height;
+	splat.scale = mobj->scale;
 
 	if (mobj->skin && ((skin_t *)mobj->skin)->flags & SF_HIRES)
-		splatscale = FixedMul(splatscale, ((skin_t *)mobj->skin)->highresscale);
+		splat.scale = FixedMul(splat.scale, ((skin_t *)mobj->skin)->highresscale);
 
 	if (spr->rotateflags & SRF_3D || renderflags & RF_NOSPLATBILLBOARD)
-		splatangle = spr->centerangle;
+		splatangle = mobj->angle;
 	else
 		splatangle = spr->viewpoint.angle;
 
 	if (!(spr->cut & SC_ISROTATED))
 		splatangle += mobj->spriteroll;
 
-	splat->angle = -splatangle;
-	splat->angle += ANGLE_90;
+	splat.angle = -splatangle;
+	splat.angle += ANGLE_90;
 
 	topoffset = spr->spriteyoffset;
 	leftoffset = spr->spritexoffset;
 	if (hflip)
-		leftoffset = ((spr->patch->width * FRACUNIT) - leftoffset);
+		leftoffset = ((splat.width * FRACUNIT) - leftoffset);
 
 	xscale = spr->spritexscale;
 	yscale = spr->spriteyscale;
 
-	splat->xscale = FixedMul(splatscale, xscale);
-	splat->yscale = FixedMul(splatscale, yscale);
+	splat.xscale = FixedMul(splat.scale, xscale);
+	splat.yscale = FixedMul(splat.scale, yscale);
 
-	xoffset = FixedMul(leftoffset, splat->xscale);
-	yoffset = FixedMul(topoffset, splat->yscale);
+	xoffset = FixedMul(leftoffset, splat.xscale);
+	yoffset = FixedMul(topoffset, splat.yscale);
 
 	x = spr->gx;
 	y = spr->gy;
-	w = spr->patch->width * splat->xscale;
-	h = spr->patch->height * splat->yscale;
+	w = (splat.width * splat.xscale);
+	h = (splat.height * splat.yscale);
 
-	splat->x = x;
-	splat->y = y;
-	splat->z = spr->pz;
-	splat->slope = NULL;
+	splat.x = x;
+	splat.y = y;
+	splat.z = spr->pz;
+	splat.slope = NULL;
 
 	// Set positions
 
@@ -290,27 +214,27 @@ boolean R_AddFloorSplat(vissprite_t *spr)
 	// |  |
 	// 0--1
 
-	splat->verts[0].x = w - xoffset;
-	splat->verts[0].y = yoffset;
+	splat.verts[0].x = w - xoffset;
+	splat.verts[0].y = yoffset;
 
-	splat->verts[1].x = -xoffset;
-	splat->verts[1].y = yoffset;
+	splat.verts[1].x = -xoffset;
+	splat.verts[1].y = yoffset;
 
-	splat->verts[2].x = -xoffset;
-	splat->verts[2].y = -h + yoffset;
+	splat.verts[2].x = -xoffset;
+	splat.verts[2].y = -h + yoffset;
 
-	splat->verts[3].x = w - xoffset;
-	splat->verts[3].y = -h + yoffset;
+	splat.verts[3].x = w - xoffset;
+	splat.verts[3].y = -h + yoffset;
 
-	angle = -splat->angle>>ANGLETOFINESHIFT;
+	angle = -splat.angle>>ANGLETOFINESHIFT;
 	ca = FINECOSINE(angle);
 	sa = FINESINE(angle);
 
 	// Rotate
 	for (i = 0; i < 4; i++)
 	{
-		rotated[i].x = FixedMul(splat->verts[i].x, ca) - FixedMul(splat->verts[i].y, sa);
-		rotated[i].y = FixedMul(splat->verts[i].x, sa) + FixedMul(splat->verts[i].y, ca);
+		rotated[i].x = FixedMul(splat.verts[i].x, ca) - FixedMul(splat.verts[i].y, sa);
+		rotated[i].y = FixedMul(splat.verts[i].x, sa) + FixedMul(splat.verts[i].y, ca);
 	}
 
 	if (renderflags & (RF_SLOPESPLAT | RF_OBJECTSLOPESPLAT))
@@ -319,10 +243,10 @@ boolean R_AddFloorSplat(vissprite_t *spr)
 
 		// The slope that was defined for the sprite.
 		if (renderflags & RF_SLOPESPLAT)
-			splat->slope = mobj->floorspriteslope;
+			splat.slope = mobj->floorspriteslope;
 
 		if (standingslope && (renderflags & RF_OBJECTSLOPESPLAT))
-			splat->slope = standingslope;
+			splat.slope = standingslope;
 	}
 
 	// Translate
@@ -331,78 +255,68 @@ boolean R_AddFloorSplat(vissprite_t *spr)
 		tr_x = rotated[i].x + x;
 		tr_y = rotated[i].y + y;
 
-		if (splat->slope)
-			splat->verts[i].z = P_GetSlopeZAt(splat->slope, tr_x, tr_y);
+		if (splat.slope)
+		{
+			rot_z = P_GetSlopeZAt(splat.slope, tr_x, tr_y);
+			splat.verts[i].z = rot_z;
+		}
 		else
-			splat->verts[i].z = splat->z;
+			splat.verts[i].z = splat.z;
 
-		splat->verts[i].x = tr_x;
-		splat->verts[i].y = tr_y;
+		splat.verts[i].x = tr_x;
+		splat.verts[i].y = tr_y;
 	}
 
-	// prepare rastertab
-	for (i = 0; i < viewheight; i++)
+	angle = spr->viewpoint.angle >> ANGLETOFINESHIFT;
+	ca = FINECOSINE(angle);
+	sa = FINESINE(angle);
+
+	// Project
+	for (i = 0; i < 4; i++)
 	{
-		rastertab[i].minx = INT32_MAX;
-		rastertab[i].maxx = INT32_MIN;
+		v3d = &splat.verts[i];
+
+		// transform the origin point
+		tr_x = v3d->x - spr->viewpoint.x;
+		tr_y = v3d->y - spr->viewpoint.y;
+
+		// rotation around vertical y axis
+		rot_x = FixedMul(tr_x, sa) - FixedMul(tr_y, ca);
+		rot_y = FixedMul(tr_x, ca) + FixedMul(tr_y, sa);
+		rot_z = v3d->z - spr->viewpoint.z;
+
+		if (rot_y < FRACUNIT)
+			return;
+
+		// note: y from view above of map, is distance far away
+		xscale = FixedDiv(projection, rot_y);
+		yscale = -FixedDiv(projectiony, rot_y);
+
+		// projection
+		v2d[i].x = (centerxfrac + FixedMul(rot_x, xscale))>>FRACBITS;
+		v2d[i].y = (centeryfrac + FixedMul(rot_z, yscale))>>FRACBITS;
 	}
 
-	splat->minx = INT32_MAX;
-	splat->maxx = INT32_MIN;
-	splat->miny = viewheight + 1;
-	splat->maxy = 0;
-
-	// The polygon is split into two triangles, so that clipping it later becomes trivial.
-	vector3_t v3d[3];
-	v3d[0] = spr->splat.verts[0];
-	v3d[1] = spr->splat.verts[1];
-	v3d[2] = spr->splat.verts[2];
-	TransformTriangle(v3d, spr, &spr->splat);
-
-	v3d[0] = spr->splat.verts[0];
-	v3d[1] = spr->splat.verts[2];
-	v3d[2] = spr->splat.verts[3];
-	TransformTriangle(v3d, spr, &spr->splat);
-
-	// Store splat bounds
-	for (i = 0; i < viewheight; i++)
-	{
-		splat->rastertab[i].minx = rastertab[i].minx >> FRACBITS;
-		splat->rastertab[i].maxx = rastertab[i].maxx >> FRACBITS;
-
-		if (splat->rastertab[i].minx < splat->minx)
-			splat->minx = splat->rastertab[i].minx;
-		if (splat->rastertab[i].maxx > splat->maxx)
-			splat->maxx = splat->rastertab[i].maxx;
-	}
-
-	if (splat->minx < 0)
-		splat->minx = 0;
-	if (splat->maxx >= viewwidth)
-		splat->maxx = viewwidth - 1;
-	if (splat->miny < 0)
-		splat->miny = 0;
-
-	if (splat->minx >= splat->maxx)
-		return false;
-	if (splat->miny >= splat->maxy)
-		return false;
-
-	return true;
+	R_RasterizeFloorSplat(&splat, v2d, spr);
 }
 
 // --------------------------------------------------------------------------
-// Rasterize the edges of a floor splat polygon,
-// fill the polygon with linear interpolation
+// Rasterize the four edges of a floor splat polygon,
+// fill the polygon with linear interpolation, call span drawer for each
+// scan line
 // --------------------------------------------------------------------------
-static void R_RasterizeFloorSplat(floorsplat_t *pSplat, vector2_t *verts, int start, int end, boolean backface)
+static void R_RasterizeFloorSplat(floorsplat_t *pSplat, vector2_t *verts, vissprite_t *vis)
 {
 	// rasterizing
 	INT32 miny = viewheight + 1, maxy = 0;
-	INT32 x1, ry1, x2, y2, i;
+	INT32 y, x1, ry1, x2, y2, i;
+	fixed_t offsetx = 0, offsety = 0;
+	fixed_t planeheight = 0;
 	fixed_t step;
 
-#define RASTERPARAMS(vnum1, vnum2) \
+	int spanfunctype;
+
+#define RASTERPARAMS(vnum1, vnum2, tv1, tv2, tc, dir) \
     x1 = verts[vnum1].x; \
     ry1 = verts[vnum1].y; \
     x2 = verts[vnum2].x; \
@@ -421,13 +335,13 @@ static void R_RasterizeFloorSplat(floorsplat_t *pSplat, vector2_t *verts, int st
         } \
         ry1 = 0; \
     } \
-    if (ry1 >= viewheight) { \
+    if (ry1 >= vid.height) { \
         if (step) { \
             x1 <<= FRACBITS; \
-            x1 -= (viewheight-1-ry1)*step; \
+            x1 -= (vid.height-1-ry1)*step; \
             x1 >>= FRACBITS; \
         } \
-        ry1 = viewheight - 1; \
+        ry1 = vid.height - 1; \
     } \
     if (y2 < 0) { \
         if (step) { \
@@ -437,65 +351,23 @@ static void R_RasterizeFloorSplat(floorsplat_t *pSplat, vector2_t *verts, int st
         } \
         y2 = 0; \
     } \
-    if (y2 >= viewheight) { \
+    if (y2 >= vid.height) { \
         if (step) { \
             x2 <<= FRACBITS; \
-            x2 += (viewheight-1-y2)*step; \
+            x2 += (vid.height-1-y2)*step; \
             x2 >>= FRACBITS; \
         } \
-        y2 = viewheight - 1; \
+        y2 = vid.height - 1; \
     } \
-    RasterizeSegment(x1, ry1, x2, y2); \
+    rasterize_segment_tex(x1, ry1, x2, y2, tv1, tv2, tc, dir); \
     if (ry1 < miny) \
         miny = ry1; \
     if (ry1 > maxy) \
         maxy = ry1;
 
-	// Rasterize each edge, from the last vertex to the first one
-	if (backface)
-	{
-		for (i = start; i < end; i++)
-		{
-			RASTERPARAMS(i, i + 1);
-		}
-
-		RASTERPARAMS(i, start);
-	}
-	else
-	{
-		for (i = end; i > start; i--)
-		{
-			RASTERPARAMS(i, i - 1);
-		}
-
-		RASTERPARAMS(i, end);
-	}
-
-#undef RASTERPARAMS
-
-	if (maxy >= viewheight)
-		maxy = viewheight-1;
-
-	if (miny < pSplat->miny)
-		pSplat->miny = miny;
-	if (maxy > pSplat->maxy)
-		pSplat->maxy = maxy;
-}
-
-// Call span drawer for each scan line
-static void R_DrawRasterizedFloorSplat(floorsplat_t *pSplat, vissprite_t *vis)
-{
-	INT32 miny = pSplat->miny, maxy = pSplat->maxy;
-	INT32 i;
-
-	fixed_t offsetx = 0, offsety = 0;
-	fixed_t planeheight = 0;
-
-	int spanfunctype;
-
 	ds_source = (UINT8 *)pSplat->pic;
-	ds_flatwidth = vis->patch->width;
-	ds_flatheight = vis->patch->height;
+	ds_flatwidth = pSplat->width;
+	ds_flatheight = pSplat->height;
 
 	ds_powersoftwo = ds_solidcolor = ds_fog = false;
 
@@ -597,12 +469,35 @@ static void R_DrawRasterizedFloorSplat(floorsplat_t *pSplat, vissprite_t *vis)
 	else
 		spanfunc = spanfuncs_npo2[spanfunctype];
 
-	for (INT32 y = miny; y <= maxy; y++)
-	{
-		INT32 x1 = pSplat->rastertab[y].minx;
-		INT32 x2 = pSplat->rastertab[y].maxx;
+	prepare_rastertab();
 
-		if (x1 > x2 || x1 == INT16_MIN || x2 == INT16_MAX)
+	// do segment a -> top of texture
+	RASTERPARAMS(3,2,0,pSplat->width-1,0,0);
+	// do segment b -> right side of texture
+	RASTERPARAMS(2,1,0,pSplat->width-1,pSplat->height-1,0);
+	// do segment c -> bottom of texture
+	RASTERPARAMS(1,0,pSplat->width-1,0,pSplat->height-1,0);
+	// do segment d -> left side of texture
+	RASTERPARAMS(0,3,pSplat->width-1,0,0,1);
+
+	if (maxy >= vid.height)
+		maxy = vid.height-1;
+
+	for (y = miny; y <= maxy; y++)
+	{
+		boolean cliptab[MAXVIDWIDTH+1];
+
+		x1 = rastertab[y].minx>>FRACBITS;
+		x2 = rastertab[y].maxx>>FRACBITS;
+
+		if (x1 > x2)
+		{
+			INT32 swap = x1;
+			x1 = x2;
+			x2 = swap;
+		}
+
+		if (x1 == INT16_MIN || x2 == INT16_MAX)
 			continue;
 
 		if (x1 < 0)
@@ -613,8 +508,11 @@ static void R_DrawRasterizedFloorSplat(floorsplat_t *pSplat, vissprite_t *vis)
 		if (x1 >= viewwidth || x2 < 0)
 			continue;
 
+		for (i = x1; i <= x2; i++)
+			cliptab[i] = (y >= mfloorclip[i] || y <= mceilingclip[i]);
+
 		// clip left
-		while (y >= mfloorclip[x1] || y <= mceilingclip[x1])
+		while (cliptab[x1])
 		{
 			x1++;
 			if (x1 >= viewwidth)
@@ -626,7 +524,7 @@ static void R_DrawRasterizedFloorSplat(floorsplat_t *pSplat, vissprite_t *vis)
 
 		while (i > x1)
 		{
-			if (y >= mfloorclip[i] || y <= mceilingclip[i])
+			if (cliptab[i])
 				x2 = i-1;
 			i--;
 			if (i < 0)
@@ -669,10 +567,19 @@ static void R_DrawRasterizedFloorSplat(floorsplat_t *pSplat, vissprite_t *vis)
 		ds_x1 = x1;
 		ds_x2 = x2;
 		spanfunc();
+
+		rastertab[y].minx = INT32_MAX;
+		rastertab[y].maxx = INT32_MIN;
 	}
 }
 
-void R_DrawFloorSplat(vissprite_t *spr)
+static void prepare_rastertab(void)
 {
-	R_DrawRasterizedFloorSplat(&spr->splat, spr);
+	INT32 i;
+	prastertab = rastertab;
+	for (i = 0; i < vid.height; i++)
+	{
+		rastertab[i].minx = INT32_MAX;
+		rastertab[i].maxx = INT32_MIN;
+	}
 }

@@ -86,6 +86,7 @@ extern consvar_t cv_glshaders, cv_glallowshaders;
 extern consvar_t cv_glmodels;
 extern consvar_t cv_glmodelinterpolation;
 extern consvar_t cv_glmodellighting;
+extern consvar_t cv_glmodeltranslations;
 extern consvar_t cv_glfiltermode;
 extern consvar_t cv_glanisotropicmode;
 extern consvar_t cv_glsolvetjoin;

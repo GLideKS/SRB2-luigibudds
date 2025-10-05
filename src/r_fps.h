@@ -48,6 +48,7 @@ typedef struct {
 	angle_t aim;
 	fixed_t cos;
 	fixed_t sin;
+	angle_t roll;
 	mobj_t *mobj;
 } viewvars_t;
 
@@ -123,6 +124,7 @@ typedef struct levelinterpolator_s {
 	};
 } levelinterpolator_t;
 
+void R_InterpolateViewRollAngle(fixed_t frac);
 // Interpolates the current view variables (r_state.h) against the selected view context in R_SetViewContext
 void R_InterpolateView(fixed_t frac);
 // Buffer the current new views into the old views. Call once after each real tic.

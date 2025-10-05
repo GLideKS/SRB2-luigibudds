@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2025 by Sonic Team Junior.
+// Copyright (C) 1999-2024 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -20,7 +20,6 @@
 #include "r_portal.h"
 #include "r_defs.h"
 #include "r_skins.h"
-#include "r_splats.h"
 
 // --------------
 // SPRITE LOADING
@@ -175,27 +174,19 @@ typedef struct vissprite_s
 	fixed_t xscale, scale; // projected horizontal and vertical scales
 	fixed_t thingscale; // the object's scale
 	fixed_t sortscale; // sortscale only differs from scale for paper sprites and floor sprites
+	fixed_t sortsplat; // the sortscale from behind the floor sprite
 	fixed_t linkscale; // the sortscale for MF2_LINKDRAW sprites
+	fixed_t scalestep; // only for paper sprites, 0 otherwise
+	fixed_t paperoffset, paperdistance; // for paper sprites, offset/dist relative to the angle
 	fixed_t xiscale; // negative if flipped
 
-	union {
-		// for paper sprites
-		struct {
-			angle_t centerangle;
-			fixed_t scalestep; // only for paper sprites, 0 otherwise
-			fixed_t paperoffset, paperdistance; // for paper sprites, offset/dist relative to the angle
-		};
+	angle_t centerangle; // for paper sprites / splats
 
-		// for floor sprites
-		struct {
-			floorsplat_t splat; // floorsprite data
-			fixed_t sortsplat; // the sortscale from in front of the floor sprite
-			struct {
-				fixed_t x, y, z; // the viewpoint's current position
-				angle_t angle; // the viewpoint's current angle
-			} viewpoint;
-		};
-	};
+	// for floor sprites
+	struct {
+		fixed_t x, y, z; // the viewpoint's current position
+		angle_t angle; // the viewpoint's current angle
+	} viewpoint;
 
 	struct {
 		fixed_t tan; // The amount to shear the sprite vertically per row

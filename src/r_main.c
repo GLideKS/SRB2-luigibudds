@@ -61,7 +61,7 @@ size_t framecount;
 size_t loopcount;
 
 fixed_t viewx, viewy, viewz;
-angle_t viewangle, aimingangle;
+angle_t viewangle, aimingangle, viewroll;
 fixed_t viewcos, viewsin;
 sector_t *viewsector;
 player_t *viewplayer;
@@ -609,7 +609,7 @@ void R_CheckViewMorph(void)
 	float fisheyemap[MAXVIDWIDTH/2 + 1];
 #endif
 
-	angle_t rollangle = players[displayplayer].viewrollangle;
+	angle_t rollangle = viewroll;
 #ifdef WOUGHMP_WOUGHMP
 	fixed_t fisheye = cv_cam2_turnmultiplier.value; // temporary test value
 #endif
@@ -1109,6 +1109,7 @@ void R_SetupFrame(player_t *player)
 		thiscam = &camera;
 
 	newview->sky = false;
+	newview->roll = player->viewrollangle;
 
 	if (player->awayviewtics)
 	{
@@ -1262,6 +1263,7 @@ void R_SkyboxFrame(player_t *player)
 
 	// cut-away view stuff
 	newview->sky = true;
+	newview->roll = player->viewrollangle;
 	r_viewmobj = skyboxmo[0];
 #ifdef PARANOIA
 	if (!r_viewmobj)

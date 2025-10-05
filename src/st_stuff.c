@@ -1169,7 +1169,8 @@ static void ST_drawInput(void)
 		V_DrawFill(x+ 7, y+10-offs,  2,  1, col);
 	}
 
-#define drawbutt(xoffs, yoffs, butt, symb)\
+// i have mangled this define
+#define drawbutt(xoffs, yoffs, butt, symb, wid, hei, thin, strxoff, stryoff, strmode, char)\
 	if (stplyr->cmd.buttons & butt)\
 	{\
 		offs = 0;\
@@ -1179,13 +1180,32 @@ static void ST_drawInput(void)
 	{\
 		offs = 1;\
 		col = hudinfo[HUD_INPUT].f|16;\
-		V_DrawFill(x+16+(xoffs), y+9+(yoffs), 10, 1, hudinfo[HUD_INPUT].f|29);\
+		V_DrawFill(x+16+(xoffs), y+(hei - 1)+(yoffs), wid, 1, hudinfo[HUD_INPUT].f|29);\
 	}\
-	V_DrawFill(x+16+(xoffs), y+(yoffs)-offs, 10, 10, col);\
-	V_DrawCharacter(x+16+1+(xoffs), y+1+(yoffs)-offs, hudinfo[HUD_INPUT].f|symb, false)
+	V_DrawFill(x+16+(xoffs), y+(yoffs)-offs, wid, hei, col);\
+	if (strmode) {\
+		if (thin)\
+			V_DrawCenteredThinString(x+16+1+(xoffs) + (wid >> 1) + strxoff, y+1+(yoffs)-offs+stryoff, hudinfo[HUD_INPUT].f, char);\
+		else\
+			V_DrawCenteredString(x+16+1+(xoffs) + (wid >> 1) + strxoff, y+1+(yoffs)-offs+stryoff, hudinfo[HUD_INPUT].f, char);\
+	} else {\
+		if (thin)\
+			V_DrawFontCharacter(x+16+1+(xoffs) + strxoff, y+1+(yoffs)-offs+stryoff, hudinfo[HUD_INPUT].f|symb, false, FRACUNIT,NULL, tny_font);\
+		else\
+			V_DrawCharacter(x+16+1+(xoffs) + strxoff, y+1+(yoffs)-offs+stryoff, hudinfo[HUD_INPUT].f|symb, false);\
+	}\
 
-	drawbutt( 4,-3, BT_JUMP, 'J');
-	drawbutt(15,-3, BT_SPIN, 'S');
+	drawbutt( 4,-3, BT_JUMP, 'J', 10,10, false, 0, 0, false, NULL)
+	drawbutt(15,-3, BT_SPIN, 'S', 10,10, false, 0, 0, false, NULL)
+
+	drawbutt(26,    -3, 0,          'C', 7,10, true, 0, 1, false, NULL)
+	drawbutt(26 + 7,-3, BT_CUSTOM1, '1', 7,10, true, 0, 1, false, NULL)
+	drawbutt(33 + 7,-3, BT_CUSTOM2, '2', 7,10, true, 0, 1, false, NULL)
+	drawbutt(40 + 7,-3, BT_CUSTOM3, '3', 7,10, true, 0, 1, false, NULL)
+
+	static const char *tosschar = "TOSS";
+	drawbutt(26,     9, BT_TOSSFLAG, 'T', 20, 9, true, -1, 0, true, tosschar)
+	drawbutt(40 + 7, 9, BT_ATTACK,   'F',  7, 9, true, 0, 0, false, NULL)
 
 	V_DrawFill(x+16+4, y+8, 21, 10, hudinfo[HUD_INPUT].f|20); // sundial backing
 	if (stplyr->mo)

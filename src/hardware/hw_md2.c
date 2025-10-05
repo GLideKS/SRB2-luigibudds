@@ -636,6 +636,7 @@ static void HWR_CreateBlendedTexture(patch_t *gpatch, patch_t *blendgpatch, GLMi
 	UINT8 new_r,new_g,new_b = 0;
 	UINT8 old_r,old_g,old_b = 0;
 	boolean oversized_blendimage = false;
+	boolean translationsallowed = cv_glmodeltranslations.value != 0;
 	
 	remaptable_t *cur_translation = R_GetTranslationByID(translationid);
 	paletteremaptype_t cur_ttype = REMAP_BLANK;
@@ -1026,7 +1027,7 @@ skippixel:
 
 				// Apply translations here
 				// TODO: this whole block is extremely slow, especially on full-palette translations
-				if (cur_ttype != REMAP_BLANK && !(skinnum >= TC_GRAYSCALE && skinnum <= TC_INVERT))
+				if (cur_ttype != REMAP_BLANK && !(skinnum >= TC_GRAYSCALE && skinnum <= TC_INVERT) && translationsallowed)
 				{
 					UINT8 pindex1 = NearestPaletteColor(new_r,new_g,new_b, NULL);
 					UINT8 pindex2 = NearestPaletteColor(old_r,old_g,old_b, NULL);
@@ -1509,7 +1510,7 @@ boolean HWR_DrawModel(gl_vissprite_t *spr)
 			Surf.PolyColor.s.alpha = (spr->mobj->flags2 & MF2_SHADOW) ? 0x40 : 0xff;
 			Surf.PolyFlags = HWR_GetBlendModeFlag(blendmode);
 		}
-		
+
 		if (newalpha < FRACUNIT)
 		{
 			// TODO: The ternary operator is a hack to make alpha values roughly match what their FF_TRANSMASK equivalent would be

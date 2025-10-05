@@ -1236,44 +1236,7 @@ static void R_DrawPrecipitationVisSprite(vissprite_t *vis)
 
 //
 // R_SplitSprite
-// runs through a sector's lightlist and cuts the sprite vertically
-//
-static vissprite_t *R_DoSpriteCut(vissprite_t *sprite, fixed_t testheight)
-{
-	vissprite_t *newsprite;
-
-	INT16 cutfrac = (INT16)((centeryfrac - FixedMul(testheight - viewz, sprite->linkscale))>>FRACBITS);
-
-	if (cutfrac < 0 || cutfrac > viewheight)
-		return NULL;
-
-	newsprite = M_Memcpy(R_NewVisSprite(), sprite, sizeof (vissprite_t));
-
-	newsprite->cut |= (sprite->cut & SC_FLAGMASK);
-
-	sprite->cut |= SC_BOTTOM;
-	sprite->gz = testheight;
-
-	newsprite->gzt = sprite->gz;
-
-	sprite->sz = cutfrac;
-	newsprite->szt = (INT16)(sprite->sz - 1);
-
-	if (testheight < sprite->pzt && testheight > sprite->pz)
-		sprite->pz = newsprite->pzt = testheight;
-	else
-	{
-		newsprite->pz = newsprite->gz;
-		newsprite->pzt = newsprite->gzt;
-	}
-
-	newsprite->szt -= 8;
-
-	newsprite->cut |= SC_TOP;
-
-	return newsprite;
-}
-
+// runs through a sector's lightlist and Knuckles
 static void R_SplitSprite(vissprite_t *sprite)
 {
 	INT32 i, lightnum, lindex;
@@ -1305,7 +1268,29 @@ static void R_SplitSprite(vissprite_t *sprite)
 
 		// Found a split! Make a new sprite, copy the old sprite to it, and
 		// adjust the heights.
-		newsprite = R_DoSpriteCut(sprite, testheight);
+		newsprite = M_Memcpy(R_NewVisSprite(), sprite, sizeof (vissprite_t));
+
+		newsprite->cut |= (sprite->cut & SC_FLAGMASK);
+
+		sprite->cut |= SC_BOTTOM;
+		sprite->gz = testheight;
+
+		newsprite->gzt = sprite->gz;
+
+		sprite->sz = cutfrac;
+		newsprite->szt = (INT16)(sprite->sz - 1);
+
+		if (testheight < sprite->pzt && testheight > sprite->pz)
+			sprite->pz = newsprite->pzt = testheight;
+		else
+		{
+			newsprite->pz = newsprite->gz;
+			newsprite->pzt = newsprite->gzt;
+		}
+
+		newsprite->szt -= 8;
+
+		newsprite->cut |= SC_TOP;
 		if (!(sector->lightlist[i].caster->fofflags & FOF_NOSHADE))
 		{
 			lightnum = (*sector->lightlist[i].lightlevel >> LIGHTSEGSHIFT);
@@ -1495,9 +1480,6 @@ static void R_ProjectDropShadow(mobj_t *thing, vissprite_t *vis, fixed_t scale, 
 	pslope_t *groundslope;
 	boolean isflipped = thing->eflags & MFE_VERTICALFLIP;
 	interpmobjstate_t interp = {0};
-
-	if (vis->cut & SC_NOTVISIBLE)
-		return;
 
 	groundz = R_GetShadowZ(thing, &groundslope);
 
@@ -1733,7 +1715,7 @@ static void R_ProjectSprite(mobj_t *thing)
 	fixed_t linkscale = 0;
 	fixed_t sort_x = 0, sort_y = 0, sort_z;
 
-	INT32 x1 = 0, x2 = 0;
+	INT32 x1, x2;
 
 	spritedef_t *sprdef;
 	spriteframe_t *sprframe;
@@ -1748,6 +1730,7 @@ static void R_ProjectSprite(mobj_t *thing)
 	boolean mirrored = thing->mirrored;
 	boolean hflip = (!R_ThingHorizontallyFlipped(thing) != !mirrored);
 
+	INT32 lindex;
 	INT32 trans;
 
 	vissprite_t *vis;
@@ -1757,7 +1740,7 @@ static void R_ProjectSprite(mobj_t *thing)
 
 	angle_t ang = 0; // compiler complaints
 	fixed_t iscale;
-	fixed_t scalestep = 0;
+	fixed_t scalestep;
 	fixed_t offset, offset2;
 
 	fixed_t sheartan = 0;
@@ -1778,7 +1761,6 @@ static void R_ProjectSprite(mobj_t *thing)
 	INT32 light = 0;
 	fixed_t this_scale, highresscale;
 	fixed_t spritexscale, spriteyscale;
-	fixed_t spritexscale_scaled, spriteyscale_scaled;
 
 	// rotsprite
 	fixed_t spr_width, spr_height;
@@ -1823,13 +1805,13 @@ static void R_ProjectSprite(mobj_t *thing)
 	basetz = tz = FixedMul(tr_x, viewcos) + FixedMul(tr_y, viewsin); // near/far distance
 
 	// thing is behind view plane?
-	if (!(papersprite || splat) && (tz < FixedMul(MINZ, this_scale))) // papersprite and floorsprite clipping is handled later
+	if (!papersprite && (tz < FixedMul(MINZ, this_scale))) // papersprite clipping is handled later
 		return;
 
 	basetx = tx = FixedMul(tr_x, viewsin) - FixedMul(tr_y, viewcos); // sideways distance
 
 	// too far off the side?
-	if (!(papersprite || splat) && abs(tx) > FixedMul(tz, fovtan)<<2) // papersprite and floorsprite clipping is handled later
+	if (!papersprite && abs(tx) > FixedMul(tz, fovtan)<<2) // papersprite clipping is handled later
 		return;
 
 	// aspect ratio stuff
@@ -2002,9 +1984,6 @@ static void R_ProjectSprite(mobj_t *thing)
 	if (spritexscale < 1 || spriteyscale < 1)
 		return;
 
-	spritexscale_scaled = FixedMul(spritexscale, this_scale);
-	spriteyscale_scaled = FixedMul(spriteyscale, this_scale);
-
 	if (thing->renderflags & RF_ABSOLUTEOFFSETS)
 	{
 		spr_offset = interp.spritexoffset;
@@ -2026,8 +2005,8 @@ static void R_ProjectSprite(mobj_t *thing)
 	else
 		offset = -spr_offset;
 
-	offset = FixedMul(offset, spritexscale_scaled);
-	offset2 = FixedMul(spr_width, spritexscale_scaled);
+	offset = FixedMul(offset, FixedMul(spritexscale, this_scale));
+	offset2 = FixedMul(spr_width, FixedMul(spritexscale, this_scale));
 
 	if (papersprite)
 	{
@@ -2119,30 +2098,9 @@ static void R_ProjectSprite(mobj_t *thing)
 		// sortscale = max(yscale, yscale2);
 		// sortscale = min(yscale, yscale2);
 	}
-	else if (splat)
-	{
-		yscale = sortscale;
-
-		// Floor sprites have two sort scales.
-		sort_x = FixedMul(spritexscale_scaled, spr_width / 2);
-		sort_y = FixedMul(spriteyscale_scaled, spr_height / 2);
-		sort_x = FixedMul(sort_x, FINECOSINE(viewangle >> ANGLETOFINESHIFT));
-		sort_y = FixedMul(sort_y, FINESINE(viewangle >> ANGLETOFINESHIFT));
-
-		// Far
-		tr_x = (interp.x + sort_x) - viewx;
-		tr_y = (interp.y + sort_y) - viewy;
-		sort_z = max(FixedMul(MINZ, this_scale), FixedMul(tr_x, viewcos) + FixedMul(tr_y, viewsin));
-		sortscale = FixedDiv(projectiony, sort_z);
-
-		// Near
-		tr_x = (interp.x - sort_x) - viewx;
-		tr_y = (interp.y - sort_y) - viewy;
-		sort_z = max(FixedMul(MINZ, this_scale), FixedMul(tr_x, viewcos) + FixedMul(tr_y, viewsin));
-		sortsplat = FixedDiv(projectiony, sort_z);
-	}
 	else
 	{
+		scalestep = 0;
 		yscale = sortscale;
 		tx += offset;
 		x1 = (centerxfrac + FixedMul(tx,xscale))>>FRACBITS;
@@ -2157,6 +2115,20 @@ static void R_ProjectSprite(mobj_t *thing)
 		// off the left side
 		if (x2 < 0)
 			return;
+	}
+
+	// Adjust the sort scale if needed
+	if (splat)
+	{
+		sort_z = (patch->height - patch->topoffset) * FRACUNIT;
+		ang = (viewangle >> ANGLETOFINESHIFT);
+		sort_x = FixedMul(FixedMul(FixedMul(spritexscale, this_scale), sort_z), FINECOSINE(ang));
+		sort_y = FixedMul(FixedMul(FixedMul(spriteyscale, this_scale), sort_z), FINESINE(ang));
+
+		tr_x = (interp.x + sort_x) - viewx;
+		tr_y = (interp.y + sort_y) - viewy;
+		sort_z = FixedMul(tr_x, viewcos) + FixedMul(tr_y, viewsin);
+		sortscale = FixedDiv(projectiony, sort_z);
 	}
 
 	if ((thing->flags2 & MF2_LINKDRAW) && thing->tracer) // toast 16/09/16 (SYMMETRY)
@@ -2202,11 +2174,20 @@ static void R_ProjectSprite(mobj_t *thing)
 		linkscale = sortscale;
 	}
 
+	// Calculate the splat's sortscale
+	if (splat)
+	{
+		tr_x = (interp.x - sort_x) - viewx;
+		tr_y = (interp.y - sort_y) - viewy;
+		sort_z = FixedMul(tr_x, viewcos) + FixedMul(tr_y, viewsin);
+		sortsplat = FixedDiv(projectiony, sort_z);
+		centerangle = interp.angle;
+	}
+
 	// PORTAL SPRITE CLIPPING
 	if (portalrender && portalclipline)
 	{
-		// Portal culling for floor sprites is done later.
-		if (!splat && (x2 < portalclipstart || x1 >= portalclipend))
+		if (x2 < portalclipstart || x1 >= portalclipend)
 			return;
 
 		if (P_PointOnLineSide(interp.x, interp.y, portalclipline) != 0)
@@ -2313,13 +2294,13 @@ static void R_ProjectSprite(mobj_t *thing)
 			// When vertical flipped, draw sprites from the top down, at least as far as offsets are concerned.
 			// sprite height - sprite topoffset is the proper inverse of the vertical offset, of course.
 			// remember gz and gzt should be seperated by sprite height, not thing height - thing height can be shorter than the sprite itself sometimes!
-			gz = interp.z + interp.height - FixedMul(spr_topoffset, spriteyscale_scaled);
-			gzt = gz + FixedMul(spr_height, spriteyscale_scaled);
+			gz = interp.z + interp.height - FixedMul(spr_topoffset, FixedMul(spriteyscale, this_scale));
+			gzt = gz + FixedMul(spr_height, FixedMul(spriteyscale, this_scale));
 		}
 		else
 		{
-			gzt = interp.z + FixedMul(spr_topoffset, spriteyscale_scaled);
-			gz = gzt - FixedMul(spr_height, spriteyscale_scaled);
+			gzt = interp.z + FixedMul(spr_topoffset, FixedMul(spriteyscale, this_scale));
+			gz = gzt - FixedMul(spr_height, FixedMul(spriteyscale, this_scale));
 		}
 	}
 
@@ -2406,11 +2387,8 @@ static void R_ProjectSprite(mobj_t *thing)
 	else
 		vis->translation = oldthing->translation;
 
-	if (!splat)
-	{
-		vis->x1 = x1 < portalclipstart ? portalclipstart : x1;
-		vis->x2 = x2 >= portalclipend ? portalclipend-1 : x2;
-	}
+	vis->x1 = x1 < portalclipstart ? portalclipstart : x1;
+	vis->x2 = x2 >= portalclipend ? portalclipend-1 : x2;
 
 	vis->sector = thing->subsector->sector;
 
@@ -2455,7 +2433,7 @@ static void R_ProjectSprite(mobj_t *thing)
 		vis->xiscale = iscale;
 	}
 
-	if (!splat && vis->x1 > x1)
+	if (vis->x1 > x1)
 	{
 		vis->startfrac += FixedDiv(vis->xiscale, this_scale) * (vis->x1 - x1);
 		vis->scale += FixedMul(scalestep, spriteyscale) * (vis->x1 - x1);
@@ -2487,13 +2465,11 @@ static void R_ProjectSprite(mobj_t *thing)
 	else
 	{
 		// diminished light
-		INT32 lindex = FixedMul(xscale, LIGHTRESOLUTIONFIX)>>(LIGHTSCALESHIFT);
-		
+		lindex = FixedMul(xscale, LIGHTRESOLUTIONFIX)>>(LIGHTSCALESHIFT);
+
 		if (lindex >= MAXLIGHTSCALE)
 			lindex = MAXLIGHTSCALE-1;
-		else if (lindex < 0)
-			lindex = 0;
-		
+
 		if (vis->cut & SC_SEMIBRIGHT)
 			lindex = (MAXLIGHTSCALE/2) + (lindex >> 1);
 
@@ -2502,44 +2478,10 @@ static void R_ProjectSprite(mobj_t *thing)
 
 	if (vflip)
 		vis->cut |= SC_VFLIP;
+	if (splat)
+		vis->cut |= SC_SPLAT; // I like ya cut g
 
 	vis->patch = patch;
-
-	if (splat)
-	{
-		if (R_AddFloorSplat(vis))
-		{
-			vis->cut |= SC_SPLAT;
-
-			vis->x1 = vis->splat.minx;
-			vis->x2 = vis->splat.maxx;
-
-			// Do portal culling here.
-			if (vis->x2 < portalclipstart || vis->x1 >= portalclipend)
-				vis->cut |= SC_NOTVISIBLE;
-			else
-			{
-				vis->splat.minx = vis->splat.minx < portalclipstart ? portalclipstart : vis->splat.minx;
-				vis->splat.maxx = vis->splat.maxx >= portalclipend ? portalclipend-1 : vis->splat.maxx;
-
-				for (INT32 i = vis->splat.miny; i <= vis->splat.maxy; i++)
-				{
-					if (vis->splat.rastertab[i].minx < portalclipstart)
-						vis->splat.rastertab[i].minx = portalclipstart;
-					if (vis->splat.rastertab[i].maxx > portalclipend-1)
-						vis->splat.rastertab[i].maxx = portalclipend-1;
-				}
-			}
-
-			vis->szt = vis->splat.miny;
-			vis->sz = vis->splat.maxy;
-		}
-		else
-		{
-			vis->cut |= SC_NOTVISIBLE;
-			vis->x1 = vis->x2 = 0;
-		}
-	}
 
 	if (thing->subsector->sector->numlights && !(shadowdraw || splat))
 		R_SplitSprite(vis);
@@ -2814,60 +2756,14 @@ void R_AddSprites(sector_t *sec, INT32 lightlevel)
 	}
 }
 
-static boolean R_SortVisSpriteFunc(vissprite_t *ds, vissprite_t *other)
+static boolean R_SortVisSpriteFunc(vissprite_t *ds, fixed_t bestscale, INT32 bestdispoffset)
 {
-	if (other == NULL)
-	{
-		return true;
-	}
-	else if (ds->cut & SC_SPLAT || other->cut & SC_SPLAT)
-	{
-		fixed_t z1 = ds->pz - viewz;
-		fixed_t z2 = other->pz - viewz;
-
-		if (z1 != z2)
-		{
-			if (z1 >= 0)
-			{
-				return z1 > z2;
-			}
-			else
-			{
-				return z1 < z2;
-			}
-
-			return false;
-		}
-
-		// Both are floorsprites, so just compare sortsplat
-		if ((ds->cut & SC_SPLAT) == (other->cut & SC_SPLAT))
-		{
-			if (ds->sortsplat < other->sortsplat)
-			{
-				return true;
-			}
-			else if (ds->sortsplat == other->sortsplat && ds->dispoffset < other->dispoffset)
-			{
-				return true;
-			}
-		}
-		else
-		{
-			fixed_t scale1 = (ds->cut & SC_SPLAT ? ds->sortsplat : ds->sortscale);
-			fixed_t scale2 = (other->cut & SC_SPLAT ? other->sortsplat : other->sortscale);
-
-			if (scale1 < scale2 || (scale1 == scale2 && ds->dispoffset < other->dispoffset))
-			{
-				return true;
-			}
-		}
-	}
-	else if (ds->sortscale < other->sortscale)
+	if (ds->sortscale < bestscale)
 	{
 		return true;
 	}
 	// order visprites of same scale by dispoffset, smallest first
-	else if (ds->sortscale == other->sortscale && ds->dispoffset < other->dispoffset)
+	else if (ds->sortscale == bestscale && ds->dispoffset < bestdispoffset)
 	{
 		return true;
 	}
@@ -2875,74 +2771,17 @@ static boolean R_SortVisSpriteFunc(vissprite_t *ds, vissprite_t *other)
 	return false;
 }
 
-static UINT32 R_SplitSpritesBySplats(vissprite_t* unsorted)
-{
-	UINT32 count = 0;
-
-	for (vissprite_t *ds = unsorted->next; ds != unsorted; ds = ds->next)
-	{
-		if (ds->cut & SC_SPLAT)
-			continue;
-
-		for (vissprite_t *other = unsorted->next; other != unsorted; other = other->next)
-		{
-			vissprite_t *new;
-			fixed_t testheight;
-
-			if ((other->cut & SC_SPLAT) == 0)
-				continue;
-			if (other == ds)
-				continue;
-			if (other->x1 > ds->x2 || other->x2 < ds->x1)
-				continue;
-			if (other->szt > ds->sz || other->sz < ds->szt)
-				continue;
-
-			testheight = other->splat.slope
-				? P_GetSlopeZAt(other->splat.slope, ds->gx, ds->gy)
-				: other->pz;
-
-			if (testheight >= ds->gzt || testheight <= ds->gz)
-				continue;
-
-			new = R_DoSpriteCut(ds, testheight);
-			if (new == NULL)
-				continue;
-
-			ds->pz = testheight + 1;
-
-			new->next = ds->next;
-			new->next->prev = new;
-			ds->next = new;
-			new->prev = ds;
-
-			count++;
-
-			for (INT32 x = ds->x1; x <= ds->x2; x++)
-			{
-				if (ds->szt > ds->cliptop[x])
-					ds->cliptop[x] = ds->szt;
-				if (ds->sz < ds->clipbot[x])
-					ds->clipbot[x] = ds->sz;
-				if (new->szt > new->cliptop[x])
-					new->cliptop[x] = new->szt;
-				if (new->sz < new->clipbot[x])
-					new->clipbot[x] = new->sz;
-			}
-		}
-	}
-
-	return count;
-}
-
 //
 // R_SortVisSprites
 //
 static void R_SortVisSprites(vissprite_t* vsprsortedhead, UINT32 start, UINT32 end)
 {
-	UINT32       i, linkedvissprites = 0, floorvissprites = 0;
+	UINT32       i, linkedvissprites = 0;
 	vissprite_t *ds, *dsprev, *dsnext, *dsfirst;
+	vissprite_t *best = NULL;
 	vissprite_t  unsorted;
+	fixed_t      bestscale;
+	INT32        bestdispoffset;
 
 	unsorted.next = unsorted.prev = &unsorted;
 
@@ -2981,9 +2820,6 @@ static void R_SortVisSprites(vissprite_t* vsprsortedhead, UINT32 start, UINT32 e
 			ds->prev->next = ds->next;
 			continue;
 		}
-
-		if (ds->cut & SC_SPLAT)
-			floorvissprites++;
 
 		if (!(ds->cut & SC_LINKDRAW))
 			continue;
@@ -3043,7 +2879,7 @@ static void R_SortVisSprites(vissprite_t* vsprsortedhead, UINT32 start, UINT32 e
 			// reusing dsnext...
 			dsnext = dsfirst->linkdraw;
 
-			if (dsnext == NULL || R_SortVisSpriteFunc(ds, dsnext) == true)
+			if (dsnext == NULL || R_SortVisSpriteFunc(ds, dsnext->sortscale, dsnext->dispoffset) == true)
 			{
 				ds->next = dsnext;
 				dsfirst->linkdraw = ds;
@@ -3052,7 +2888,7 @@ static void R_SortVisSprites(vissprite_t* vsprsortedhead, UINT32 start, UINT32 e
 			{
 				for (; dsnext->next != NULL; dsnext = dsnext->next)
 				{
-					if (R_SortVisSpriteFunc(ds, dsnext->next) == true)
+					if (R_SortVisSpriteFunc(ds, dsnext->next->sortscale, dsnext->next->dispoffset) == true)
 					{
 						break;
 					}
@@ -3064,16 +2900,11 @@ static void R_SortVisSprites(vissprite_t* vsprsortedhead, UINT32 start, UINT32 e
 		}
 	}
 
-	if (floorvissprites != 0)
-	{
-		end += R_SplitSpritesBySplats(&unsorted);
-	}
-
 	// pull the vissprites out by scale
 	vsprsortedhead->next = vsprsortedhead->prev = vsprsortedhead;
 	for (i = start; i < end-linkedvissprites; i++)
 	{
-		vissprite_t *best = NULL;
+		bestscale = bestdispoffset = INT32_MAX;
 		for (ds = unsorted.next; ds != &unsorted; ds = ds->next)
 		{
 #ifdef PARANOIA
@@ -3081,8 +2912,10 @@ static void R_SortVisSprites(vissprite_t* vsprsortedhead, UINT32 start, UINT32 e
 				I_Error("R_SortVisSprites: no link or discardal made for linkdraw!");
 #endif
 
-			if (R_SortVisSpriteFunc(ds, best) == true)
+			if (R_SortVisSpriteFunc(ds, bestscale, bestdispoffset) == true)
 			{
+				bestscale = ds->sortscale;
+				bestdispoffset = ds->dispoffset;
 				best = ds;
 			}
 		}
@@ -3356,13 +3189,45 @@ static void R_CreateDrawNodes(maskcount_t* mask, drawnode_t* head, boolean temps
 			}
 			else if (r2->sprite)
 			{
+				boolean infront = (r2->sprite->sortscale > rover->sortscale
+								|| (r2->sprite->sortscale == rover->sortscale && r2->sprite->dispoffset > rover->dispoffset));
 
-				if (r2->sprite->x1 > rover->x2 || r2->sprite->x2 < rover->x1)
-					continue;
-				if (r2->sprite->szt > rover->sz || r2->sprite->sz < rover->szt)
-					continue;
+				if (rover->cut & SC_SPLAT || r2->sprite->cut & SC_SPLAT)
+				{
+					fixed_t scale1 = (rover->cut & SC_SPLAT ? rover->sortsplat : rover->sortscale);
+					fixed_t scale2 = (r2->sprite->cut & SC_SPLAT ? r2->sprite->sortsplat : r2->sprite->sortscale);
+					boolean behind = (scale2 > scale1 || (scale2 == scale1 && r2->sprite->dispoffset > rover->dispoffset));
 
-				if (R_SortVisSpriteFunc(rover, r2->sprite) == true)
+					if (!behind)
+					{
+						fixed_t z1 = 0, z2 = 0;
+
+						if (rover->mobj->z - viewz > 0)
+						{
+							z1 = rover->pz;
+							z2 = r2->sprite->pz;
+						}
+						else
+						{
+							z1 = r2->sprite->pz;
+							z2 = rover->pz;
+						}
+
+						z1 -= viewz;
+						z2 -= viewz;
+
+						infront = (z1 >= z2);
+					}
+				}
+				else
+				{
+					if (r2->sprite->x1 > rover->x2 || r2->sprite->x2 < rover->x1)
+						continue;
+					if (r2->sprite->szt > rover->sz || r2->sprite->sz < rover->szt)
+						continue;
+				}
+
+				if (infront)
 				{
 					entry = R_CreateDrawNode(NULL);
 					(entry->prev = r2->prev)->next = entry;
@@ -3804,7 +3669,7 @@ void R_ClipSprites(drawseg_t* dsstart, portal_t* portal)
 
 		if (cv_spriteclip.value
 		&& (spr->szt > vid.height || spr->sz < 0)
-		&& !spr->scalestep)
+		&& !((spr->cut & SC_SPLAT) || spr->scalestep))
 		{
 			spr->cut |= SC_NOTVISIBLE;
 			continue;
@@ -3816,12 +3681,15 @@ void R_ClipSprites(drawseg_t* dsstart, portal_t* portal)
 			continue;
 		}
 
-		if (spr->x2 < cx)
+		INT32 x1 = (spr->cut & SC_SPLAT) ? 0 : spr->x1;
+		INT32 x2 = (spr->cut & SC_SPLAT) ? viewwidth : spr->x2;
+
+		if (x2 < cx)
 		{
 			drawsegs_xrange = drawsegs_xranges[1].items;
 			drawsegs_xrange_count = drawsegs_xranges[1].count;
 		}
-		else if (spr->x1 >= cx)
+		else if (x1 >= cx)
 		{
 			drawsegs_xrange = drawsegs_xranges[2].items;
 			drawsegs_xrange_count = drawsegs_xranges[2].count;
@@ -3832,7 +3700,7 @@ void R_ClipSprites(drawseg_t* dsstart, portal_t* portal)
 			drawsegs_xrange_count = drawsegs_xranges[0].count;
 		}
 
-		R_ClipVisSprite(spr, spr->x1, spr->x2, portal);
+		R_ClipVisSprite(spr, x1, x2, portal);
 
 		if ((spr->cut & SC_NOTVISIBLE) == 0)
 			numvisiblesprites++;
@@ -3844,7 +3712,7 @@ boolean R_ThingVisible (mobj_t *thing)
 {
 	return (!(
 		(thing->sprite == SPR_NULL) || // Don't draw null-sprites
-		(thing->flags2 & MF2_DONTDRAW) || // Don't draw MF2_DONTDRAW objects
+		(thing->flags2 & MF2_DONTDRAW) || // Don't draw MF2_LINKDRAW objects
 		(thing->drawonlyforplayer && thing->drawonlyforplayer != viewplayer) || // Don't draw other players' personal objects
 		(!R_BlendLevelVisible(thing->blendmode, R_GetThingTransTable(thing->alpha, 0))) ||
 		(!P_MobjWasRemoved(r_viewmobj) && (

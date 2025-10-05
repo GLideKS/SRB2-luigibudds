@@ -494,7 +494,7 @@ void SCR_DisplayTicRate(void)
 		{
 			const char *tpsstr = va("%d", totaltics);
 			V_DrawRightAlignedThinString(
-				x - COMPACTTPS_NUDGE - fpsnudge,
+				x - ((cv_ticrate.value) ? COMPACTTPS_NUDGE - fpsnudge : 0),
 				BASEVIDHEIGHT - 8,
 				ticcntcolor |V_USERHUDTRANS|V_SNAPTORIGHT|V_SNAPTOBOTTOM,
 				tpsstr

@@ -170,6 +170,11 @@ static void R_SetupFreelook(player_t *player, boolean skybox)
 
 #undef AIMINGTODY
 
+void R_InterpolateViewRollAngle(fixed_t frac)
+{
+	viewroll = R_LerpAngle(oldview->roll, newview->roll, frac);
+}
+
 void R_InterpolateView(fixed_t frac)
 {
 	viewvars_t* prevview = oldview;
@@ -202,6 +207,7 @@ void R_InterpolateView(fixed_t frac)
 
 	viewangle = R_LerpAngle(prevview->angle, newview->angle, frac);
 	aimingangle = R_LerpAngle(prevview->aim, newview->aim, frac);
+	viewroll = R_LerpAngle(prevview->roll, newview->roll, frac);
 
 	viewsin = FINESINE(viewangle>>ANGLETOFINESHIFT);
 	viewcos = FINECOSINE(viewangle>>ANGLETOFINESHIFT);

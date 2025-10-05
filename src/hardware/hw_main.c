@@ -3209,7 +3209,7 @@ static void HWR_SplitSprite(gl_vissprite_t *spr)
 	// if sprite has PF_ALWAYSONTOP, draw on top of everything.
 	if (spr->mobj->renderflags & RF_ALWAYSONTOP)
 		blend |= PF_NoDepthTest;
-	
+
 	alpha = Surf.PolyColor.s.alpha;
 
 	// Start with the lightlevel and colormap from the top of the sprite
@@ -4354,6 +4354,12 @@ static void HWR_AddSprites(sector_t *sec)
 	// If a limit exists, handle things a tiny bit different
 	for (thing = sec->thinglist; thing; thing = thing->snext)
 	{
+		// do not render in skybox
+		if ((thing->renderflags & RF_HIDEINSKYBOX) && r_inskybox)
+		{
+			continue;
+		}
+
 		if (R_ThingWithinDist(thing, limit_dist, hoop_limit_dist))
 		{
 			if (R_ThingVisible(thing))
@@ -5464,9 +5470,9 @@ static void HWR_SetupView(player_t *player, INT32 viewnumber, float fpov, boolea
 
 	atransform.fovxangle = fpov; // Tails
 	atransform.fovyangle = fpov; // Tails
-	if (player->viewrollangle != 0)
+	if (viewroll != 0)
 	{
-		fixed_t rol = AngleFixed(player->viewrollangle);
+		fixed_t rol = AngleFixed(viewroll);
 		atransform.rollangle = FixedToFloat(rol);
 		atransform.roll = true;
 		atransform.rollx = 1.0f;
@@ -5594,8 +5600,10 @@ void HWR_RenderPlayerView(INT32 viewnumber, player_t *player)
 		HWD.pfnClearBuffer(true, false, &ClearColor); // Clear the Color Buffer, stops HOMs. Also seems to fix the skybox issue on Intel GPUs.
 
 	PS_START_TIMING(ps_hw_skyboxtime);
+	r_inskybox = skybox;
 	if (skybox && drawsky) // If there's a skybox and we should be drawing the sky, draw the skybox
 		HWR_RenderSkyboxView(viewnumber, player); // This is drawn before everything else so it is placed behind
+	r_inskybox = false;
 	PS_STOP_TIMING(ps_hw_skyboxtime);
 
 	HWR_SetupView(player, viewnumber, fpov, false);
@@ -5813,6 +5821,7 @@ consvar_t cv_glcoronasize = CVAR_INIT ("gr_coronasize", "1", CV_SAVE|CV_FLOAT, 0
 consvar_t cv_glmodels = CVAR_INIT ("gr_models", "Off", CV_SAVE, CV_OnOff, NULL);
 consvar_t cv_glmodelinterpolation = CVAR_INIT ("gr_modelinterpolation", "On", CV_SAVE, CV_OnOff, NULL);
 consvar_t cv_glmodellighting = CVAR_INIT ("gr_modellighting", "Off", CV_SAVE|CV_CALL, CV_OnOff, CV_glmodellighting_OnChange);
+consvar_t cv_glmodeltranslations = CVAR_INIT ("gr_modeltranslations", "On", CV_SAVE, CV_OnOff, NULL);
 
 consvar_t cv_glshearing = CVAR_INIT ("gr_shearing", "Off", CV_SAVE, glshearing_cons_t, NULL);
 consvar_t cv_glspritebillboarding = CVAR_INIT ("gr_spritebillboarding", "Off", CV_SAVE, CV_OnOff, NULL);
@@ -5909,6 +5918,7 @@ void HWR_AddCommands(void)
 	CV_RegisterVar(&cv_glmodellighting);
 	CV_RegisterVar(&cv_glmodelinterpolation);
 	CV_RegisterVar(&cv_glmodels);
+	CV_RegisterVar(&cv_glmodeltranslations);
 
 	CV_RegisterVar(&cv_glskydome);
 	CV_RegisterVar(&cv_glspritebillboarding);

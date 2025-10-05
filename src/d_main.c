@@ -334,7 +334,10 @@ static void D_Display(void)
 
 	// View morph
 	if (rendermode == render_soft && !splitscreen)
+	{
+		R_InterpolateViewRollAngle(rendertimefrac);
 		R_CheckViewMorph();
+	}
 
 	// Change the view size if needed
 	// Set by changing video mode or renderer
