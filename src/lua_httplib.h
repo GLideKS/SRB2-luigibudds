@@ -4,5 +4,6 @@
 #include "lua_script.h"
 
 int LUA_HTTPLib(lua_State *L);
+void LUA_HTTPProcessCallbacks(void);
 
 #endif

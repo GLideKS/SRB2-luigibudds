@@ -18,6 +18,7 @@
 #include "lua_libs.h"
 #include "z_zone.h"
 #include "i_threads.h"
+#include "console.h"
 
 #ifdef HAVE_CURL
 #include <curl/curl.h>
@@ -54,10 +55,62 @@ typedef struct {
     lua_State *L;
 } http_request_t;
 
+typedef struct pending_callback_s {
+    int callback_ref;
+    http_response_t *response;
+    char *error_msg;
+    lua_State *L;
+    struct pending_callback_s *next;
+} pending_callback_t;
+
+typedef struct {
+    pending_callback_t *head;
+    pending_callback_t *tail;
+    I_mutex mutex;
+} callback_queue_t;
+
 static char *default_user_agent = NULL;
 static int default_timeout = 10;
 static http_header_t *default_headers = NULL;
 static size_t default_header_count = 0;
+static callback_queue_t callback_queue = {NULL, NULL, NULL};
+
+static void enqueue_callback(lua_State *L, int callback_ref, http_response_t *response, char *error_msg)
+{
+    pending_callback_t *cb = malloc(sizeof(pending_callback_t));
+    cb->callback_ref = callback_ref;
+    cb->response = response;
+    cb->error_msg = error_msg;
+    cb->L = L;
+    cb->next = NULL;
+    
+    I_lock_mutex(&callback_queue.mutex);
+    
+    if (callback_queue.tail == NULL) {
+        callback_queue.head = cb;
+        callback_queue.tail = cb;
+    } else {
+        callback_queue.tail->next = cb;
+        callback_queue.tail = cb;
+    }
+    
+    I_unlock_mutex(callback_queue.mutex);
+}
+
+static pending_callback_t* dequeue_callback(void)
+{
+    I_lock_mutex(&callback_queue.mutex);
+    
+    pending_callback_t *cb = callback_queue.head;
+    if (cb != NULL) {
+        callback_queue.head = cb->next;
+        if (callback_queue.head == NULL)
+            callback_queue.tail = NULL;
+    }
+    
+    I_unlock_mutex(callback_queue.mutex);
+    return cb;
+}
 
 #ifdef HAVE_CURL
 static size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp)
@@ -322,6 +375,16 @@ static http_request_t* parse_request_options(lua_State *L, int index)
     
     return req;
 }
+
+static void http_worker_thread(void *arg)
+{
+    http_request_t *req = (http_request_t *)arg;
+    char *error_msg = NULL;
+    http_response_t *resp = perform_http_request(req, &error_msg);
+    
+    enqueue_callback(req->L, req->callback_ref, resp, error_msg);
+    free_request(req);
+}
 #endif
 
 static int lib_http_request(lua_State *L)
@@ -332,54 +395,18 @@ static int lib_http_request(lua_State *L)
     return luaL_error(L, "HTTP support not compiled in");
 #else
     luaL_checktype(L, 1, LUA_TTABLE);
-    
-    http_request_t *req = parse_request_options(L, 1);
-    char *error_msg = NULL;
-    http_response_t *resp = perform_http_request(req, &error_msg);
-    
-    if (resp) {
-        push_response_table(L, resp);
-        lua_pushnil(L);
-        free_response(resp);
-    } else {
-        lua_pushnil(L);
-        push_error_table(L, error_msg);
-        free(error_msg);
-    }
-    
-    free_request(req);
-    return 2;
-#endif
-}
-
-static int lib_http_request_async(lua_State *L)
-{
-   
-    
-#ifndef HAVE_CURL
-    return luaL_error(L, "HTTP support not compiled in");
-#else
-    luaL_checktype(L, 1, LUA_TTABLE);
     luaL_checktype(L, 2, LUA_TFUNCTION);
     
     http_request_t *req = parse_request_options(L, 1);
-    char *error_msg = NULL;
-    http_response_t *resp = perform_http_request(req, &error_msg);
-    
+    req->L = L;
     lua_pushvalue(L, 2);
-    
-    if (resp) {
-        push_response_table(L, resp);
-        lua_pushnil(L);
-        free_response(resp);
-    } else {
-        lua_pushnil(L);
-        push_error_table(L, error_msg);
-        free(error_msg);
+    req->callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+    if (!I_spawn_thread("http-worker", http_worker_thread, req)) {
+        luaL_unref(L, LUA_REGISTRYINDEX, req->callback_ref);
+        free_request(req);
+        return luaL_error(L, "Failed to spawn HTTP worker thread");
     }
-    
-    lua_call(L, 2, 0);
-    free_request(req);
     
     return 0;
 #endif
@@ -393,17 +420,19 @@ static int lib_http_get(lua_State *L)
     return luaL_error(L, "HTTP support not compiled in");
 #else
     const char *url = luaL_checkstring(L, 1);
-    http_request_t *req = calloc(1, sizeof(http_request_t));
+    luaL_checktype(L, 2, LUA_TFUNCTION);
     
+    http_request_t *req = calloc(1, sizeof(http_request_t));
     req->url = strdup(url);
     req->method = strdup("GET");
     req->timeout = default_timeout;
     req->follow_redirects = true;
     req->max_redirects = 50;
+    req->L = L;
     
-    if (lua_istable(L, 2)) {
+    if (lua_istable(L, 3)) {
         lua_pushnil(L);
-        while (lua_next(L, 2) != 0) {
+        while (lua_next(L, 3) != 0) {
             if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
                 req->headers = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
                 req->headers[req->header_count].key = strdup(lua_tostring(L, -2));
@@ -414,21 +443,16 @@ static int lib_http_get(lua_State *L)
         }
     }
     
-    char *error_msg = NULL;
-    http_response_t *resp = perform_http_request(req, &error_msg);
+    lua_pushvalue(L, 2);
+    req->callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     
-    if (resp) {
-        push_response_table(L, resp);
-        lua_pushnil(L);
-        free_response(resp);
-    } else {
-        lua_pushnil(L);
-        push_error_table(L, error_msg);
-        free(error_msg);
+    if (!I_spawn_thread("http-worker", http_worker_thread, req)) {
+        luaL_unref(L, LUA_REGISTRYINDEX, req->callback_ref);
+        free_request(req);
+        return luaL_error(L, "Failed to spawn HTTP worker thread");
     }
     
-    free_request(req);
-    return 2;
+    return 0;
 #endif
 }
 
@@ -441,6 +465,7 @@ static int lib_http_post(lua_State *L)
 #else
     const char *url = luaL_checkstring(L, 1);
     const char *body = luaL_checkstring(L, 2);
+    luaL_checktype(L, 3, LUA_TFUNCTION);
     
     http_request_t *req = calloc(1, sizeof(http_request_t));
     req->url = strdup(url);
@@ -449,10 +474,11 @@ static int lib_http_post(lua_State *L)
     req->timeout = default_timeout;
     req->follow_redirects = true;
     req->max_redirects = 50;
-    
-    if (lua_istable(L, 3)) {
+    req->L = L;
+
+    if (lua_istable(L, 4)) {
         lua_pushnil(L);
-        while (lua_next(L, 3) != 0) {
+        while (lua_next(L, 4) != 0) {
             if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
                 req->headers = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
                 req->headers[req->header_count].key = strdup(lua_tostring(L, -2));
@@ -463,21 +489,16 @@ static int lib_http_post(lua_State *L)
         }
     }
     
-    char *error_msg = NULL;
-    http_response_t *resp = perform_http_request(req, &error_msg);
+    lua_pushvalue(L, 3);
+    req->callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     
-    if (resp) {
-        push_response_table(L, resp);
-        lua_pushnil(L);
-        free_response(resp);
-    } else {
-        lua_pushnil(L);
-        push_error_table(L, error_msg);
-        free(error_msg);
+    if (!I_spawn_thread("http-worker", http_worker_thread, req)) {
+        luaL_unref(L, LUA_REGISTRYINDEX, req->callback_ref);
+        free_request(req);
+        return luaL_error(L, "Failed to spawn HTTP worker thread");
     }
     
-    free_request(req);
-    return 2;
+    return 0;
 #endif
 }
 
@@ -489,6 +510,7 @@ static int lib_http_put(lua_State *L)
 #else
     const char *url = luaL_checkstring(L, 1);
     const char *body = luaL_checkstring(L, 2);
+    luaL_checktype(L, 3, LUA_TFUNCTION);
     
     http_request_t *req = calloc(1, sizeof(http_request_t));
     req->url = strdup(url);
@@ -497,6 +519,51 @@ static int lib_http_put(lua_State *L)
     req->timeout = default_timeout;
     req->follow_redirects = true;
     req->max_redirects = 50;
+    req->L = L;
+    
+    if (lua_istable(L, 4)) {
+        lua_pushnil(L);
+        while (lua_next(L, 4) != 0) {
+            if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
+                req->headers = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+                req->headers[req->header_count].key = strdup(lua_tostring(L, -2));
+                req->headers[req->header_count].value = strdup(lua_tostring(L, -1));
+                req->header_count++;
+            }
+            lua_pop(L, 1);
+        }
+    }
+
+    lua_pushvalue(L, 3);
+    req->callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+    if (!I_spawn_thread("http-worker", http_worker_thread, req)) {
+        luaL_unref(L, LUA_REGISTRYINDEX, req->callback_ref);
+        free_request(req);
+        return luaL_error(L, "Failed to spawn HTTP worker thread");
+    }
+    
+    return 0;
+#endif
+}
+
+static int lib_http_delete(lua_State *L)
+{
+   
+    
+#ifndef HAVE_CURL
+    return luaL_error(L, "HTTP support not compiled in");
+#else
+    const char *url = luaL_checkstring(L, 1);
+    luaL_checktype(L, 2, LUA_TFUNCTION);
+    
+    http_request_t *req = calloc(1, sizeof(http_request_t));
+    req->url = strdup(url);
+    req->method = strdup("DELETE");
+    req->timeout = default_timeout;
+    req->follow_redirects = true;
+    req->max_redirects = 50;
+    req->L = L;
     
     if (lua_istable(L, 3)) {
         lua_pushnil(L);
@@ -511,68 +578,16 @@ static int lib_http_put(lua_State *L)
         }
     }
     
-    char *error_msg = NULL;
-    http_response_t *resp = perform_http_request(req, &error_msg);
+    lua_pushvalue(L, 2);
+    req->callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     
-    if (resp) {
-        push_response_table(L, resp);
-        lua_pushnil(L);
-        free_response(resp);
-    } else {
-        lua_pushnil(L);
-        push_error_table(L, error_msg);
-        free(error_msg);
+    if (!I_spawn_thread("http-worker", http_worker_thread, req)) {
+        luaL_unref(L, LUA_REGISTRYINDEX, req->callback_ref);
+        free_request(req);
+        return luaL_error(L, "Failed to spawn HTTP worker thread");
     }
     
-    free_request(req);
-    return 2;
-#endif
-}
-
-static int lib_http_delete(lua_State *L)
-{
-   
-    
-#ifndef HAVE_CURL
-    return luaL_error(L, "HTTP support not compiled in");
-#else
-    const char *url = luaL_checkstring(L, 1);
-    
-    http_request_t *req = calloc(1, sizeof(http_request_t));
-    req->url = strdup(url);
-    req->method = strdup("DELETE");
-    req->timeout = default_timeout;
-    req->follow_redirects = true;
-    req->max_redirects = 50;
-    
-    if (lua_istable(L, 2)) {
-        lua_pushnil(L);
-        while (lua_next(L, 2) != 0) {
-            if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
-                req->headers = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
-                req->headers[req->header_count].key = strdup(lua_tostring(L, -2));
-                req->headers[req->header_count].value = strdup(lua_tostring(L, -1));
-                req->header_count++;
-            }
-            lua_pop(L, 1);
-        }
-    }
-    
-    char *error_msg = NULL;
-    http_response_t *resp = perform_http_request(req, &error_msg);
-    
-    if (resp) {
-        push_response_table(L, resp);
-        lua_pushnil(L);
-        free_response(resp);
-    } else {
-        lua_pushnil(L);
-        push_error_table(L, error_msg);
-        free(error_msg);
-    }
-    
-    free_request(req);
-    return 2;
+    return 0;
 #endif
 }
 
@@ -585,6 +600,7 @@ static int lib_http_patch(lua_State *L)
 #else
     const char *url = luaL_checkstring(L, 1);
     const char *body = luaL_checkstring(L, 2);
+    luaL_checktype(L, 3, LUA_TFUNCTION);
     
     http_request_t *req = calloc(1, sizeof(http_request_t));
     req->url = strdup(url);
@@ -593,10 +609,11 @@ static int lib_http_patch(lua_State *L)
     req->timeout = default_timeout;
     req->follow_redirects = true;
     req->max_redirects = 50;
+    req->L = L;
     
-    if (lua_istable(L, 3)) {
+    if (lua_istable(L, 4)) {
         lua_pushnil(L);
-        while (lua_next(L, 3) != 0) {
+        while (lua_next(L, 4) != 0) {
             if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
                 req->headers = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
                 req->headers[req->header_count].key = strdup(lua_tostring(L, -2));
@@ -607,21 +624,16 @@ static int lib_http_patch(lua_State *L)
         }
     }
     
-    char *error_msg = NULL;
-    http_response_t *resp = perform_http_request(req, &error_msg);
-    
-    if (resp) {
-        push_response_table(L, resp);
-        lua_pushnil(L);
-        free_response(resp);
-    } else {
-        lua_pushnil(L);
-        push_error_table(L, error_msg);
-        free(error_msg);
+    lua_pushvalue(L, 3);
+    req->callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+    if (!I_spawn_thread("http-worker", http_worker_thread, req)) {
+        luaL_unref(L, LUA_REGISTRYINDEX, req->callback_ref);
+        free_request(req);
+        return luaL_error(L, "Failed to spawn HTTP worker thread");
     }
     
-    free_request(req);
-    return 2;
+    return 0;
 #endif
 }
 
@@ -848,9 +860,38 @@ static int lib_http_set_default_headers(lua_State *L)
     return 0;
 }
 
+void LUA_HTTPProcessCallbacks(void)
+{
+    pending_callback_t *cb;
+    
+    while ((cb = dequeue_callback()) != NULL) {
+        lua_State *L = cb->L;
+        
+        lua_rawgeti(L, LUA_REGISTRYINDEX, cb->callback_ref);
+        
+        if (cb->response) {
+            push_response_table(L, cb->response);
+            lua_pushnil(L);
+            free_response(cb->response);
+        } else {
+            lua_pushnil(L);
+            push_error_table(L, cb->error_msg);
+            free(cb->error_msg);
+        }
+        
+        if (lua_pcall(L, 2, 0, 0) != 0) {
+            CONS_Alert(CONS_WARNING, "HTTP callback error: %s\n", lua_tostring(L, -1));
+            lua_pop(L, 1);
+        }
+
+        luaL_unref(L, LUA_REGISTRYINDEX, cb->callback_ref);
+        
+        free(cb);
+    }
+}
+
 static luaL_Reg lib_http[] = {
     {"request", lib_http_request},
-    {"requestAsync", lib_http_request_async},
     {"get", lib_http_get},
     {"post", lib_http_post},
     {"put", lib_http_put},
