@@ -323,8 +323,8 @@ static FUINT HWR_CalcSlopeLight(FUINT lightnum, angle_t dir, fixed_t delta)
 
 static UINT8 HWR_SideLightLevel(side_t *side, INT16 base_lightlevel)
 {
-	return max(0, min(255, side->light +
-		((side->lightabsolute) ? 0 : base_lightlevel)));
+	return (cv_fullbrite_hack.value ? 255 : max(0, min(255, side->light +
+		((side->lightabsolute) ? 0 : base_lightlevel))));
 }
 
 /* TODO: implement per-texture lighting
@@ -400,6 +400,9 @@ static void HWR_RenderPlane(subsector_t *subsector, extrasubsector_t *xsub, bool
 
 	if (nrPlaneVerts < 3) // not even a triangle?
 		return;
+
+	if (cv_fullbrite_hack.value)
+		lightlevel = 255;
 
 	// Get the slope pointer to simplify future code
 	if (FOFsector)
@@ -3255,7 +3258,7 @@ static void HWR_SplitSprite(gl_vissprite_t *spr)
 	i = 0;
 	temp = FLOAT_TO_FIXED(realtop);
 
-	if (R_ThingIsFullBright(spr->mobj))
+	if (R_ThingIsFullBright(spr->mobj) || cv_fullbrite_hack.value)
 		lightlevel = 255;
 	else if (R_ThingIsFullDark(spr->mobj))
 		lightlevel = 0;
@@ -3654,7 +3657,7 @@ static void HWR_DrawSprite(gl_vissprite_t *spr)
 		boolean lightset = true;
 		extracolormap_t *colormap = NULL;
 
-		if (R_ThingIsFullBright(spr->mobj))
+		if (R_ThingIsFullBright(spr->mobj) || cv_fullbrite_hack.value)
 			lightlevel = 255;
 		else if (R_ThingIsFullDark(spr->mobj))
 			lightlevel = 0;
@@ -3829,7 +3832,7 @@ static inline void HWR_DrawPrecipitationSprite(gl_vissprite_t *spr)
 			// Always use the light at the top instead of whatever I was doing before
 			INT32 light = R_GetPlaneLight(sector, spr->mobj->z + spr->mobj->height, false);
 
-			if (!R_ThingIsFullBright(spr->mobj))
+			if (!(R_ThingIsFullBright(spr->mobj) || cv_fullbrite_hack.value))
 				lightlevel = *sector->lightlist[light].lightlevel > 255 ? 255 : *sector->lightlist[light].lightlevel;
 
 			if (*sector->lightlist[light].extra_colormap)
@@ -3837,7 +3840,7 @@ static inline void HWR_DrawPrecipitationSprite(gl_vissprite_t *spr)
 		}
 		else
 		{
-			if (!R_ThingIsFullBright(spr->mobj))
+			if (!(R_ThingIsFullBright(spr->mobj) || cv_fullbrite_hack.value))
 				lightlevel = sector->lightlevel > 255 ? 255 : sector->lightlevel;
 
 			if (sector->extra_colormap)
@@ -4555,6 +4558,19 @@ static void HWR_ProjectSprite(mobj_t *thing)
 #ifdef ROTSPRITE
 		sprinfo = P_GetSkinSpriteInfo(thing->skin, thing->sprite2);
 #endif
+
+		if (rot >= sprdef->numframes)
+		{
+			CONS_Alert(CONS_ERROR, M_GetText("HWR_ProjectSprite: invalid skins[\"%s\"].sprites[SPR2_%s] %sframe %s\n"),
+				((skin_t *)thing->skin)->name, spr2names[thing->sprite2 & SPR2F_MASK], (thing->sprite2 & SPR2F_SUPER) ? "super ": "", sizeu5(rot));
+			thing->sprite = states[S_UNKNOWN].sprite;
+			thing->frame = states[S_UNKNOWN].frame;
+			sprdef = &sprites[thing->sprite];
+#ifdef ROTSPRITE
+			sprinfo = &spriteinfo[thing->sprite];
+#endif
+			rot = thing->frame&FF_FRAMEMASK;
+		}
 	}
 	else
 	{
@@ -4562,23 +4578,24 @@ static void HWR_ProjectSprite(mobj_t *thing)
 #ifdef ROTSPRITE
 		sprinfo = &spriteinfo[thing->sprite];
 #endif
-	}
 
-	if (rot >= sprdef->numframes)
-	{
-		CONS_Alert(CONS_ERROR, M_GetText("HWR_ProjectSprite: invalid sprite frame %s/%s for %s\n"),
-			sizeu1(rot), sizeu2(sprdef->numframes), sprnames[thing->sprite]);
-		thing->sprite = states[S_UNKNOWN].sprite;
-		thing->frame = states[S_UNKNOWN].frame;
-		sprdef = &sprites[thing->sprite];
-#ifdef ROTSPRITE
-		sprinfo = &spriteinfo[thing->sprite];
-#endif
-		rot = thing->frame&FF_FRAMEMASK;
-		thing->state->sprite = thing->sprite;
-		thing->state->frame = thing->frame;
-	}
+		if (rot >= sprdef->numframes)
+		{
+			CONS_Alert(CONS_ERROR, M_GetText("HWR_ProjectSprite: invalid sprite frame %s/%s for %s\n"),
+				sizeu1(rot), sizeu2(sprdef->numframes), sprnames[thing->sprite]);
+			if (thing->sprite == thing->state->sprite && thing->frame == thing->state->frame)
+			{
+				thing->state->sprite = states[S_UNKNOWN].sprite;
+				thing->state->frame = states[S_UNKNOWN].frame;
+			}
+			thing->sprite = states[S_UNKNOWN].sprite;
+			thing->frame = states[S_UNKNOWN].frame;
+			sprdef = &sprites[thing->sprite];
+			sprinfo = &spriteinfo[thing->sprite];
+			rot = thing->frame&FF_FRAMEMASK;
+		}
 
+	}
 	sprframe = &sprdef->spriteframes[rot];
 
 #ifdef PARANOIA
