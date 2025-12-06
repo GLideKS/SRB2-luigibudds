@@ -1303,6 +1303,9 @@ static void SendNameAndColor(void)
 
 	p = buf;
 
+	if (dedicated)
+		return;
+
 	// don't allow inaccessible colors
 	if (!skincolors[cv_playercolor.value].accessible)
 	{
@@ -3650,7 +3653,7 @@ static void Command_Addfolder(void)
 			}
 
 		// Add file on your client directly if you aren't in a netgame.
-		if (!(netgame || multiplayer))
+		if (!(netgame || multiplayer) || server)
 		{
 			P_AddFolder(fn);
 			AddedFilesAdd(&addedfolders, fn);
