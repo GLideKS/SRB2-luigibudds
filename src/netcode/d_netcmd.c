@@ -37,6 +37,7 @@
 #include "d_clisrv.h"
 #include "server_connection.h"
 #include "net_command.h"
+#include "i_net.h"
 #include "d_net.h"
 #include "../v_video.h"
 #include "../d_main.h"
@@ -46,6 +47,7 @@
 #include "mserv.h"
 #include "../z_zone.h"
 #include "../lua_script.h"
+#include "../lua_archive.h"
 #include "../lua_hook.h"
 #include "../m_cond.h"
 #include "../m_anigif.h"
@@ -149,6 +151,10 @@ static void Command_Teamchange_f(void);
 static void Command_Teamchange2_f(void);
 static void Command_ServerTeamChange_f(void);
 
+static void Command_MutePlayer_f(void);
+static void Command_UnmutePlayer_f(void);
+static void Got_MutePlayer(UINT8 **cp, INT32 playernum);
+
 static void Command_Clearscores_f(void);
 
 // Remote Administration
@@ -209,6 +215,7 @@ static CV_PossibleValue_t matchboxes_cons_t[] = {{0, "Normal"}, {1, "Mystery"}, 
 static CV_PossibleValue_t chances_cons_t[] = {{0, "MIN"}, {9, "MAX"}, {0, NULL}};
 static CV_PossibleValue_t pause_cons_t[] = {{0, "Server"}, {1, "All"}, {0, NULL}};
 
+consvar_t cv_showinput = CVAR_INIT ("showinput", "Off", CV_ALLOWLUA, CV_OnOff, NULL);
 consvar_t cv_showinputjoy = CVAR_INIT ("showinputjoy", "Off", CV_ALLOWLUA, CV_OnOff, NULL);
 
 #ifdef NETGAME_DEVMODE
@@ -315,7 +322,7 @@ consvar_t cv_overtime = CVAR_INIT ("overtime", "Yes", CV_SAVE|CV_NETVAR|CV_ALLOW
 consvar_t cv_rollingdemos = CVAR_INIT ("rollingdemos", "On", CV_SAVE, CV_OnOff, NULL);
 
 static CV_PossibleValue_t timetic_cons_t[] = {{0, "Classic"}, {1, "Centiseconds"}, {2, "Mania"}, {3, "Tics"}, {0, NULL}};
-consvar_t cv_timetic = CVAR_INIT ("timerres", "Classic", CV_SAVE, timetic_cons_t, NULL);
+consvar_t cv_timetic = CVAR_INIT ("timerres", "Mania", CV_SAVE, timetic_cons_t, NULL);
 
 static CV_PossibleValue_t powerupdisplay_cons_t[] = {{0, "Never"}, {1, "First-person only"}, {2, "Always"}, {0, NULL}};
 consvar_t cv_powerupdisplay = CVAR_INIT ("powerupdisplay", "First-person only", CV_SAVE, powerupdisplay_cons_t, NULL);
@@ -367,10 +374,10 @@ static CV_PossibleValue_t cooplives_cons_t[] = {{0, "Infinite"}, {1, "Per-player
 consvar_t cv_cooplives = CVAR_INIT ("cooplives", "Avoid Game Over", CV_SAVE|CV_NETVAR|CV_CALL|CV_CHEAT|CV_ALLOWLUA, cooplives_cons_t, CoopLives_OnChange);
 
 static CV_PossibleValue_t advancemap_cons_t[] = {{0, "Off"}, {1, "Next"}, {2, "Random"}, {0, NULL}};
-consvar_t cv_advancemap = CVAR_INIT ("advancemap", "Next", CV_SAVE|CV_NETVAR|CV_ALLOWLUA, advancemap_cons_t, NULL);
+consvar_t cv_advancemap = CVAR_INIT ("advancemap", "Random", CV_SAVE|CV_NETVAR|CV_ALLOWLUA, advancemap_cons_t, NULL);
 
 static CV_PossibleValue_t playersforexit_cons_t[] = {{0, "One"}, {1, "1/4"}, {2, "Half"}, {3, "3/4"}, {4, "All"}, {0, NULL}};
-consvar_t cv_playersforexit = CVAR_INIT ("playersforexit", "All", CV_SAVE|CV_NETVAR|CV_ALLOWLUA, playersforexit_cons_t, NULL);
+consvar_t cv_playersforexit = CVAR_INIT ("playersforexit", "3/4", CV_SAVE|CV_NETVAR|CV_ALLOWLUA, playersforexit_cons_t, NULL);
 
 consvar_t cv_exitmove = CVAR_INIT ("exitmove", "On", CV_SAVE|CV_NETVAR|CV_CALL|CV_ALLOWLUA, CV_OnOff, ExitMove_OnChange);
 
@@ -386,12 +393,17 @@ static CV_PossibleValue_t perfstats_cons_t[] = {
 consvar_t cv_perfstats = CVAR_INIT ("perfstats", "Off", CV_CALL, perfstats_cons_t, PS_PerfStats_OnChange);
 static CV_PossibleValue_t ps_samplesize_cons_t[] = {
 	{1, "MIN"}, {1000, "MAX"}, {0, NULL}};
-consvar_t cv_ps_samplesize = CVAR_INIT ("ps_samplesize", "1", CV_CALL, ps_samplesize_cons_t, PS_SampleSize_OnChange);
+consvar_t cv_ps_samplesize = CVAR_INIT ("ps_samplesize", "175", CV_CALL, ps_samplesize_cons_t, PS_SampleSize_OnChange);
 static CV_PossibleValue_t ps_descriptor_cons_t[] = {
 	{1, "Average"}, {2, "SD"}, {3, "Minimum"}, {4, "Maximum"}, {0, NULL}};
 consvar_t cv_ps_descriptor = CVAR_INIT ("ps_descriptor", "Average", 0, ps_descriptor_cons_t, NULL);
 
 consvar_t cv_freedemocamera = CVAR_INIT("freedemocamera", "Off", CV_SAVE, CV_OnOff, NULL);
+
+// NOTE: this should be in hw_main.c, but we can't put it there as it breaks dedicated build
+consvar_t cv_glallowshaders = CVAR_INIT ("gr_allowcustomshaders", "On", CV_NETVAR, CV_OnOff, NULL);
+
+consvar_t cv_http_enable = CVAR_INIT ("http_enable", "On", CV_SAVE, CV_OnOff, NULL);
 
 char timedemo_name[256];
 boolean timedemo_csv;
@@ -484,6 +496,10 @@ void D_RegisterServerCommands(void)
 	RegisterNetXCmd(XD_TEAMCHANGE, Got_Teamchange);
 	COM_AddCommand("serverchangeteam", Command_ServerTeamChange_f, COM_LUA);
 
+	RegisterNetXCmd(XD_MUTEPLAYER, Got_MutePlayer);
+	COM_AddCommand("muteplayer", Command_MutePlayer_f, COM_LUA);
+	COM_AddCommand("unmuteplayer", Command_UnmutePlayer_f, COM_LUA);
+
 	RegisterNetXCmd(XD_CLEARSCORES, Got_Clearscores);
 	COM_AddCommand("clearscores", Command_Clearscores_f, COM_LUA);
 	COM_AddCommand("map", Command_Map_f, COM_LUA);
@@ -525,6 +541,8 @@ void D_RegisterServerCommands(void)
 
 	// for master server connection
 	AddMServCommands();
+
+	CV_RegisterVar(&cv_glallowshaders);
 
 	// p_mobj.c
 	CV_RegisterVar(&cv_itemrespawntime);
@@ -606,6 +624,7 @@ void D_RegisterServerCommands(void)
 	CV_RegisterVar(&cv_blamecfail);
 	CV_RegisterVar(&cv_dedicatedidletime);
 	CV_RegisterVar(&cv_idletime);
+	CV_RegisterVar(&cv_idleaction);
 	CV_RegisterVar(&cv_httpsource);
 
 	COM_AddCommand("ping", Command_Ping_f, COM_LUA);
@@ -657,6 +676,13 @@ void D_RegisterClientCommands(void)
 	for (i = 0; i < MAXPLAYERS; i++)
 		sprintf(player_names[i], "Player %d", 1 + i);
 
+	CV_RegisterVar(&cv_gravity);
+	CV_RegisterVar(&cv_tailspickup);
+	CV_RegisterVar(&cv_allowmlook);
+	CV_RegisterVar(&cv_flipcam);
+	CV_RegisterVar(&cv_flipcam2);
+	CV_RegisterVar(&cv_movebob);
+
 	if (dedicated)
 		return;
 
@@ -670,6 +696,7 @@ void D_RegisterClientCommands(void)
 	COM_AddCommand("timedemo", Command_Timedemo_f, 0);
 	COM_AddCommand("stopdemo", Command_Stopdemo_f, COM_LUA);
 	COM_AddCommand("playintro", Command_Playintro_f, COM_LUA);
+	CV_RegisterVar(&cv_resyncdemo);
 
 	COM_AddCommand("resetcamera", Command_ResetCamera_f, COM_LUA);
 
@@ -731,6 +758,7 @@ void D_RegisterClientCommands(void)
 	CV_RegisterVar(&cv_timetic);
 	CV_RegisterVar(&cv_powerupdisplay);
 	CV_RegisterVar(&cv_itemfinder);
+	CV_RegisterVar(&cv_showinput);
 	CV_RegisterVar(&cv_showinputjoy);
 
 	// time attack ghost options are also saved to config
@@ -884,10 +912,6 @@ void D_RegisterClientCommands(void)
 
 	// screen.c
 	CV_RegisterVar(&cv_fullscreen);
-	CV_RegisterVar(&cv_renderview);
-	CV_RegisterVar(&cv_renderhitboxinterpolation);
-	CV_RegisterVar(&cv_renderhitboxgldepth);
-	CV_RegisterVar(&cv_renderhitbox);
 	CV_RegisterVar(&cv_renderer);
 	CV_RegisterVar(&cv_scr_depth);
 	CV_RegisterVar(&cv_scr_width);
@@ -903,15 +927,15 @@ void D_RegisterClientCommands(void)
 
 	// ingame object placing
 	COM_AddCommand("objectplace", Command_ObjectPlace_f, COM_LUA);
-	//COM_AddCommand("writethings", Command_Writethings_f);
+	COM_AddCommand("writethings", Command_Writethings_f, COM_LUA);
 	CV_RegisterVar(&cv_speed);
 	CV_RegisterVar(&cv_opflags);
 	CV_RegisterVar(&cv_ophoopflags);
 	CV_RegisterVar(&cv_mapthingnum);
-//	CV_RegisterVar(&cv_grid);
-//	CV_RegisterVar(&cv_snapto);
 
 	CV_RegisterVar(&cv_freedemocamera);
+
+	CV_RegisterVar(&cv_http_enable);
 
 	// add cheat commands
 	COM_AddCommand("noclip", Command_CheatNoClip_f, COM_LUA);
@@ -982,7 +1006,7 @@ boolean EnsurePlayerNameIsGood(char *name, INT32 playernum)
 	// Check if a player is currently using the name, case-insensitively.
 	for (ix = 0; ix < MAXPLAYERS; ix++)
 	{
-		if (ix != playernum && playeringame[ix]
+		if (ix != playernum && players[ix].ingame
 			&& strcasecmp(name, player_names[ix]) == 0)
 		{
 			// We shouldn't kick people out just because
@@ -1100,7 +1124,7 @@ void CleanupPlayerName(INT32 playernum, const char *newname)
 		// no stealing another player's name
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
-			if (i != playernum && playeringame[i]
+			if (i != playernum && players[i].ingame
 				&& strcasecmp(tmpname, player_names[i]) == 0)
 			{
 				break;
@@ -1152,6 +1176,13 @@ static void SetPlayerName(INT32 playernum, char *newname)
 	{
 		if (strcasecmp(newname, player_names[playernum]) != 0)
 		{
+			if (!LUA_HookNameChange(&players[playernum], newname))
+			{
+				// Name change rejected by Lua
+				if (playernum == consoleplayer)
+					CV_StealthSet(&cv_playername, player_names[consoleplayer]);
+				return;
+			}
 			if (netgame)
 				HU_AddChatText(va("\x82*%s renamed to %s", player_names[playernum], newname), false);
 
@@ -1216,7 +1247,7 @@ static void ForceAllSkins(INT32 forcedskin)
 {
 	for (INT32 i = 0; i < MAXPLAYERS; ++i)
 	{
-		if (playeringame[i])
+		if (players[i].ingame)
 			SetPlayerSkinByNum(i, forcedskin);
 	}
 }
@@ -1255,6 +1286,9 @@ static void SendNameAndColor(void)
 
 	p = buf;
 
+	if (dedicated)
+		return;
+
 	// don't allow inaccessible colors
 	if (!skincolors[cv_playercolor.value].accessible)
 	{
@@ -1290,7 +1324,7 @@ static void SendNameAndColor(void)
 
 		SetColorLocal(consoleplayer, cv_playercolor.value);
 
-		if (splitscreen)
+		if (splitscreen || (!pickedchar && stricmp(cv_skin.string, skins[consoleplayer]->name) != 0))
 			SetSkinLocal(consoleplayer, R_SkinAvailable(cv_skin.string));
 		else
 			SetSkinLocal(consoleplayer, pickedchar);
@@ -1305,7 +1339,7 @@ static void SendNameAndColor(void)
 		CV_StealthSet(&cv_playername, player_names[consoleplayer]);
 		HU_AddChatText("\x85*You must wait to change your name again", false);
 	}
-	else if (cv_mute.value && !(server || IsPlayerAdmin(consoleplayer)))
+	else if ((cv_mute.value || players[consoleplayer].muted) && !(server || IsPlayerAdmin(consoleplayer)))
 		CV_StealthSet(&cv_playername, player_names[consoleplayer]);
 	else // Cleanup name if changing it
 		CleanupPlayerName(consoleplayer, cv_playername.zstring);
@@ -1700,7 +1734,7 @@ void D_MapChange(INT32 mapnum, INT32 newgametype, boolean pultmode, boolean rese
 				{
 					//CL_RemoveSplitscreenPlayer();
 					botingame = false;
-					playeringame[1] = false;
+					players[1].ingame = false;
 				}
 			}
 			else if (!botingame)
@@ -1708,7 +1742,7 @@ void D_MapChange(INT32 mapnum, INT32 newgametype, boolean pultmode, boolean rese
 				//CL_AddSplitscreenPlayer();
 				botingame = true;
 				secondarydisplayplayer = 1;
-				playeringame[1] = true;
+				players[1].ingame = true;
 				players[1].bot = 1;
 				SendNameAndColor2();
 			}
@@ -2480,6 +2514,91 @@ static void Command_Teamchange2_f(void)
 	SendNetXCmd2(XD_TEAMCHANGE, &usvalue, sizeof(usvalue));
 }
 
+static void MutePlayer(boolean mute)
+{
+	UINT8 data[2];
+	if (!(server || (IsPlayerAdmin(consoleplayer))))
+	{
+		CONS_Printf(M_GetText("Only the server or a remote admin can use this.\n"));
+		return;
+	}
+
+	if (COM_Argc() < 2)
+	{
+		CONS_Printf(M_GetText("muteplayer <playername/playernum>: mute a player\n"));
+		return;
+	}
+
+	data[0] = nametonum(COM_Argv(1));
+	if (data[0] >= MAXPLAYERS || !players[data[0]].ingame)
+	{
+		CONS_Alert(CONS_NOTICE, M_GetText("There is no player %u!\n"), (unsigned int)data[0]);
+		return;
+	}
+
+	if (players[data[0]].muted && mute)
+	{
+		CONS_Printf(M_GetText("%s is already muted!\n"), player_names[data[0]]);
+		return;
+	}
+	else if (!players[data[0]].muted && !mute)
+	{
+		CONS_Printf(M_GetText("%s is not muted!\n"), player_names[data[0]]);
+		return;
+	}
+
+	data[1] = mute;
+	SendNetXCmd(XD_MUTEPLAYER, &data, sizeof(data));
+}
+
+static void Command_MutePlayer_f(void)
+{
+	MutePlayer(true);
+}
+
+static void Command_UnmutePlayer_f(void)
+{
+	MutePlayer(false);
+}
+
+static void Got_MutePlayer(UINT8 **cp, INT32 playernum)
+{
+	UINT8 player = READUINT8(*cp);
+	UINT8 muted = READUINT8(*cp);
+	if (playernum != serverplayer && !IsPlayerAdmin(playernum))
+	{
+		CONS_Alert(CONS_WARNING, M_GetText("Illegal mute received from player %s\n"), player_names[playernum]);
+		if (server)
+			SendKick(playernum, KICK_MSG_CON_FAIL | KICK_MSG_KEEP_BODY);
+		return;
+	}
+
+	if (player >= MAXPLAYERS || !players[player].ingame)
+	{
+		CONS_Alert(CONS_WARNING, M_GetText("Illegal mute received from player %s\n"), player_names[playernum]);
+		if (server)
+			SendKick(playernum, KICK_MSG_CON_FAIL | KICK_MSG_KEEP_BODY);
+		return;
+	}
+
+	if (!players[player].muted && muted)
+	{
+		if (player == consoleplayer)
+			CONS_Printf(M_GetText("You have been muted.\n"));
+		else
+			CONS_Printf(M_GetText("%s has been muted.\n"), player_names[player]);
+	}
+	else if (players[player].muted && !muted)
+	{
+		if (player == consoleplayer)
+			CONS_Printf(M_GetText("You are no longer muted.\n"));
+		else
+			CONS_Printf(M_GetText("%s is no longer muted.\n"), player_names[player]);
+	}
+
+	players[player].muted = muted;
+}
+
 static void Command_ServerTeamChange_f(void)
 {
 	changeteam_union NetPacket;
@@ -2499,11 +2618,11 @@ static void Command_ServerTeamChange_f(void)
 	if (COM_Argc() < 3)
 	{
 		if (G_TagGametype())
-			CONS_Printf(M_GetText("serverchangeteam <playernum> <team>: switch player to a new team (%s)\n"), "it, notit, playing, or spectator");
+			CONS_Printf(M_GetText("serverchangeteam <playername/playernum> <team>: switch player to a new team (%s)\n"), "it, notit, playing, or spectator");
 		else if (G_GametypeHasTeams())
-			CONS_Printf(M_GetText("serverchangeteam <playernum> <team>: switch player to a new team (%s)\n"), "red, blue or spectator");
+			CONS_Printf(M_GetText("serverchangeteam <playername/playernum> <team>: switch player to a new team (%s)\n"), "red, blue or spectator");
 		else if (G_GametypeHasSpectators())
-			CONS_Printf(M_GetText("serverchangeteam <playernum> <team>: switch player to a new team (%s)\n"), "spectator or playing");
+			CONS_Printf(M_GetText("serverchangeteam <playername/playernum> <team>: switch player to a new team (%s)\n"), "spectator or playing");
 		else
 			CONS_Alert(CONS_NOTICE, M_GetText("This command cannot be used in this gametype.\n"));
 		return;
@@ -2551,19 +2670,19 @@ static void Command_ServerTeamChange_f(void)
 	if (error)
 	{
 		if (G_TagGametype())
-			CONS_Printf(M_GetText("serverchangeteam <playernum> <team>: switch player to a new team (%s)\n"), "it, notit, playing, or spectator");
+			CONS_Printf(M_GetText("serverchangeteam <playername/playernum> <team>: switch player to a new team (%s)\n"), "it, notit, playing, or spectator");
 		else if (G_GametypeHasTeams())
-			CONS_Printf(M_GetText("serverchangeteam <playernum> <team>: switch player to a new team (%s)\n"), "red, blue or spectator");
+			CONS_Printf(M_GetText("serverchangeteam <playername/playernum> <team>: switch player to a new team (%s)\n"), "red, blue or spectator");
 		else if (G_GametypeHasSpectators())
-			CONS_Printf(M_GetText("serverchangeteam <playernum> <team>: switch player to a new team (%s)\n"), "spectator or playing");
+			CONS_Printf(M_GetText("serverchangeteam <playername/playernum> <team>: switch player to a new team (%s)\n"), "spectator or playing");
 		return;
 	}
 
-	NetPacket.packet.playernum = atoi(COM_Argv(1));
+	NetPacket.packet.playernum = nametonum(COM_Argv(1));
 
-	if (!playeringame[NetPacket.packet.playernum])
+	if (NetPacket.packet.playernum == -1 || !players[NetPacket.packet.playernum].ingame)
 	{
-		CONS_Alert(CONS_NOTICE, M_GetText("There is no player %d!\n"), NetPacket.packet.playernum);
+		CONS_Alert(CONS_NOTICE, M_GetText("There is no player %s!\n"), COM_Argv(1));
 		return;
 	}
 
@@ -2849,24 +2968,23 @@ static void Got_Teamchange(UINT8 **cp, INT32 playernum)
 
 void D_SetPassword(const char *pw)
 {
-	adminpassmd5 = Z_Realloc(adminpassmd5, sizeof(*adminpassmd5) * ++adminpasscount, PU_STATIC, NULL);
-	D_MD5PasswordPass((const UINT8 *)pw, strlen(pw), BASESALT, &adminpassmd5[adminpasscount-1]);
+	adminpass = Z_Realloc(adminpass, sizeof(*adminpass) * ++adminpasscount, PU_STATIC, NULL);
+	adminpass[adminpasscount-1] = Z_StrDup(pw);
 }
 
 void D_ClearPassword(void)
 {
-	Z_Free(adminpassmd5);
-	adminpassmd5 = NULL;
+	UINT32 i;
+	for (i = 0; i < adminpasscount; i++)
+		Z_Free(adminpass[i]);
+	Z_Free(adminpass);
+	adminpass = NULL;
 	adminpasscount = 0;
 }
 
 // Remote Administration
 static void Command_Changepassword_f(void)
 {
-#ifdef NOMD5
-	// If we have no MD5 support then completely disable XD_LOGIN responses for security.
-	CONS_Alert(CONS_NOTICE, "Remote administration commands are not supported in this build.\n");
-#else
 	if (client) // cannot change remotely
 	{
 		CONS_Printf(M_GetText("Only the server can use this.\n"));
@@ -2881,16 +2999,11 @@ static void Command_Changepassword_f(void)
 
 	D_SetPassword(COM_Argv(1));
 	CONS_Printf(M_GetText("Password added.\n"));
-#endif
 }
 
 // Remote Administration
 static void Command_Clearpassword_f(void)
 {
-#ifdef NOMD5
-	// If we have no MD5 support then completely disable XD_LOGIN responses for security.
-	CONS_Alert(CONS_NOTICE, "Remote administration commands are not supported in this build.\n");
-#else
 	if (client) // cannot change remotely
 	{
 		CONS_Printf(M_GetText("Only the server can use this.\n"));
@@ -2899,16 +3012,12 @@ static void Command_Clearpassword_f(void)
 
 	D_ClearPassword();
 	CONS_Printf(M_GetText("Passwords cleared.\n"));
-#endif
 }
 
 static void Command_Login_f(void)
 {
-#ifdef NOMD5
-	// If we have no MD5 support then completely disable XD_LOGIN responses for security.
-	CONS_Alert(CONS_NOTICE, "Remote administration commands are not supported in this build.\n");
-#else
 	const char *pw;
+	doomcom_t *doomcom = D_NewPacket(PT_LOGIN, servernode, 16);
 
 	if (!netgame)
 	{
@@ -2924,19 +3033,15 @@ static void Command_Login_f(void)
 		return;
 	}
 
+	if (reqpass)
+		Z_Free(reqpass);
+
 	pw = COM_Argv(1);
-
-	// Do the base pass to get what the server has (or should?)
-	D_MD5PasswordPass((const UINT8 *)pw, strlen(pw), BASESALT, &netbuffer->u.md5sum);
-
-	// Do the final pass to get the comparison the server will come up with
-	D_MD5PasswordPass(netbuffer->u.md5sum, 16, va("PNUM%02d", consoleplayer), &netbuffer->u.md5sum);
+	reqpass = Z_StrDup(pw);
 
 	CONS_Printf(M_GetText("Sending login... (Notice only given if password is correct.)\n"));
 
-	netbuffer->packettype = PT_LOGIN;
-	HSendPacket(servernode, true, 0, 16);
-#endif
+	HSendPacket(doomcom, true, 0);
 }
 
 boolean IsPlayerAdmin(INT32 playernum)
@@ -3002,19 +3107,22 @@ static void Command_Verify_f(void)
 
 	if (COM_Argc() != 2)
 	{
-		CONS_Printf(M_GetText("promote <playernum>: give admin privileges to a player\n"));
+		CONS_Printf(M_GetText("promote <playername/playernum>: give admin privileges to a player\n"));
 		return;
 	}
 
-	strlcpy(buf, COM_Argv(1), sizeof (buf));
-
-	playernum = atoi(buf);
+	playernum = nametonum(COM_Argv(1));
+	if (playernum == -1)
+	{
+		CONS_Alert(CONS_NOTICE, M_GetText("There is no player %s!\n"), COM_Argv(1));
+		return;
+	}
 
 	temp = buf;
 
 	WRITEUINT8(temp, playernum);
 
-	if (playeringame[playernum])
+	if (players[playernum].ingame)
 		SendNetXCmd(XD_VERIFIED, buf, 1);
 }
 
@@ -3052,19 +3160,22 @@ static void Command_RemoveAdmin_f(void)
 
 	if (COM_Argc() != 2)
 	{
-		CONS_Printf(M_GetText("demote <playernum>: remove admin privileges from a player\n"));
+		CONS_Printf(M_GetText("demote <playername/playernum>: remove admin privileges from a player\n"));
 		return;
 	}
 
-	strlcpy(buf, COM_Argv(1), sizeof(buf));
-
-	playernum = atoi(buf);
+	playernum = nametonum(COM_Argv(1));
+	if (playernum == -1)
+	{
+		CONS_Alert(CONS_NOTICE, M_GetText("There is no player %s!\n"), COM_Argv(1));
+		return;
+	}
 
 	temp = buf;
 
 	WRITEUINT8(temp, playernum);
 
-	if (playeringame[playernum])
+	if (players[playernum].ingame)
 		SendNetXCmd(XD_DEMOTED, buf, 1);
 }
 
@@ -3392,9 +3503,6 @@ static void Command_Addfile(void)
 		// calculate and check md5
 		{
 			UINT8 md5sum[16];
-#ifdef NOMD5
-			memset(md5sum,0,16);
-#else
 			FILE *fhandle;
 
 			if ((fhandle = W_OpenWadFile(&fn, true)) != NULL)
@@ -3419,7 +3527,6 @@ static void Command_Addfile(void)
 					continue;
 				}
 			}
-#endif
 			WRITEMEM(buf_p, md5sum, 16);
 		}
 
@@ -3812,18 +3919,7 @@ static void Command_Version_f(void)
 #endif
 
 	// OS
-	// Would be nice to use SDL_GetPlatform for this
-#if defined (_WIN32) || defined (_WIN64)
-	CONS_Printf("Windows ");
-#elif defined(__linux__)
-	CONS_Printf("Linux ");
-#elif defined(MACOSX)
-	CONS_Printf("macOS ");
-#elif defined(UNIXCOMMON)
-	CONS_Printf("Unix (Common) ");
-#else
-	CONS_Printf("Other OS ");
-#endif
+	CONS_Printf("%s ", I_GetSysName());
 
 	// Bitness
 	if (sizeof(void*) == 4)
@@ -3983,7 +4079,7 @@ static void CoopStarposts_OnChange(void)
 
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (!playeringame[i])
+		if (!players[i].ingame)
 			continue;
 
 		if (!players[i].spectator)
@@ -4000,7 +4096,7 @@ static void CoopStarposts_OnChange(void)
 
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (!playeringame[i])
+		if (!players[i].ingame)
 			continue;
 
 		if (!players[i].spectator)
@@ -4041,7 +4137,7 @@ static void CoopLives_OnChange(void)
 
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (!playeringame[i])
+		if (!players[i].ingame)
 			continue;
 
 		if (!players[i].spectator)
@@ -4064,12 +4160,12 @@ static void ExitMove_OnChange(void)
 	if (cv_exitmove.value)
 	{
 		for (i = 0; i < MAXPLAYERS; ++i)
-			if (playeringame[i] && players[i].mo)
+			if (players[i].ingame && players[i].mo)
 			{
 				if (players[i].mo->target && players[i].mo->target->type == MT_SIGN)
 					P_SetTarget(&players[i].mo->target, NULL);
 
-				if (players[i].pflags & PF_FINISHED)
+				if (players[i].pflags & PF_FINISHED && !(players[i].exiting))
 					P_GiveFinishFlags(&players[i]);
 			}
 
@@ -4155,9 +4251,9 @@ void D_GameTypeChanged(INT32 lastgametype)
 			case GT_TEAMMATCH:
 				if (!cv_timelimit.changed && !cv_pointlimit.changed) // user hasn't changed limits
 				{
-					// default settings for match: timelimit 10 mins, no pointlimit
+					// default settings for match: timelimit 7 mins, no pointlimit
 					CV_SetValue(&cv_pointlimit, 0);
-					CV_SetValue(&cv_timelimit, 10);
+					CV_SetValue(&cv_timelimit, 7);
 				}
 				if (!cv_itemrespawntime.changed)
 					CV_Set(&cv_itemrespawntime, cv_itemrespawntime.defaultvalue); // respawn normally
@@ -4166,9 +4262,9 @@ void D_GameTypeChanged(INT32 lastgametype)
 			case GT_HIDEANDSEEK:
 				if (!cv_timelimit.changed && !cv_pointlimit.changed) // user hasn't changed limits
 				{
-					// default settings for tag: 5 mins, no pointlimit
+					// default settings for tag: 7 mins, no pointlimit
 					// Note that tag mode also uses an alternate timing mechanism in tandem with timelimit.
-					CV_SetValue(&cv_timelimit, 5);
+					CV_SetValue(&cv_timelimit, 7);
 					CV_SetValue(&cv_pointlimit, 0);
 				}
 				if (!cv_itemrespawntime.changed)
@@ -4177,8 +4273,8 @@ void D_GameTypeChanged(INT32 lastgametype)
 			case GT_CTF:
 				if (!cv_timelimit.changed && !cv_pointlimit.changed) // user hasn't changed limits
 				{
-					// default settings for CTF: no timelimit, pointlimit 5
-					CV_SetValue(&cv_timelimit, 0);
+					// default settings for CTF: 15 mins, pointlimit 5
+					CV_SetValue(&cv_timelimit, 15);
 					CV_SetValue(&cv_pointlimit, 5);
 				}
 				if (!cv_itemrespawntime.changed)
@@ -4226,7 +4322,7 @@ void D_GameTypeChanged(INT32 lastgametype)
 	{
 		INT32 i;
 		for (i = 0; i < MAXPLAYERS; i++)
-			if (playeringame[i])
+			if (players[i].ingame)
 			{
 				players[i].ctfteam = 0;
 				players[i].spectator = (gametyperules & GTR_NOSPECTATORSPAWN) ? false : true;
@@ -4239,7 +4335,7 @@ void D_GameTypeChanged(INT32 lastgametype)
 	{
 		INT32 i;
 		for (i = 0; i < MAXPLAYERS; i++)
-			if (playeringame[i])
+			if (players[i].ingame)
 				players[i].ctfteam = 0;
 
 		if (server || (IsPlayerAdmin(consoleplayer)))
@@ -4301,7 +4397,7 @@ static void SoundTest_OnChange(void)
 	}
 
 	S_StopSounds();
-	S_StartSound(NULL, cv_soundtest.value);
+	S_StartSoundFromEverywhere(cv_soundtest.value);
 }
 
 static void AutoBalance_OnChange(void)
@@ -4349,7 +4445,7 @@ retryscramble:
 	// Put each player's node in the array.
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (playeringame[i] && !players[i].spectator)
+		if (players[i].ingame && !players[i].spectator)
 		{
 			scrambleplayers[playercount] = i;
 			playercount++;
@@ -4516,7 +4612,7 @@ static void Command_ExitLevel_f(void)
 			SendNetXCmd(XD_EXITLEVEL, NULL, 0);
 			return;
 		}
-		
+
 		// Allow exiting without cheating if at least one player beat the level
 		// Consistent with just setting playersforexit to one
 		if (splitscreen || multiplayer)
@@ -4524,13 +4620,13 @@ static void Command_ExitLevel_f(void)
 			INT32 i;
 			for (i = 0; i < MAXPLAYERS; i++)
 			{
-				if (!playeringame[i] || players[i].spectator || players[i].bot)
+				if (!players[i].ingame || players[i].spectator || players[i].bot)
 					continue;
 				if (players[i].quittime > 30 * TICRATE)
 					continue;
 				if (players[i].lives <= 0)
 					continue;
-		
+
 				if ((players[i].pflags & PF_FINISHED) || players[i].exiting)
 				{
 					SendNetXCmd(XD_EXITLEVEL, NULL, 0);
@@ -4538,7 +4634,7 @@ static void Command_ExitLevel_f(void)
 				}
 			}
 		}
-		
+
 		// Only consider it a cheat if we're not allowed to go to the next map
 		if (M_CampaignWarpIsCheat(gametype, G_GetNextMap(true, true) + 1, serverGamedata))
 			CONS_Alert(CONS_NOTICE, M_GetText("Cheats must be enabled to force exit to a locked level!\n"));
@@ -4669,15 +4765,28 @@ static void Command_Cheats_f(void)
 			CV_ResetCheatNetVars();
 		return;
 	}
+	else if (COM_CheckParm("on"))
+	{
+		if (!(server || (IsPlayerAdmin(consoleplayer))))
+			CONS_Printf(M_GetText("Only the server or a remote admin can use this.\n"));
+		else
+			G_SetUsedCheats(false);
+		return;
+	}
+
+	if (usedCheats)
+		CONS_Printf(M_GetText("Cheats are enabled, the game cannot be saved.\n"));
+	else
+		CONS_Printf(M_GetText("Cheats are disabled, the game can be saved.\n"));
 
 	if (CV_CheatsEnabled())
 	{
-		CONS_Printf(M_GetText("At least one CHEAT-marked variable has been changed -- Cheats are enabled.\n"));
+		CONS_Printf(M_GetText("At least one CHEAT-marked variable has been changed.\n"));
 		if (server || (IsPlayerAdmin(consoleplayer)))
 			CONS_Printf(M_GetText("Type CHEATS OFF to reset all cheat variables to default.\n"));
 	}
 	else
-		CONS_Printf(M_GetText("No CHEAT-marked variables are changed -- Cheats are disabled.\n"));
+		CONS_Printf(M_GetText("No CHEAT-marked variables are changed.\n"));
 }
 
 #ifdef _DEBUG
@@ -4686,12 +4795,11 @@ static void Command_Togglemodified_f(void)
 	modifiedgame = !modifiedgame;
 }
 
-extern UINT8 *save_p;
 static void Command_Archivetest_f(void)
 {
-	UINT8 *buf;
 	UINT32 i, wrote;
 	thinker_t *th;
+	save_t savebuffer;
 	if (gamestate != GS_LEVEL)
 	{
 		CONS_Printf("This command only works in-game, you dummy.\n");
@@ -4701,32 +4809,33 @@ static void Command_Archivetest_f(void)
 	// assign mobjnum
 	i = 1;
 	for (th = thlist[THINK_MOBJ].next; th != &thlist[THINK_MOBJ]; th = th->next)
-		if (th->function.acp1 != (actionf_p1)P_RemoveThinkerDelayed)
+		if (th->function != (actionf_p1)P_RemoveThinkerDelayed)
 			((mobj_t *)th)->mobjnum = i++;
 
 	// allocate buffer
-	buf = save_p = ZZ_Alloc(1024);
+	savebuffer.size = 1024;
+	savebuffer.buf = malloc(savebuffer.size);
+	savebuffer.pos = 0;
 
 	// test archive
 	CONS_Printf("LUA_Archive...\n");
-	LUA_Archive();
-	WRITEUINT8(save_p, 0x7F);
-	wrote = (UINT32)(save_p-buf);
+	LUA_Archive(&savebuffer);
+	P_WriteUINT8(&savebuffer, 0x7F);
+	wrote = savebuffer.pos;
 
 	// clear Lua state, so we can really see what happens!
 	CONS_Printf("Clearing state!\n");
 	LUA_ClearExtVars();
 
 	// test unarchive
-	save_p = buf;
 	CONS_Printf("LUA_UnArchive...\n");
-	LUA_UnArchive();
-	i = READUINT8(save_p);
-	if (i != 0x7F || wrote != (UINT32)(save_p-buf))
-		CONS_Printf("Savegame corrupted. (write %u, read %u)\n", wrote, (UINT32)(save_p-buf));
+	LUA_UnArchive(&savebuffer);
+	i = P_ReadUINT8(&savebuffer);
+	if (i != 0x7F || wrote != (UINT32)(savebuffer.pos))
+		CONS_Printf("Savegame corrupted. (write %u, read %u)\n", wrote, (UINT32)(savebuffer.pos));
 
 	// free buffer
-	Z_Free(buf);
+	free(savebuffer.buf);
 	CONS_Printf("Done. No crash.\n");
 }
 #endif
@@ -4775,7 +4884,7 @@ static void ForceSkin_OnChange(void)
 //Allows the player's name to be changed if cv_mute is off.
 static void Name_OnChange(void)
 {
-	if (cv_mute.value && !(server || IsPlayerAdmin(consoleplayer)))
+	if ((cv_mute.value || players[consoleplayer].muted) && !(server || IsPlayerAdmin(consoleplayer)))
 	{
 		CONS_Alert(CONS_NOTICE, M_GetText("You may not change your name when chat is muted.\n"));
 		CV_StealthSet(&cv_playername, player_names[consoleplayer]);
@@ -4786,7 +4895,7 @@ static void Name_OnChange(void)
 
 static void Name2_OnChange(void)
 {
-	if (cv_mute.value) //Secondary player can't be admin.
+	if (cv_mute.value || players[consoleplayer].muted) //Secondary player can't be admin.
 	{
 		CONS_Alert(CONS_NOTICE, M_GetText("You may not change your name when chat is muted.\n"));
 		CV_StealthSet(&cv_playername2, player_names[secondarydisplayplayer]);
@@ -4797,10 +4906,12 @@ static void Name2_OnChange(void)
 
 static boolean Skin_CanChange(const char *valstr)
 {
-	(void)valstr;
-
 	if (!Playing())
 		return true; // do whatever you want
+
+	// You already are that skin.
+	if (stricmp(skins[players[consoleplayer].skin]->name, valstr) == 0)
+		return false;
 
 	if (!(multiplayer || netgame)) // In single player.
 		return true;
@@ -4816,10 +4927,12 @@ static boolean Skin_CanChange(const char *valstr)
 
 static boolean Skin2_CanChange(const char *valstr)
 {
-	(void)valstr;
-
 	if (!Playing() || !splitscreen)
 		return true; // do whatever you want
+
+	// You already are that skin.
+	if (stricmp(skins[players[secondarydisplayplayer].skin]->name, valstr) == 0)
+		return false;
 
 	if (CanChangeSkin(secondarydisplayplayer) && !P_PlayerMoving(secondarydisplayplayer))
 		return true;
@@ -4836,6 +4949,8 @@ static boolean Skin2_CanChange(const char *valstr)
   */
 static void Skin_OnChange(void)
 {
+	pickedchar = R_SkinAvailable(cv_skin.string);
+
 	if (!Playing())
 		return;
 
@@ -4985,7 +5100,7 @@ static void Command_ShowScores_f(void)
 
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (playeringame[i])
+		if (players[i].ingame)
 			// FIXME: %lu? what's wrong with %u? ~Callum (produces warnings...)
 			CONS_Printf(M_GetText("%s's score is %u\n"), player_names[i], players[i].score);
 	}

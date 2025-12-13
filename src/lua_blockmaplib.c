@@ -254,11 +254,10 @@ static int lib_searchBlockmap(lua_State *L)
 	}
 	else // mobj and function only - search around mobj's radius by default
 	{
-		fixed_t radius = mobj->radius + MAXRADIUS;
-		x1 = mobj->x - radius;
-		x2 = mobj->x + radius;
-		y1 = mobj->y - radius;
-		y2 = mobj->y + radius;
+		x1 = mobj->x - mobj->radius;
+		x2 = mobj->x + mobj->radius;
+		y1 = mobj->y - mobj->radius;
+		y2 = mobj->y + mobj->radius;
 	}
 	lua_settop(L, 2); // pop everything except function, mobj
 
@@ -312,17 +311,12 @@ static int lib_searchBlockmap(lua_State *L)
 					continue; // our thing just found itself, so move on
 
 				funcret = lib_searchBlockmap_Objects(L, mobj, itmobj);
-				if (funcret == 2) {
-					lua_pushboolean(L, false);
-					return 1;
-				}
-				else if (funcret == 1)
-					retval = false;
-
-				if (P_MobjWasRemoved(mobj)) {
+				if (funcret == 2 || P_MobjWasRemoved(mobj)) {
 					retval = false;
 					break;
 				}
+				else if (funcret == 1)
+					retval = false;
 			}
 		}
 		while (itmobj != NULL);

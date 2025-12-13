@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2023 by Sonic Team Junior.
+// Copyright (C) 1999-2024 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -308,15 +308,16 @@ typedef struct mobj_s
 	angle_t spriteroll, old_spriteroll, old_spriteroll2;
 	spritenum_t sprite; // used to find patch_t and flip value
 	UINT32 frame; // frame number, plus bits see p_pspr.h
-	UINT8 sprite2; // player sprites
+	UINT16 sprite2; // player sprites
 	UINT16 anim_duration; // for FF_ANIMATE states
 
 	UINT32 renderflags; // render flags
 	INT32 blendmode; // blend mode
+	fixed_t alpha; // alpha
 	fixed_t spritexscale, spriteyscale;
 	fixed_t spritexoffset, spriteyoffset;
-	fixed_t old_spritexscale, old_spriteyscale;
-	fixed_t old_spritexoffset, old_spriteyoffset;
+	fixed_t old_spritexscale, old_spriteyscale, old_spritexscale2, old_spriteyscale2;
+	fixed_t old_spritexoffset, old_spriteyoffset, old_spritexoffset2, old_spriteyoffset2;
 	struct pslope_s *floorspriteslope; // The slope that the floorsprite is rotated by
 
 	struct msecnode_s *touching_sectorlist; // a linked list of sectors where this object appears
@@ -451,15 +452,16 @@ typedef struct precipmobj_s
 	angle_t spriteroll, old_spriteroll, old_spriteroll2;
 	spritenum_t sprite; // used to find patch_t and flip value
 	UINT32 frame; // frame number, plus bits see p_pspr.h
-	UINT8 sprite2; // player sprites
+	UINT16 sprite2; // player sprites
 	UINT16 anim_duration; // for FF_ANIMATE states
 
 	UINT32 renderflags; // render flags
 	INT32 blendmode; // blend mode
+	fixed_t alpha; // alpha
 	fixed_t spritexscale, spriteyscale;
 	fixed_t spritexoffset, spriteyoffset;
-	fixed_t old_spritexscale, old_spriteyscale;
-	fixed_t old_spritexoffset, old_spriteyoffset;
+	fixed_t old_spritexscale, old_spriteyscale, old_spritexscale2, old_spriteyscale2;
+	fixed_t old_spritexoffset, old_spriteyoffset, old_spritexoffset2, old_spriteyoffset2;
 	struct pslope_s *floorspriteslope; // The slope that the floorsprite is rotated by
 
 	struct mprecipsecnode_s *touching_sectorlist; // a linked list of sectors where this object appears
@@ -527,15 +529,17 @@ void P_SnowThinker(precipmobj_t *mobj);
 void P_RainThinker(precipmobj_t *mobj);
 void P_NullPrecipThinker(precipmobj_t *mobj);
 void P_RemovePrecipMobj(precipmobj_t *mobj);
-void P_SetScale(mobj_t *mobj, fixed_t newscale);
+void P_SetScale(mobj_t *mobj, fixed_t newscale, boolean instant);
 void P_XYMovement(mobj_t *mo);
 void P_RingXYMovement(mobj_t *mo);
 void P_SceneryXYMovement(mobj_t *mo);
 boolean P_ZMovement(mobj_t *mo);
-void P_RingZMovement(mobj_t *mo);
+boolean P_RingZMovement(mobj_t *mo);
 boolean P_SceneryZMovement(mobj_t *mo);
 void P_PlayerZMovement(mobj_t *mo);
 void P_EmeraldManager(void);
+
+mobj_t *P_FindNewPosition(UINT32 oldposition);
 
 extern INT32 modulothing;
 

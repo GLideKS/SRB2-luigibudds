@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2023 by Sonic Team Junior.
+// Copyright (C) 1999-2024 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -82,7 +82,7 @@ static void Captioning_OnChange(void)
 {
 	S_ResetCaptions();
 	if (cv_closedcaptioning.value)
-		S_StartSound(NULL, sfx_menu1);
+	S_StartSoundFromEverywhere(sfx_menu1);
 }
 
 consvar_t cv_closedcaptioning = CVAR_INIT ("closedcaptioning", "Off", CV_SAVE|CV_CALL, CV_OnOff, Captioning_OnChange);
@@ -516,14 +516,17 @@ void S_StartCaption(sfxenum_t sfx_id, INT32 cnum, UINT16 lifespan)
 	closedcaptions[set].b = 3; // bob
 }
 
-void S_StartSoundAtVolume(const void *origin_p, sfxenum_t sfx_id, INT32 volume)
+void S_StartSoundAtVolume(void *origin_p, sfxenum_t sfx_id, INT32 volume, soundorigin_t soundorigin)
 {
 	const INT32 initial_volume = volume;
 	INT32 sep, pitch, priority, cnum;
-	const sfxenum_t actual_id = sfx_id;
 	sfxinfo_t *sfx;
 
-	const mobj_t *origin = (const mobj_t *)origin_p;
+	mobj_t *origin = NULL;
+	if (soundorigin == SOUNDORIGIN_MOBJ)
+		origin = (mobj_t *)origin_p;
+	else if (soundorigin == SOUNDORIGIN_SECTOR)
+		origin = (mobj_t *)&((sector_t *)origin_p)->soundorg;
 
 	listener_t listener  = {0,0,0,0};
 	listener_t listener2 = {0,0,0,0};
@@ -537,6 +540,71 @@ void S_StartSoundAtVolume(const void *origin_p, sfxenum_t sfx_id, INT32 volume)
 	// Don't want a sound? Okay then...
 	if (sfx_id == sfx_None)
 		return;
+
+
+	if (mariomode) // Sounds change in Mario mode!
+	{
+		switch (sfx_id)
+		{
+//			case sfx_altow1:
+//			case sfx_altow2:
+//			case sfx_altow3:
+//			case sfx_altow4:
+//				sfx_id = sfx_mario8;
+//				break;
+			case sfx_thok:
+			case sfx_wepfir:
+				sfx_id = sfx_mario7;
+				break;
+			case sfx_pop:
+				sfx_id = sfx_mario5;
+				break;
+			case sfx_jump:
+				sfx_id = sfx_mario6;
+				break;
+			case sfx_shield:
+			case sfx_wirlsg:
+			case sfx_forcsg:
+			case sfx_elemsg:
+			case sfx_armasg:
+			case sfx_attrsg:
+			case sfx_s3k3e:
+			case sfx_s3k3f:
+			case sfx_s3k41:
+				sfx_id = sfx_mario3;
+				break;
+			case sfx_itemup:
+				sfx_id = sfx_mario4;
+				break;
+//			case sfx_tink:
+//				sfx_id = sfx_mario1;
+//				break;
+//			case sfx_cgot:
+//				sfx_id = sfx_mario9;
+//				break;
+//			case sfx_lose:
+//				sfx_id = sfx_mario2;
+//				break;
+			default:
+				break;
+		}
+	}
+	if (maptol & TOL_XMAS) // Some sounds change for xmas
+	{
+		switch (sfx_id)
+		{
+		case sfx_ideya:
+		case sfx_nbmper:
+		case sfx_ncitem:
+		case sfx_ngdone:
+			++sfx_id;
+		default:
+			break;
+		}
+	}
+
+	const sfxenum_t actual_id = sfx_id = 
+		LUA_HookSoundPlay(sfx_id, origin, soundorigin);
 
 	if (players[displayplayer].awayviewtics)
 		listenmobj = players[displayplayer].awayviewmobj;
@@ -720,71 +788,25 @@ dontplay:
 	channels[cnum].handle = I_StartSound(sfx_id, volume, sep, pitch, priority, cnum);
 }
 
-void S_StartSound(const void *origin, sfxenum_t sfx_id)
+void S_StartSoundFromEverywhereVol(sfxenum_t sfx_id, INT32 volume)
+{
+    S_StartSoundAtVolume(NULL, sfx_id, volume, SOUNDORIGIN_EVERYWHERE);
+}
+
+void S_StartSoundFromMobjVol(mobj_t* origin, sfxenum_t sfx_id, INT32 volume)
+{
+    S_StartSoundAtVolume(origin, sfx_id, volume, SOUNDORIGIN_MOBJ);
+}
+
+void S_StartSoundFromSectorVol(sector_t* origin, sfxenum_t sfx_id, INT32 volume)
+{
+    S_StartSoundAtVolume(origin, sfx_id, volume, SOUNDORIGIN_SECTOR);
+}
+
+void S_StartSound(void *origin, sfxenum_t sfx_id, soundorigin_t soundorigin)
 {
 	if (S_SoundDisabled())
 		return;
-
-	if (mariomode) // Sounds change in Mario mode!
-	{
-		switch (sfx_id)
-		{
-//			case sfx_altow1:
-//			case sfx_altow2:
-//			case sfx_altow3:
-//			case sfx_altow4:
-//				sfx_id = sfx_mario8;
-//				break;
-			case sfx_thok:
-			case sfx_wepfir:
-				sfx_id = sfx_mario7;
-				break;
-			case sfx_pop:
-				sfx_id = sfx_mario5;
-				break;
-			case sfx_jump:
-				sfx_id = sfx_mario6;
-				break;
-			case sfx_shield:
-			case sfx_wirlsg:
-			case sfx_forcsg:
-			case sfx_elemsg:
-			case sfx_armasg:
-			case sfx_attrsg:
-			case sfx_s3k3e:
-			case sfx_s3k3f:
-			case sfx_s3k41:
-				sfx_id = sfx_mario3;
-				break;
-			case sfx_itemup:
-				sfx_id = sfx_mario4;
-				break;
-//			case sfx_tink:
-//				sfx_id = sfx_mario1;
-//				break;
-//			case sfx_cgot:
-//				sfx_id = sfx_mario9;
-//				break;
-//			case sfx_lose:
-//				sfx_id = sfx_mario2;
-//				break;
-			default:
-				break;
-		}
-	}
-	if (maptol & TOL_XMAS) // Some sounds change for xmas
-	{
-		switch (sfx_id)
-		{
-		case sfx_ideya:
-		case sfx_nbmper:
-		case sfx_ncitem:
-		case sfx_ngdone:
-			++sfx_id;
-		default:
-			break;
-		}
-	}
 
 	// the volume is handled 8 bits
 #ifdef HW3SOUND
@@ -792,7 +814,22 @@ void S_StartSound(const void *origin, sfxenum_t sfx_id)
 		HW3S_StartSound(origin, sfx_id);
 	else
 #endif
-		S_StartSoundAtVolume(origin, sfx_id, 255);
+		S_StartSoundAtVolume(origin, sfx_id, 255, soundorigin);
+}
+
+void S_StartSoundFromEverywhere(sfxenum_t sfx_id)
+{
+    S_StartSound(NULL, sfx_id, SOUNDORIGIN_EVERYWHERE);
+}
+
+void S_StartSoundFromMobj(mobj_t* origin, sfxenum_t sfx_id)
+{
+    S_StartSound(origin, sfx_id, SOUNDORIGIN_MOBJ);
+}
+
+void S_StartSoundFromSector(sector_t* origin, sfxenum_t sfx_id)
+{
+    S_StartSound(origin, sfx_id, SOUNDORIGIN_SECTOR);
 }
 
 void S_StopSound(void *origin)
@@ -943,8 +980,8 @@ void S_UpdateSounds(void)
 						const mobj_t *soundmobj = c->origin;
 
 						fixed_t dist1, dist2;
-						dist1 = P_AproxDistance(listener.x-soundmobj->x, listener.y-soundmobj->y);
-						dist2 = P_AproxDistance(listener2.x-soundmobj->x, listener2.y-soundmobj->y);
+						dist1 = GetDistance2D(listener.x, listener.y, soundmobj->x, soundmobj->y);
+						dist2 = GetDistance2D(listener2.x, listener2.y, soundmobj->x, soundmobj->y);
 
 						if (dist1 <= dist2)
 						{
@@ -1308,7 +1345,7 @@ void S_StartSoundName(void *mo, const char *soundname)
 		newsounds[i] = soundnum;
 	}
 
-	S_StartSound(mo, soundnum);
+	S_StartSoundFromMobj(mo, soundnum);
 }
 
 //
@@ -1801,6 +1838,27 @@ UINT32 S_GetMusicLength(void)
 	return I_GetSongLength();
 }
 
+//
+// S_MusicInfo
+//
+// Returns metadata about supplied music
+// If name is NULL, returns the currently playing music (if any)
+//
+musicdef_t *S_MusicInfo(const char *name)
+{
+	if (!name)
+		name = music_name;
+
+	musicdef_t *def;
+	for (def = musicdefstart; def; def = def->next)
+	{
+		if (strcasecmp(def->name, name) == 0)
+			return def;
+	}
+
+	return NULL;
+}
+
 boolean S_SetMusicLoopPoint(UINT32 looppoint)
 {
 	return I_SetSongLoopPoint(looppoint);
@@ -1910,7 +1968,7 @@ static void S_AddMusicStackEntry(const char *mname, UINT16 mflags, boolean loopi
 	if (!music_stacks)
 	{
 		music_stacks = Z_Calloc(sizeof (*mst), PU_MUSIC, NULL);
-		strncpy(music_stacks->musname, (status == JT_MASTER ? mname : (S_CheckQueue() ? queue_name : mapmusname)), 7);
+		strncpy(music_stacks->musname, (status == JT_MASTER ? mname : (S_CheckQueue() ? queue_name : mapmusname)), sizeof(music_stacks->musname)-1);
 		music_stacks->musflags = (status == JT_MASTER ? mflags : (S_CheckQueue() ? queue_flags : mapmusflags));
 		music_stacks->looping = (status == JT_MASTER ? looping : (S_CheckQueue() ? queue_looping : true));
 		music_stacks->position = (status == JT_MASTER ? position : (S_CheckQueue() ? queue_position : S_GetMusicPosition()));
@@ -2033,7 +2091,7 @@ boolean S_RecallMusic(UINT16 status, boolean fromfirst)
 	if (result)
 	{
 		*entry = *result;
-		strncpy(entry->musname, result->musname, 7);
+		memcpy(entry->musname, result->musname, sizeof(entry->musname));
 	}
 
 	// no result, just grab mapmusname
@@ -2227,7 +2285,8 @@ static boolean S_CheckQueue(void)
 
 static void S_ClearQueue(void)
 {
-	queue_name[0] = queue_flags = queue_looping = queue_position = queue_fadeinms = 0;
+	queue_name[0] = queue_flags = queue_position = queue_fadeinms = 0;
+	queue_looping = false;
 }
 
 static void S_ChangeMusicToQueue(void)
@@ -2255,10 +2314,10 @@ void S_ChangeMusicEx(const char *mmusic, UINT16 mflags, boolean looping, UINT32 
 	if (S_MusicDisabled())
 		return;
 
-	strncpy(newmusic, mmusic, 7);
+	strncpy(newmusic, mmusic, sizeof(newmusic)-1);
+	newmusic[6] = 0;
 	if (LUA_HookMusicChange(music_name, &hook_param))
 		return;
-	newmusic[6] = 0;
 
 	// No Music (empty string)
 	if (newmusic[0] == 0)
@@ -2494,11 +2553,11 @@ static void Command_Tunes_f(void)
 		track = (UINT16)atoi(COM_Argv(2))-1;
 
 	strncpy(mapmusname, tunearg, 7);
+	mapmusname[6] = 0;
 
 	if (argc > 4)
 		position = (UINT32)atoi(COM_Argv(4));
 
-	mapmusname[6] = 0;
 	mapmusflags = (track & MUSIC_TRACKMASK);
 	mapmusposition = position;
 
@@ -2539,7 +2598,7 @@ void GameSounds_OnChange(void)
 		sound_disabled = false;
 		I_StartupSound(); // will return early if initialised
 		S_InitSfxChannels(cv_soundvolume.value);
-		S_StartSound(NULL, sfx_strpst);
+		S_StartSoundFromEverywhere(sfx_strpst);
 	}
 	else
 	{

@@ -165,7 +165,22 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessorDefinitions>HAVE_CURL;HAVE_THREADS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\libs\curl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <CustomBuild>
+      <Command />
+    </CustomBuild>
+    <CustomBuild>
+      <Message />
+    </CustomBuild>
+    <CustomBuild>
+      <Outputs />
+    </CustomBuild>
+    <Link>
+      <AdditionalDependencies>libcurl.dll.a;libz32.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\libs\zlib\win32;..\..\libs\curl\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -175,7 +190,51 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <DisableSpecificWarnings>4244;4267;4146;4003</DisableSpecificWarnings>
+      <PreprocessorDefinitions>HAVE_CURL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\libs\curl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
+    <CustomBuild>
+      <Command />
+    </CustomBuild>
+    <CustomBuild>
+      <Message />
+    </CustomBuild>
+    <CustomBuild>
+      <Outputs />
+    </CustomBuild>
+    <Link>
+      <AdditionalDependencies>libcurl.dll.a;libz32.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\libs\zlib\win32;..\..\libs\curl\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <DisableSpecificWarnings>4244;4267;4146</DisableSpecificWarnings>
+      <PreprocessorDefinitions>HAVE_CURL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\libs\curl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalModuleDependencies>..\libs\curl\lib64;%(AdditionalModuleDependencies)</AdditionalModuleDependencies>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>libcurl.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\libs\curl\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_CURL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>libcurl.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\libs\curl\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\libs\libpng-src\projects\visualc10\libpng.vcxproj">
@@ -314,7 +373,6 @@
     <ClInclude Include="..\netcode\server_connection.h" />
     <ClInclude Include="..\netcode\tic_command.h" />
     <ClInclude Include="..\p5prof.h" />
-    <ClInclude Include="..\p_haptic.h" />
     <ClInclude Include="..\p_local.h" />
     <ClInclude Include="..\p_maputl.h" />
     <ClInclude Include="..\p_mobj.h" />
@@ -389,6 +447,7 @@
     <ClCompile Include="..\blua\lauxlib.c" />
     <ClCompile Include="..\blua\lbaselib.c" />
     <ClCompile Include="..\blua\lcode.c" />
+    <ClCompile Include="..\blua\ldblib.c" />
     <ClCompile Include="..\blua\ldebug.c" />
     <ClCompile Include="..\blua\ldo.c" />
     <ClCompile Include="..\blua\ldump.c" />
@@ -400,6 +459,7 @@
     <ClCompile Include="..\blua\lmem.c" />
     <ClCompile Include="..\blua\lobject.c" />
     <ClCompile Include="..\blua\lopcodes.c" />
+    <ClCompile Include="..\blua\loslib.c" />
     <ClCompile Include="..\blua\lparser.c" />
     <ClCompile Include="..\blua\lstate.c" />
     <ClCompile Include="..\blua\lstring.c" />
@@ -437,11 +497,16 @@
     <ClCompile Include="..\hardware\hw_md2load.c" />
     <ClCompile Include="..\hardware\hw_md3load.c" />
     <ClCompile Include="..\hardware\hw_model.c" />
+    <ClCompile Include="..\hardware\hw_shaders.c" />
     <ClCompile Include="..\hardware\r_opengl\r_opengl.c" />
+    <ClCompile Include="..\lua_colorlib.c" />
+    <ClCompile Include="..\lua_randomlib.c" />
+    <ClCompile Include="..\r_bbox.c" />
     <ClCompile Include="..\u_list.c" />
     <ClCompile Include="..\hu_stuff.c" />
     <ClCompile Include="..\info.c" />
     <ClCompile Include="..\i_time.c" />
+    <ClCompile Include="..\lua_archive.c" />
     <ClCompile Include="..\lua_baselib.c" />
     <ClCompile Include="..\lua_blockmaplib.c" />
     <ClCompile Include="..\lua_consolelib.c" />
@@ -450,17 +515,23 @@
     <ClCompile Include="..\lua_hudlib_drawlist.c" />
     <ClCompile Include="..\lua_infolib.c" />
     <ClCompile Include="..\lua_inputlib.c" />
+    <ClCompile Include="..\lua_interceptlib.c" />
     <ClCompile Include="..\lua_maplib.c" />
     <ClCompile Include="..\lua_mathlib.c" />
+    <ClCompile Include="..\lua_matrixlib.c" />
     <ClCompile Include="..\lua_mobjlib.c" />
     <ClCompile Include="..\lua_playerlib.c" />
     <ClCompile Include="..\lua_polyobjlib.c" />
+    <ClCompile Include="..\lua_quaternionlib.c" />
     <ClCompile Include="..\lua_script.c" />
     <ClCompile Include="..\lua_skinlib.c" />
     <ClCompile Include="..\lua_taglib.c" />
     <ClCompile Include="..\lua_thinkerlib.c" />
+    <ClCompile Include="..\lua_vectorlib.c" />
     <ClCompile Include="..\lzf.c" />
+    <ClCompile Include="..\matrix.c" />
     <ClCompile Include="..\md5.c" />
+    <ClCompile Include="..\lonesha256.c" />
     <ClCompile Include="..\m_aatree.c" />
     <ClCompile Include="..\m_anigif.c" />
     <ClCompile Include="..\m_argv.c" />
@@ -495,7 +566,6 @@
     <ClCompile Include="..\p_ceilng.c" />
     <ClCompile Include="..\p_enemy.c" />
     <ClCompile Include="..\p_floor.c" />
-    <ClCompile Include="..\p_haptic.c" />
     <ClCompile Include="..\p_inter.c" />
     <ClCompile Include="..\p_lights.c" />
     <ClCompile Include="..\p_map.c" />
@@ -510,12 +580,10 @@
     <ClCompile Include="..\p_telept.c" />
     <ClCompile Include="..\p_tick.c" />
     <ClCompile Include="..\p_user.c" />
+    <ClCompile Include="..\quaternion.c" />
     <ClCompile Include="..\r_bsp.c" />
     <ClCompile Include="..\r_data.c" />
     <ClCompile Include="..\r_draw.c" />
-    <ClCompile Include="..\r_draw16.c">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\r_draw8.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -556,6 +624,7 @@
     <ClCompile Include="..\t_tan2a.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\vector3d.c" />
     <ClCompile Include="..\v_video.c" />
     <ClCompile Include="..\win32\win_dbg.c" />
     <ClCompile Include="..\w_wad.c" />
@@ -567,10 +636,10 @@
     <ClCompile Include="IMG_xpm.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="i_gamepad.c" />
     <ClCompile Include="i_main.c" />
     <ClCompile Include="i_net.c" />
     <ClCompile Include="i_system.c" />
+    <ClCompile Include="i_threads.c" />
     <ClCompile Include="i_ttf.c" />
     <ClCompile Include="i_video.c" />
     <ClCompile Include="mixer_sound.c" />

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2023 by Sonic Team Junior.
+// Copyright (C) 1999-2024 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -135,22 +135,24 @@ void P_ParseAnimationDefintion(SINT8 istexture);
 
 static boolean P_FindTextureForAnimation(anim_t *anim, animdef_t *animdef)
 {
-	if (R_CheckTextureNumForName(animdef->startname) == -1)
+	INT32 start = R_CheckTextureNumForName(animdef->startname, TEXTURETYPE_TEXTURE);
+	if (start == -1)
 		return false;
 
-	anim->picnum = R_TextureNumForName(animdef->endname);
-	anim->basepic = R_TextureNumForName(animdef->startname);
+	anim->basepic = start;
+	anim->picnum = R_CheckTextureNumForName(animdef->endname, TEXTURETYPE_TEXTURE);
 
 	return true;
 }
 
 static boolean P_FindFlatForAnimation(anim_t *anim, animdef_t *animdef)
 {
-	if (R_CheckFlatNumForName(animdef->startname) == -1)
+	INT32 start = R_CheckTextureNumForName(animdef->startname, TEXTURETYPE_FLAT);
+	if (start == -1)
 		return false;
 
-	anim->picnum = R_CheckFlatNumForName(animdef->endname);
-	anim->basepic = R_CheckFlatNumForName(animdef->startname);
+	anim->basepic = start;
+	anim->picnum = R_CheckTextureNumForName(animdef->endname, TEXTURETYPE_FLAT);
 
 	return true;
 }
@@ -363,7 +365,7 @@ void P_ParseAnimationDefintion(SINT8 istexture)
 		// Increase the size to make room for the new animation definition
 		maxanims++;
 		animdefs = (animdef_t *)Z_Realloc(animdefs, sizeof(animdef_t)*(maxanims + 1), PU_STATIC, NULL);
-		strncpy(animdefs[i].startname, animdefsToken, 9);
+		strncpy(animdefs[i].startname, animdefsToken, sizeof(animdefs[i].startname)-1);
 	}
 
 	// animdefs[i].startname is now set to animdefsToken either way.
@@ -1042,7 +1044,7 @@ static boolean PolyFade(line_t *line)
 	// Prevent continuous execs from interfering on an existing fade
 	if (!(line->args[3] & TMPF_OVERRIDE)
 		&& po->thinker
-		&& po->thinker->function.acp1 == (actionf_p1)T_PolyObjFade)
+		&& po->thinker->function == (actionf_p1)T_PolyObjFade)
 	{
 		CONS_Debug(DBG_POLYOBJ, "Line type 492 Executor: Fade PolyObject thinker already exists\n");
 		return 0;
@@ -1115,7 +1117,7 @@ static boolean PolyFlag(line_t *line)
 static boolean PolyDisplace(line_t *line)
 {
 	polydisplacedata_t pdd;
-	fixed_t length = R_PointToDist2(line->v2->x, line->v2->y, line->v1->x, line->v1->y);
+	fixed_t length = GetDistance2D(line->v2->x, line->v2->y, line->v1->x, line->v1->y);
 	fixed_t speed = line->args[1] << FRACBITS;
 
 	pdd.polyObjNum = line->args[0];
@@ -1273,7 +1275,7 @@ static void P_AddExecutorDelay(line_t *line, mobj_t *mobj, sector_t *sector)
 
 	e = Z_Calloc(sizeof (*e), PU_LEVSPEC, NULL);
 
-	e->thinker.function.acp1 = (actionf_p1)T_ExecutorDelay;
+	e->thinker.function = (actionf_p1)T_ExecutorDelay;
 	e->line = line;
 	e->sector = sector;
 	e->timer = delay;
@@ -1364,7 +1366,7 @@ static boolean P_CheckNightsTriggerLine(line_t *triggerline, mobj_t *actor)
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
 			UINT8 lap;
-			if (!playeringame[i] || players[i].spectator)
+			if (!players[i].ingame || players[i].spectator)
 				continue;
 
 			// denightserize: run only if all players are not nights
@@ -1488,7 +1490,7 @@ static boolean P_CheckPlayerRings(line_t *triggerline, mobj_t *actor)
 	{
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
-			if (!playeringame[i] || players[i].spectator)
+			if (!players[i].ingame || players[i].spectator)
 				continue;
 
 			if (!players[i].mo || ((maptol & TOL_NIGHTS) ? players[i].spheres : players[i].rings) <= 0)
@@ -1970,23 +1972,23 @@ static void P_PlaySFX(INT32 sfxnum, mobj_t *mo, sector_t *callsec, INT16 tag, te
 	{
 		case TMSS_TRIGGERMOBJ: // play the sound from mobj that triggered it
 			if (mo)
-				S_StartSound(mo, sfxnum);
+				S_StartSoundFromMobj(mo, sfxnum);
 			break;
 		case TMSS_TRIGGERSECTOR: // play the sound from calling sector's soundorg
 			if (callsec)
-				S_StartSound(&callsec->soundorg, sfxnum);
+				S_StartSoundFromSector(callsec, sfxnum);
 			else if (mo)
-				S_StartSound(&mo->subsector->sector->soundorg, sfxnum);
+				S_StartSoundFromSector(mo->subsector->sector, sfxnum);
 			break;
 		case TMSS_NOWHERE: // play the sound from nowhere
-			S_StartSound(NULL, sfxnum);
+			S_StartSoundFromEverywhere(sfxnum);
 			break;
 		case TMSS_TAGGEDSECTOR: // play the sound from tagged sectors' soundorgs
 		{
 			INT32 secnum;
 
 			TAG_ITER_SECTORS(tag, secnum)
-				S_StartSound(&sectors[secnum].soundorg, sfxnum);
+				S_StartSoundFromSector(&sectors[secnum], sfxnum);
 			break;
 		}
 		default:
@@ -2033,7 +2035,7 @@ void P_SwitchWeather(INT32 weathernum)
 
 		for (think = thlist[THINK_PRECIP].next; think != &thlist[THINK_PRECIP]; think = think->next)
 		{
-			if (think->function.acp1 != (actionf_p1)P_NullPrecipThinker)
+			if (think->function != (actionf_p1)P_NullPrecipThinker)
 				continue; // not a precipmobj thinker
 
 			precipmobj = (precipmobj_t *)think;
@@ -2049,7 +2051,7 @@ void P_SwitchWeather(INT32 weathernum)
 
 		for (think = thlist[THINK_PRECIP].next; think != &thlist[THINK_PRECIP]; think = think->next)
 		{
-			if (think->function.acp1 != (actionf_p1)P_NullPrecipThinker)
+			if (think->function != (actionf_p1)P_NullPrecipThinker)
 				continue; // not a precipmobj thinker
 			precipmobj = (precipmobj_t *)think;
 
@@ -2066,7 +2068,7 @@ void P_SwitchWeather(INT32 weathernum)
 				precipmobj->precipflags &= ~PCF_INVISIBLE;
 
 				precipmobj->precipflags |= PCF_RAIN;
-				//think->function.acp1 = (actionf_p1)P_RainThinker;
+				//think->function = (actionf_p1)P_RainThinker;
 			}
 			else if (weathernum == PRECIP_SNOW) // Rain To Snow
 			{
@@ -2091,11 +2093,11 @@ void P_SwitchWeather(INT32 weathernum)
 
 				precipmobj->precipflags &= ~(PCF_INVISIBLE|PCF_RAIN);
 
-				//think->function.acp1 = (actionf_p1)P_SnowThinker;
+				//think->function = (actionf_p1)P_SnowThinker;
 			}
 			else // Remove precip, but keep it around for reuse.
 			{
-				//think->function.acp1 = (actionf_p1)P_NullPrecipThinker;
+				//think->function = (actionf_p1)P_NullPrecipThinker;
 
 				precipmobj->precipflags |= PCF_INVISIBLE;
 			}
@@ -2405,11 +2407,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 					y = line->args[3] << FRACBITS;
 					z = line->args[4] << FRACBITS;
 
-					P_UnsetThingPosition(mo);
-					mo->x += x;
-					mo->y += y;
-					mo->z += z;
-					P_SetThingPosition(mo);
+					P_SetOrigin(mo, mo->x + x, mo->y + y, mo->z + z);
 
 					if (mo->player)
 					{
@@ -2417,6 +2415,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 							P_SetOrigin(bot, bot->x + x, bot->y + y, bot->z + z);
 						if (splitscreen && mo->player == &players[secondarydisplayplayer] && camera2.chase)
 						{
+							camera2.reset = true;
 							camera2.x += x;
 							camera2.y += y;
 							camera2.z += z;
@@ -2424,6 +2423,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 						}
 						else if (camera.chase && mo->player == &players[displayplayer])
 						{
+							camera.reset = true;
 							camera.x += x;
 							camera.y += y;
 							camera.z += z;
@@ -2448,7 +2448,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 						P_Teleport(bot, dest->x, dest->y, dest->z, angle, !silent, keepmomentum);
 					P_Teleport(mo, dest->x, dest->y, dest->z, angle, !silent, keepmomentum);
 					if (!silent)
-						S_StartSound(dest, sfx_mixup); // Play the 'bowrwoosh!' sound
+						S_StartSoundFromMobj(dest, sfx_mixup); // Play the 'bowrwoosh!' sound
 				}
 			}
 			break;
@@ -2548,7 +2548,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 					char *text = Z_Malloc(len + 1, PU_CACHE, NULL);
 					memcpy(text, lump, len);
 					text[len] = '\0';
-					COM_BufInsertText(text);
+					COM_BufInsertTextEx(text, COM_LUA);
 					Z_Free(text);
 				}
 			}
@@ -2754,14 +2754,14 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 				scroll_t *scroller;
 				thinker_t *th;
 
-				fixed_t length = R_PointToDist2(line->v2->x, line->v2->y, line->v1->x, line->v1->y);
+				fixed_t length = GetDistance2D(line->v2->x, line->v2->y, line->v1->x, line->v1->y);
 				fixed_t speed = line->args[1] << FRACBITS;
 				fixed_t dx = FixedMul(FixedMul(FixedDiv(line->dx, length), speed) >> SCROLL_SHIFT, CARRYFACTOR);
 				fixed_t dy = FixedMul(FixedMul(FixedDiv(line->dy, length), speed) >> SCROLL_SHIFT, CARRYFACTOR);
 
 				for (th = thlist[THINK_MAIN].next; th != &thlist[THINK_MAIN]; th = th->next)
 				{
-					if (th->function.acp1 != (actionf_p1)T_Scroll)
+					if (th->function != (actionf_p1)T_Scroll)
 						continue;
 
 					scroller = (scroll_t *)th;
@@ -2893,7 +2893,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 
 					if (M_UpdateUnlockablesAndExtraEmblems(clientGamedata))
 					{
-						S_StartSound(NULL, sfx_s3k68);
+						S_StartSoundFromEverywhere(sfx_s3k68);
 						G_SaveGameData(clientGamedata); // only save if unlocked something
 					}
 				}
@@ -3603,9 +3603,9 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 					UINT8 i;
 					for (i = 0; i < MAXPLAYERS; i++)
 					{
-						if (!playeringame[i])
+						if (!players[i].ingame)
 							continue;
-						P_DoPlayerExit(&players[i]);
+						P_DoPlayerExit(&players[i], true);
 					}
 				}
 			}
@@ -3644,7 +3644,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 					if (mo2->type != MT_EGGTRAP)
 						continue;
 
-					if (mo2->thinker.function.acp1 == (actionf_p1)P_RemoveThinkerDelayed)
+					if (mo2->thinker.removing)
 						continue;
 
 					P_KillMobj(mo2, NULL, mo, 0);
@@ -3657,9 +3657,9 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 					// Mark all players with the time to exit thingy!
 					for (i = 0; i < MAXPLAYERS; i++)
 					{
-						if (!playeringame[i])
+						if (!players[i].ingame)
 							continue;
-						P_DoPlayerExit(&players[i]);
+						P_DoPlayerExit(&players[i], true);
 					}
 				}
 			}
@@ -3684,7 +3684,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 
 		case 466: // Set level failure state
 			{
-				if (line->args[1])
+				if (line->args[0])
 				{
 					stagefailed = false;
 					CONS_Debug(DBG_GAMELOGIC, "Stage can be completed successfully!\n");
@@ -3844,7 +3844,7 @@ void P_SetupSignExit(player_t *player)
 		P_SetObjectMomZ(thing, 12*FRACUNIT, false);
 		P_SetMobjState(thing, S_SIGNSPIN1);
 		if (thing->info->seesound)
-			S_StartSound(thing, thing->info->seesound);
+			S_StartSoundFromMobj(thing, thing->info->seesound);
 
 		++numfound;
 	}
@@ -3856,7 +3856,7 @@ void P_SetupSignExit(player_t *player)
 	// spin all signposts in the level then.
 	for (think = thlist[THINK_MOBJ].next; think != &thlist[THINK_MOBJ]; think = think->next)
 	{
-		if (think->function.acp1 == (actionf_p1)P_RemoveThinkerDelayed)
+		if (think->removing)
 			continue;
 
 		thing = (mobj_t *)think;
@@ -3875,7 +3875,7 @@ void P_SetupSignExit(player_t *player)
 		P_SetObjectMomZ(thing, 12*FRACUNIT, false);
 		P_SetMobjState(thing, S_SIGNSPIN1);
 		if (thing->info->seesound)
-			S_StartSound(thing, thing->info->seesound);
+			S_StartSoundFromMobj(thing, thing->info->seesound);
 
 		++numfound;
 	}
@@ -3894,7 +3894,7 @@ boolean P_IsFlagAtBase(mobjtype_t flag)
 
 	for (think = thlist[THINK_MOBJ].next; think != &thlist[THINK_MOBJ]; think = think->next)
 	{
-		if (think->function.acp1 == (actionf_p1)P_RemoveThinkerDelayed)
+		if (think->removing)
 			continue;
 
 		mo = (mobj_t *)think;
@@ -4345,7 +4345,7 @@ sector_t *P_FindPlayerTrigger(player_t *player, line_t *sourceline)
 
 boolean P_IsPlayerValid(size_t playernum)
 {
-	if (!playeringame[playernum])
+	if (!players[playernum].ingame)
 		return false;
 
 	if (!players[playernum].mo)
@@ -4397,7 +4397,7 @@ static void P_ProcessEggCapsule(player_t *player, sector_t *sector)
 	// The chimps are my friends.. heeheeheheehehee..... - LouisJM
 	for (th = thlist[THINK_MOBJ].next; th != &thlist[THINK_MOBJ]; th = th->next)
 	{
-		if (th->function.acp1 == (actionf_p1)P_RemoveThinkerDelayed)
+		if (th->removing)
 			continue;
 		mo2 = (mobj_t *)th;
 		if (mo2->type != MT_EGGTRAP)
@@ -4419,9 +4419,9 @@ static void P_ProcessEggCapsule(player_t *player, sector_t *sector)
 	// Mark all players with the time to exit thingy!
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (!playeringame[i])
+		if (!players[i].ingame)
 			continue;
-		P_DoPlayerExit(&players[i]);
+		P_DoPlayerExit(&players[i], true);
 	}
 }
 
@@ -4511,7 +4511,7 @@ static void P_ProcessSpeedPad(player_t *player, sector_t *sector, sector_t *rove
 	if (!sfxnum)
 		sfxnum = sfx_spdpad;
 
-	S_StartSound(player->mo, sfxnum);
+	S_StartSoundFromMobj(player->mo, sfxnum);
 }
 
 static void P_ProcessSpecialStagePit(player_t* player)
@@ -4575,6 +4575,10 @@ static void P_ProcessExitSector(player_t *player, mtag_t sectag)
 
 	if (lines[lineindex].args[1] & TMEF_SKIPTALLY)
 		skipstats = 1;
+
+	//skip stats actually skips post-level cutscenes.
+	if (lines[lineindex].args[1] & TMEF_KEEPCUTSCENE)
+		keepcutscene = true;
 }
 
 static void P_ProcessTeamBase(player_t *player, boolean redteam)
@@ -4603,9 +4607,9 @@ static void P_ProcessTeamBase(player_t *player, boolean redteam)
 	HU_DoCEcho(va(M_GetText("%s%s\200\\CAPTURED THE %s%s FLAG\200.\\\\\\\\"), redteam ? "\205" : "\204", player_names[player-players], redteam ? "\204" : "\205", redteam ? "BLUE" : "RED"));
 
 	if (splitscreen || players[consoleplayer].ctfteam == (redteam ? 1 : 2))
-		S_StartSound(NULL, sfx_flgcap);
+		S_StartSoundFromEverywhere(sfx_flgcap);
 	else if (players[consoleplayer].ctfteam == (redteam ? 2 : 1))
-		S_StartSound(NULL, sfx_lose);
+		S_StartSoundFromEverywhere(sfx_lose);
 
 	mo = P_SpawnMobj(player->mo->x,player->mo->y,player->mo->z, redteam ? MT_BLUEFLAG : MT_REDFLAG);
 	player->gotflag &= ~(redteam ? GF_BLUEFLAG : GF_REDFLAG);
@@ -4677,10 +4681,10 @@ static void P_ProcessZoomTube(player_t *player, mtag_t sectag, boolean end)
 	player->pflags &= ~(PF_JUMPED|PF_NOJUMPDAMAGE|PF_GLIDING|PF_BOUNCING|PF_SLIDING|PF_CANCARRY);
 	player->climbing = 0;
 
-	if (player->mo->state-states != S_PLAY_ROLL)
+	if (!P_IsPlayerInState(player, S_PLAY_ROLL))
 	{
 		P_SetMobjState(player->mo, S_PLAY_ROLL);
-		S_StartSound(player->mo, sfx_spin);
+		S_StartSoundFromMobj(player->mo, sfx_spin);
 	}
 }
 
@@ -4712,13 +4716,13 @@ static void P_ProcessFinishLine(player_t *player)
 		P_ResetStarposts();
 
 		// Play the starpost sound for 'consistency'
-		S_StartSound(player->mo, sfx_strpst);
+		S_StartSoundFromMobj(player->mo, sfx_strpst);
 	}
 	else if (player->starpostnum)
 	{
 		// blatant reuse of a variable that's normally unused in circuit
 		if (!player->tossdelay)
-			S_StartSound(player->mo, sfx_lose);
+			S_StartSoundFromMobj(player->mo, sfx_lose);
 		player->tossdelay = 3;
 	}
 
@@ -4731,7 +4735,7 @@ static void P_ProcessFinishLine(player_t *player)
 			HU_DoCEcho("FINISHED!");
 		}
 
-		P_DoPlayerExit(player);
+		P_DoPlayerExit(player, true);
 	}
 }
 
@@ -4758,7 +4762,7 @@ static void P_ProcessRopeHang(player_t *player, mtag_t sectag)
 	if (player->cmd.buttons & BT_SPIN)
 		return;
 
-	if (!(player->pflags & PF_SLIDING) && player->mo->state == &states[player->mo->info->painstate])
+	if (!(player->pflags & PF_SLIDING) && P_IsPlayerInState(player, S_PLAY_PAIN))
 		return;
 
 	if (player->exiting)
@@ -4864,9 +4868,8 @@ static void P_ProcessRopeHang(player_t *player, mtag_t sectag)
 	}
 	else
 	{
-		if (P_AproxDistance(P_AproxDistance(player->mo->x-resultlow.x, player->mo->y-resultlow.y),
-				player->mo->z-resultlow.z) < P_AproxDistance(P_AproxDistance(player->mo->x-resulthigh.x,
-					player->mo->y-resulthigh.y), player->mo->z-resulthigh.z))
+		if (GetDistance3D(player->mo->x, player->mo->y, player->mo->z, resultlow.x, resultlow.y, resultlow.z) <
+			GetDistance3D(player->mo->x, player->mo->y, player->mo->z, resulthigh.x, resulthigh.y, resulthigh.z))
 		{
 			// Line between Mid and Low is closer
 			closest = waypointmid;
@@ -4888,7 +4891,7 @@ static void P_ProcessRopeHang(player_t *player, mtag_t sectag)
 	player->powers[pw_carry] = CR_ROPEHANG;
 	player->speed = speed;
 
-	S_StartSound(player->mo, sfx_s3k4a);
+	S_StartSoundFromMobj(player->mo, sfx_s3k4a);
 
 	player->pflags &= ~(PF_JUMPED|PF_NOJUMPDAMAGE|PF_GLIDING|PF_BOUNCING|PF_SLIDING|PF_CANCARRY);
 	player->climbing = 0;
@@ -5073,7 +5076,7 @@ static void P_EvaluateOldSectorSpecial(player_t *player, sector_t *sector, secto
 			if (leveltime % (TICRATE/2) == 0 && player->rings > 0)
 			{
 				player->rings--;
-				S_StartSound(player->mo, sfx_antiri);
+				S_StartSoundFromMobj(player->mo, sfx_antiri);
 			}
 			break;
 	}
@@ -5563,7 +5566,7 @@ static ffloor_t *P_AddFakeFloor(sector_t *sec, sector_t *sec2, line_t *master, I
 			break;
 
 		// Should this FOF have friction?
-		if(th->function.acp1 == (actionf_p1)T_Friction)
+		if(th->function == (actionf_p1)T_Friction)
 		{
 			f = (friction_t *)th;
 
@@ -5571,7 +5574,7 @@ static ffloor_t *P_AddFakeFloor(sector_t *sec, sector_t *sec2, line_t *master, I
 				Add_Friction(f->friction, f->movefactor, (INT32)(sec-sectors), f->affectee);
 		}
 		// Should this FOF have wind/current/pusher?
-		else if(th->function.acp1 == (actionf_p1)T_Pusher)
+		else if(th->function == (actionf_p1)T_Pusher)
 		{
 			p = (pusher_t *)th;
 
@@ -5658,7 +5661,7 @@ static void P_AddFloatThinker(sector_t *sec, UINT16 tag, line_t *sourceline)
 	floater = Z_Calloc(sizeof (*floater), PU_LEVSPEC, NULL);
 	P_AddThinker(THINK_MAIN, &floater->thinker);
 
-	floater->thinker.function.acp1 = (actionf_p1)T_FloatSector;
+	floater->thinker.function = (actionf_p1)T_FloatSector;
 
 	floater->sector = sec;
 	floater->tag = (INT16)tag;
@@ -5689,7 +5692,7 @@ static void P_AddPlaneDisplaceThinker(INT32 type, fixed_t speed, INT32 control, 
 	displace = Z_Calloc(sizeof (*displace), PU_LEVSPEC, NULL);
 	P_AddThinker(THINK_MAIN, &displace->thinker);
 
-	displace->thinker.function.acp1 = (actionf_p1)T_PlaneDisplace;
+	displace->thinker.function = (actionf_p1)T_PlaneDisplace;
 	displace->affectee = affectee;
 	displace->control = control;
 	displace->last_height = sectors[control].floorheight;
@@ -5719,7 +5722,7 @@ static void P_AddBlockThinker(sector_t *sec, line_t *sourceline)
 	block = Z_Calloc(sizeof (*block), PU_LEVSPEC, NULL);
 	P_AddThinker(THINK_MAIN, &block->thinker);
 
-	block->thinker.function.acp1 = (actionf_p1)T_MarioBlockChecker;
+	block->thinker.function = (actionf_p1)T_MarioBlockChecker;
 	block->sourceline = sourceline;
 
 	block->sector = sec;
@@ -5744,7 +5747,7 @@ static void P_AddRaiseThinker(sector_t *sec, INT16 tag, fixed_t speed, fixed_t c
 	raise = Z_Calloc(sizeof (*raise), PU_LEVSPEC, NULL);
 	P_AddThinker(THINK_MAIN, &raise->thinker);
 
-	raise->thinker.function.acp1 = (actionf_p1)T_RaiseSector;
+	raise->thinker.function = (actionf_p1)T_RaiseSector;
 
 	raise->tag = tag;
 	raise->sector = sec;
@@ -5771,7 +5774,7 @@ static void P_AddAirbob(sector_t *sec, INT16 tag, fixed_t dist, boolean raise, b
 	airbob = Z_Calloc(sizeof (*airbob), PU_LEVSPEC, NULL);
 	P_AddThinker(THINK_MAIN, &airbob->thinker);
 
-	airbob->thinker.function.acp1 = (actionf_p1)T_RaiseSector;
+	airbob->thinker.function = (actionf_p1)T_RaiseSector;
 
 	airbob->tag = tag;
 	airbob->sector = sec;
@@ -5813,7 +5816,7 @@ static inline void P_AddThwompThinker(sector_t *sec, line_t *sourceline, fixed_t
 	thwomp = Z_Calloc(sizeof (*thwomp), PU_LEVSPEC, NULL);
 	P_AddThinker(THINK_MAIN, &thwomp->thinker);
 
-	thwomp->thinker.function.acp1 = (actionf_p1)T_ThwompSector;
+	thwomp->thinker.function = (actionf_p1)T_ThwompSector;
 
 	// set up the fields according to the type of elevator action
 	thwomp->sourceline = sourceline;
@@ -5852,7 +5855,7 @@ static inline void P_AddNoEnemiesThinker(line_t *sourceline)
 	nobaddies = Z_Calloc(sizeof (*nobaddies), PU_LEVSPEC, NULL);
 	P_AddThinker(THINK_MAIN, &nobaddies->thinker);
 
-	nobaddies->thinker.function.acp1 = (actionf_p1)T_NoEnemiesSector;
+	nobaddies->thinker.function = (actionf_p1)T_NoEnemiesSector;
 
 	nobaddies->sourceline = sourceline;
 }
@@ -5872,7 +5875,7 @@ static void P_AddEachTimeThinker(line_t *sourceline, boolean triggerOnExit)
 	eachtime = Z_Calloc(sizeof (*eachtime), PU_LEVSPEC, NULL);
 	P_AddThinker(THINK_MAIN, &eachtime->thinker);
 
-	eachtime->thinker.function.acp1 = (actionf_p1)T_EachTimeThinker;
+	eachtime->thinker.function = (actionf_p1)T_EachTimeThinker;
 
 	eachtime->sourceline = sourceline;
 	eachtime->triggerOnExit = triggerOnExit;
@@ -5894,7 +5897,7 @@ static inline void P_AddCameraScanner(sector_t *sourcesec, sector_t *actionsecto
 	elevator = Z_Calloc(sizeof (*elevator), PU_LEVSPEC, NULL);
 	P_AddThinker(THINK_MAIN, &elevator->thinker);
 
-	elevator->thinker.function.acp1 = (actionf_p1)T_CameraScanner;
+	elevator->thinker.function = (actionf_p1)T_CameraScanner;
 	elevator->type = elevateBounce;
 
 	// set up the fields according to the type of elevator action
@@ -5940,7 +5943,7 @@ void T_LaserFlash(laserthink_t *flash)
 			top    = P_GetFFloorTopZAt   (fflr, sector->soundorg.x, sector->soundorg.y);
 			bottom = P_GetFFloorBottomZAt(fflr, sector->soundorg.x, sector->soundorg.y);
 			sector->soundorg.z = (top + bottom)/2;
-			S_StartSound(&sector->soundorg, sfx_laser);
+			S_StartSoundFromSector(sector, sfx_laser);
 
 			// Seek out objects to DESTROY! MUAHAHHAHAHAA!!!*cough*
 			for (node = sector->touching_thinglist; node && node->m_thing; node = node->m_thinglist_next)
@@ -5978,7 +5981,7 @@ static inline void P_AddLaserThinker(INT16 tag, line_t *line, boolean nobosses)
 
 	P_AddThinker(THINK_MAIN, &flash->thinker);
 
-	flash->thinker.function.acp1 = (actionf_p1)T_LaserFlash;
+	flash->thinker.function = (actionf_p1)T_LaserFlash;
 	flash->tag = tag;
 	flash->sourceline = line;
 	flash->nobosses = nobosses;
@@ -6238,7 +6241,7 @@ static void P_DoPortalCopyFromLine(sector_t *dest_sector, int plane_type, int ta
 	}
 }
 
-static sectorportal_t *P_SectorGetPortalOrCreate(sector_t *sector, UINT32 *num, UINT32 *result)
+static sectorportal_t *P_SectorGetPortalOrCreate(sector_t *sector, UINT32 *num, UINT32 *result, boolean ceiling)
 {
 	sectorportal_t *secportal = NULL;
 
@@ -6246,8 +6249,8 @@ static sectorportal_t *P_SectorGetPortalOrCreate(sector_t *sector, UINT32 *num, 
 	{
 		*num = P_NewSectorPortal();
 		secportal = &secportals[*num];
-		secportal->origin.x = sector->soundorg.x;
-		secportal->origin.y = sector->soundorg.y;
+		secportal->target = sector;
+		secportal->ceiling = ceiling;
 		*result = *num;
 	}
 	else
@@ -6261,12 +6264,12 @@ static sectorportal_t *P_SectorGetPortalOrCreate(sector_t *sector, UINT32 *num, 
 
 static sectorportal_t *P_SectorGetFloorPortalOrCreate(sector_t *sector, UINT32 *result)
 {
-	return P_SectorGetPortalOrCreate(sector, &sector->portal_floor, result);
+	return P_SectorGetPortalOrCreate(sector, &sector->portal_floor, result, false);
 }
 
 static sectorportal_t *P_SectorGetCeilingPortalOrCreate(sector_t *sector, UINT32 *result)
 {
-	return P_SectorGetPortalOrCreate(sector, &sector->portal_ceiling, result);
+	return P_SectorGetPortalOrCreate(sector, &sector->portal_ceiling, result, true);
 }
 
 static void P_CopySectorPortalToLines(UINT32 portal_num, int sector_tag)
@@ -6379,9 +6382,9 @@ void P_SpawnSpecials(boolean fromnetsave)
 	// Firstly, find out how many there are in each sector
 	for (th = thlist[THINK_MAIN].next; th != &thlist[THINK_MAIN]; th = th->next)
 	{
-		if (th->function.acp1 == (actionf_p1)T_Friction)
+		if (th->function == (actionf_p1)T_Friction)
 			secthinkers[((friction_t *)th)->affectee].count++;
-		else if (th->function.acp1 == (actionf_p1)T_Pusher)
+		else if (th->function == (actionf_p1)T_Pusher)
 			secthinkers[((pusher_t *)th)->affectee].count++;
 	}
 
@@ -6399,9 +6402,9 @@ void P_SpawnSpecials(boolean fromnetsave)
 	{
 		size_t secnum = (size_t)-1;
 
-		if (th->function.acp1 == (actionf_p1)T_Friction)
+		if (th->function == (actionf_p1)T_Friction)
 			secnum = ((friction_t *)th)->affectee;
-		else if (th->function.acp1 == (actionf_p1)T_Pusher)
+		else if (th->function == (actionf_p1)T_Pusher)
 			secnum = ((pusher_t *)th)->affectee;
 
 		if (secnum != (size_t)-1)
@@ -7763,7 +7766,7 @@ static boolean IsSector3DBlock(sector_t* sec)
 static void Add_Scroller(INT32 type, fixed_t dx, fixed_t dy, INT32 control, INT32 affectee, INT32 accel, INT32 exclusive)
 {
 	scroll_t *s = Z_Calloc(sizeof *s, PU_LEVSPEC, NULL);
-	s->thinker.function.acp1 = (actionf_p1)T_Scroll;
+	s->thinker.function = (actionf_p1)T_Scroll;
 	s->type = type;
 	s->dx = dx;
 	s->dy = dy;
@@ -7850,7 +7853,7 @@ static void P_SpawnScrollers(void)
 
 			case 510: // plane scroller
 			{
-				fixed_t length = R_PointToDist2(l->v2->x, l->v2->y, l->v1->x, l->v1->y);
+				fixed_t length = GetDistance2D(l->v2->x, l->v2->y, l->v1->x, l->v1->y);
 				fixed_t speed = l->args[3] << FRACBITS;
 				fixed_t dx = FixedMul(FixedDiv(l->dx, length), speed) >> SCROLL_SHIFT;
 				fixed_t dy = FixedMul(FixedDiv(l->dy, length), speed) >> SCROLL_SHIFT;
@@ -7905,7 +7908,7 @@ static void Add_MasterDisappearer(tic_t appeartime, tic_t disappeartime, tic_t o
 {
 	disappear_t *d = Z_Malloc(sizeof *d, PU_LEVSPEC, NULL);
 
-	d->thinker.function.acp1 = (actionf_p1)T_Disappear;
+	d->thinker.function = (actionf_p1)T_Disappear;
 	d->appeartime = appeartime;
 	d->disappeartime = disappeartime;
 	d->offset = offset;
@@ -7952,7 +7955,7 @@ void T_Disappear(disappear_t *d)
 					if (!(lines[d->sourceline].args[5]))
 					{
 						sectors[s].soundorg.z = P_GetFFloorTopZAt(rover, sectors[s].soundorg.x, sectors[s].soundorg.y);
-						S_StartSound(&sectors[s].soundorg, sfx_appear);
+						S_StartSoundFromSector(&sectors[s], sfx_appear);
 					}
 				}
 			}
@@ -8298,7 +8301,7 @@ static void P_AddFakeFloorFader(ffloor_t *rover, size_t sectornum, size_t ffloor
 
 	d = Z_Malloc(sizeof *d, PU_LEVSPEC, NULL);
 
-	d->thinker.function.acp1 = (actionf_p1)T_Fade;
+	d->thinker.function = (actionf_p1)T_Fade;
 	d->rover = rover;
 	d->sectornum = (UINT32)sectornum;
 	d->ffloornum = (UINT32)ffloornum;
@@ -8450,7 +8453,7 @@ static void Add_ColormapFader(sector_t *sector, extracolormap_t *source_exc, ext
 	}
 
 	d = Z_Malloc(sizeof *d, PU_LEVSPEC, NULL);
-	d->thinker.function.acp1 = (actionf_p1)T_FadeColormap;
+	d->thinker.function = (actionf_p1)T_FadeColormap;
 	d->sector = sector;
 	d->source_exc = source_exc;
 	d->dest_exc = dest_exc;
@@ -8574,7 +8577,7 @@ static void Add_Friction(INT32 friction, INT32 movefactor, INT32 affectee, INT32
 {
 	friction_t *f = Z_Calloc(sizeof *f, PU_LEVSPEC, NULL);
 
-	f->thinker.function.acp1 = (actionf_p1)T_Friction;
+	f->thinker.function = (actionf_p1)T_Friction;
 	f->friction = friction;
 	f->movefactor = movefactor;
 	f->affectee = affectee;
@@ -8712,7 +8715,7 @@ static void Add_Pusher(pushertype_e type, fixed_t x_mag, fixed_t y_mag, fixed_t 
 {
 	pusher_t *p = Z_Calloc(sizeof *p, PU_LEVSPEC, NULL);
 
-	p->thinker.function.acp1 = (actionf_p1)T_Pusher;
+	p->thinker.function = (actionf_p1)T_Pusher;
 	p->type = type;
 	p->x_mag = x_mag;
 	p->y_mag = y_mag;
@@ -8805,7 +8808,7 @@ void T_Pusher(pusher_t *p)
 		if (thing->player && thing->player->powers[pw_carry] == CR_ROPEHANG)
 			continue;
 
-		if (thing->player && (thing->state == &states[thing->info->painstate]) && (thing->player->powers[pw_flashing] > (flashingtics/4)*3 && thing->player->powers[pw_flashing] <= flashingtics))
+		if (thing->player && P_IsPlayerInState(thing->player, S_PLAY_PAIN) && (thing->player->powers[pw_flashing] > (flashingtics/4)*3 && thing->player->powers[pw_flashing] <= flashingtics))
 			continue;
 
 		inFOF = touching = moved = false;
@@ -8883,7 +8886,7 @@ void T_Pusher(pusher_t *p)
 
 		// Tumbleweeds bounce a bit...
 		if (thing->type == MT_LITTLETUMBLEWEED || thing->type == MT_BIGTUMBLEWEED)
-			thing->momz += P_AproxDistance(xspeed, yspeed) >> 2;
+			thing->momz += GetDistance2D(0, 0, xspeed, yspeed) / 4;
 
 		if (moved)
 		{
@@ -8931,7 +8934,7 @@ static void P_SpawnPushers(void)
 		if (l->special != 541)
 			continue;
 
-		length = R_PointToDist2(l->v2->x, l->v2->y, l->v1->x, l->v1->y);
+		length = GetDistance2D(l->v2->x, l->v2->y, l->v1->x, l->v1->y);
 		hspeed = l->args[1] << FRACBITS;
 		dx = FixedMul(FixedDiv(l->dx, length), hspeed);
 		dy = FixedMul(FixedDiv(l->dy, length), hspeed);
