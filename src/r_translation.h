@@ -87,7 +87,7 @@ const char *R_GetCustomTranslationName(unsigned id);
 unsigned R_NumCustomTranslations(void);
 remaptable_t *R_GetTranslationByID(int id);
 UINT8 *R_GetTranslationRemap(int id, skincolornum_t skincolor, INT32 skinnum);
-void R_UpdateTranslationRemaps(skincolornum_t skincolor, INT32 cache_index);
+void R_UpdateTranslationRemaps(skincolornum_t skincolor, INT32 skinnum, INT32 cache_index);
 boolean R_TranslationIsValid(int id);
 
 void R_ParseTrnslate(INT32 wadNum, UINT16 lumpnum);

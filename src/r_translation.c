@@ -1144,7 +1144,7 @@ UINT8 *R_GetTranslationRemap(int id, skincolornum_t skincolor, INT32 skinnum)
 	return cache->colors;
 }
 
-static void R_UpdateTranslation(remaptable_t *tr, skincolornum_t skincolor, INT32 cache_index)
+static void R_UpdateTranslation(remaptable_t *tr, skincolornum_t skincolor, INT32 skinnum, INT32 cache_index)
 {
 	if (skincolor == SKINCOLOR_NONE
 	|| !R_IsSkinTranslationRemappable(R_CacheIndexToSkinTranslation(cache_index))
@@ -1153,13 +1153,13 @@ static void R_UpdateTranslation(remaptable_t *tr, skincolornum_t skincolor, INT3
 
 	colorcache_t *cache = tr->skincolor_remaps[cache_index][skincolor - 1];
 	if (cache)
-		R_ApplyTranslationRemap(tr, cache->colors, skincolor, cache_index);
+		R_ApplyTranslationRemap(tr, cache->colors, skincolor, skinnum);
 }
 
-void R_UpdateTranslationRemaps(skincolornum_t skincolor, INT32 cache_index)
+void R_UpdateTranslationRemaps(skincolornum_t skincolor, INT32 skinnum, INT32 cache_index)
 {
 	for (unsigned i = 0; i < numpaletteremaps; i++)
-		R_UpdateTranslation(paletteremaps[i], skincolor, cache_index);
+		R_UpdateTranslation(paletteremaps[i], skincolor, skinnum, cache_index);
 }
 
 boolean R_TranslationIsValid(int id)
