@@ -344,7 +344,7 @@ static boolean Lua_CanChange(const char *valstr)
 
 	LUA_Call(gL, 2, 1, 1); // call function(cvar, valstr)
 	result = lua_toboolean(gL, -1);
-	lua_pop(gL, 1); // pop CV_CanChange table
+	lua_pop(gL, 2); // pop CV_CanChange table and result
 	lua_remove(gL, 1); // remove LUA_GetErrorMessage
 
 	return result;
@@ -500,6 +500,8 @@ static int lib_cvRegisterVar(lua_State *L)
 			{
 				TYPEERROR("func", LUA_TFUNCTION)
 			}
+			// stack: [...] CV_OnChange table, cvar (light), value (4)
+			//                      5               6           7
 			lua_getfield(L, LUA_REGISTRYINDEX, "CV_OnChange");
 			I_Assert(lua_istable(L, 5));
 			lua_pushlightuserdata(L, cvar);
@@ -512,8 +514,10 @@ static int lib_cvRegisterVar(lua_State *L)
 		{
 			if (!lua_isfunction(L, 4))
 			{
-				TYPEERROR("func", LUA_TFUNCTION)
+				TYPEERROR("can_change", LUA_TFUNCTION)
 			}
+			// stack: [...] CV_CanChange table, cvar (light), value (4)
+			//                      5               6            7
 			lua_getfield(L, LUA_REGISTRYINDEX, "CV_CanChange");
 			I_Assert(lua_istable(L, 5));
 			lua_pushlightuserdata(L, cvar);
@@ -548,7 +552,7 @@ static int lib_cvRegisterVar(lua_State *L)
 		return luaL_error(L, M_GetText("Variable %s has CV_CALL without any callbacks"), cvar->name);
 	}
 
-	cvar->flags |= CV_ALLOWLUA;
+	cvar->flags |= CV_ALLOWLUA | CV_LUAVAR;
 	// actually time to register it to the console now! Finally!
 	cvar->flags |= CV_MODIFIED;
 	CV_RegisterVar(cvar);

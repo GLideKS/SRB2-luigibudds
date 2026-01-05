@@ -7874,7 +7874,8 @@ boolean P_LoadLevel(boolean fromnetsave, boolean reloadinggamestate)
 		G_StopMetalDemo();
 
 	// Clear CECHO messages
-	HU_ClearCEcho();
+	if(!reloadinggamestate)
+		HU_ClearCEcho();
 
 	if (mapheaderinfo[gamemap-1]->runsoc[0] != '#')
 		P_RunSOC(mapheaderinfo[gamemap-1]->runsoc);
