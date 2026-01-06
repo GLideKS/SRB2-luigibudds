@@ -19,6 +19,8 @@
 #include "d_player.h"
 #include "g_state.h"
 #include "taglist.h"
+#include "matrix.h"
+#include "quaternion.h"
 
 #include "blua/lua.h"
 #include "blua/lualib.h"
@@ -167,5 +169,9 @@ void COM_Lua_f(void);
 
 #define INLEVEL if (! ISINLEVEL)\
 return luaL_error(L, "This can only be used in a level!");
+
+vector3_t *LUA_NewVector3(lua_State *L);
+matrix_t *LUA_NewMatrix(lua_State *L);
+quaternion_t *LUA_NewQuaternion(lua_State *L);
 
 #endif/*LUA_SCRIPT_H*/
