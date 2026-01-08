@@ -789,8 +789,10 @@ void V_DrawCroppedPatch(fixed_t x, fixed_t y, fixed_t pscale, fixed_t vscale, IN
 	fixed_t col, ofs, colfrac, rowfrac, fdup, vdup;
 	INT32 dup;
 	column_t *column;
-	UINT8 *desttop, *dest;
+	UINT8 *desttop, *dest, *deststart, *destend;
 	const UINT8 *source, *deststop;
+	fixed_t pwidth; // patch width
+	fixed_t offx = 0; // x offset
 
 	UINT8 perplayershuffle = 0;
 
@@ -855,8 +857,29 @@ void V_DrawCroppedPatch(fixed_t x, fixed_t y, fixed_t pscale, fixed_t vscale, IN
 	colfrac = FixedDiv(FRACUNIT, fdup);
 	rowfrac = FixedDiv(FRACUNIT, vdup);
 
-	x -= FixedMul(patch->leftoffset<<FRACBITS, pscale);
-	y -= FixedMul(patch->topoffset<<FRACBITS, vscale);
+	{
+		fixed_t offsetx = 0, offsety = 0;
+
+		// left offset
+		if (scrn & V_FLIP)
+		{
+			fixed_t offseth = sx;
+			if (w + sx < patch->width<<FRACBITS)
+				offseth = (patch->width<<FRACBITS) - w;
+			
+			// offsetx = FixedMul(((patch->width - patch->leftoffset)<<FRACBITS) + (max(0, (patch->width<<FRACBITS) - w) + sx), pscale) + 1;
+			offsetx = FixedMul(((patch->width - patch->leftoffset)<<FRACBITS) + offseth, pscale) + 1;
+		}
+		else
+			offsetx = FixedMul(patch->leftoffset<<FRACBITS, pscale);
+
+		// top offset
+		offsety = FixedMul(patch->topoffset<<FRACBITS, vscale);
+
+		// Subtract the offsets from x/y positions
+		x -= offsetx;
+		y -= offsety;
+	}
 
 	if (splitscreen && (scrn & V_PERPLAYER))
 	{
@@ -1015,12 +1038,35 @@ void V_DrawCroppedPatch(fixed_t x, fixed_t y, fixed_t pscale, fixed_t vscale, IN
 		}
 	}
 
-	for (col = sx; (col>>FRACBITS) < patch->width && (col - sx) < w; col += colfrac, ++x, desttop++)
+	if (pscale != FRACUNIT) // scale width properly
 	{
-		if (x < 0) // don't draw off the left of the screen (WRAP PREVENTION)
-			continue;
-		if (x >= vid.width) // don't draw off the right of the screen (WRAP PREVENTION)
-			break;
+		pwidth = patch->width<<FRACBITS;
+		pwidth = FixedMul(pwidth, pscale);
+		pwidth *= dup;
+		pwidth >>= FRACBITS;
+	}
+	else
+		pwidth = patch->width * dup;
+
+	deststart = desttop;
+	destend = desttop + pwidth;
+
+	for (col = sx; (col>>FRACBITS) < patch->width && (col - sx) < w; col += colfrac, ++offx, desttop++)
+	{
+		if (scrn & V_FLIP) // offx is measured from right edge instead of left
+		{
+			if (x+pwidth-offx < 0) // don't draw off the left of the screen (WRAP PREVENTION)
+				break;
+			if (x+pwidth-offx >= vid.width) // don't draw off the right of the screen (WRAP PREVENTION)
+				continue;
+		}
+		else
+		{
+			if (x+offx < 0) // don't draw off the left of the screen (WRAP PREVENTION)
+				continue;
+			if (x+offx >= vid.width) // don't draw off the right of the screen (WRAP PREVENTION)
+				break;
+		}
 
 		column = &patch->columns[col>>FRACBITS];
 
@@ -1030,6 +1076,8 @@ void V_DrawCroppedPatch(fixed_t x, fixed_t y, fixed_t pscale, fixed_t vscale, IN
 			INT32 topdelta = post->topdelta;
 			source = column->pixels + post->data_offset;
 			dest = desttop;
+			if (scrn & V_FLIP)
+				dest = deststart + (destend - desttop);
 			if ((topdelta<<FRACBITS)-sy > 0)
 			{
 				dest += FixedInt(FixedMul((topdelta<<FRACBITS)-sy,vdup))*vid.width;

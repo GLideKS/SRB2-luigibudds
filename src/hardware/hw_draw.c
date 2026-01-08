@@ -346,8 +346,29 @@ void HWR_DrawCroppedPatch(patch_t *gpatch, fixed_t x, fixed_t y, fixed_t pscale,
 	if (vscale != pscale)
 		fscaleh = FIXED_TO_FLOAT(vscale);
 
-	cx -= (float)(gpatch->leftoffset) * fscalew;
-	cy -= (float)(gpatch->topoffset) * fscaleh;
+	{
+		float offsetx = 0.0f, offsety = 0.0f;
+
+		// left offset
+		if (option & V_FLIP)
+		{
+			// float offseth = FIXED_TO_FLOAT(sx);
+			// if (w + sx < gpatch->width<<FRACBITS)
+			// 	offseth = FIXED_TO_FLOAT(w) - (float)gpatch->width;
+
+			// offsetx = (float)(gpatch->width - gpatch->leftoffset + offseth) * fscalew;
+			offsetx = (float)(gpatch->width - gpatch->leftoffset) * fscalew;
+		}
+		else
+			offsetx = (float)(gpatch->leftoffset) * fscalew;
+
+		// top offset
+		// TODO: make some kind of vertical version of V_FLIP
+		offsety = (float)(gpatch->topoffset) * fscaleh;
+
+		cx -= offsetx;
+		cy -= offsety;
+	}
 
 	if (splitscreen && (option & V_PERPLAYER))
 	{
@@ -490,11 +511,22 @@ void HWR_DrawCroppedPatch(patch_t *gpatch, fixed_t x, fixed_t y, fixed_t pscale,
 
 	v[0].z = v[1].z = v[2].z = v[3].z = 1.0f;
 
-	v[0].s = v[3].s = (FIXED_TO_FLOAT(sx)/(float)(gpatch->width))*hwrPatch->max_s;
-	if (sx + w > gpatch->width<<FRACBITS)
-		v[2].s = v[1].s = hwrPatch->max_s;
+	if (option & V_FLIP)
+	{
+		v[2].s = v[1].s = (FIXED_TO_FLOAT(sx)/(float)(gpatch->width))*hwrPatch->max_s;
+		if (sx + w > gpatch->width<<FRACBITS)
+			v[0].s = v[3].s = hwrPatch->max_s;
+		else
+			v[0].s = v[3].s = (FIXED_TO_FLOAT(sx+w)/(float)(gpatch->width))*hwrPatch->max_s;
+	}
 	else
-		v[2].s = v[1].s = (FIXED_TO_FLOAT(sx+w)/(float)(gpatch->width))*hwrPatch->max_s;
+	{
+		v[0].s = v[3].s = (FIXED_TO_FLOAT(sx)/(float)(gpatch->width))*hwrPatch->max_s;
+		if (sx + w > gpatch->width<<FRACBITS)
+			v[2].s = v[1].s = hwrPatch->max_s;
+		else
+			v[2].s = v[1].s = (FIXED_TO_FLOAT(sx+w)/(float)(gpatch->width))*hwrPatch->max_s;
+	}
 
 	v[0].t = v[1].t = (FIXED_TO_FLOAT(sy)/(float)(gpatch->height))*hwrPatch->max_t;
 	if (sy + h > gpatch->height<<FRACBITS)
