@@ -862,14 +862,7 @@ void V_DrawCroppedPatch(fixed_t x, fixed_t y, fixed_t pscale, fixed_t vscale, IN
 
 		// left offset
 		if (scrn & V_FLIP)
-		{
-			fixed_t offseth = sx;
-			if (w + sx < patch->width<<FRACBITS)
-				offseth = (patch->width<<FRACBITS) - w;
-			
-			// offsetx = FixedMul(((patch->width - patch->leftoffset)<<FRACBITS) + (max(0, (patch->width<<FRACBITS) - w) + sx), pscale) + 1;
-			offsetx = FixedMul(((patch->width - patch->leftoffset)<<FRACBITS) + offseth, pscale) + 1;
-		}
+			offsetx = FixedMul((patch->width - patch->leftoffset)<<FRACBITS, pscale) + 1;
 		else
 			offsetx = FixedMul(patch->leftoffset<<FRACBITS, pscale);
 

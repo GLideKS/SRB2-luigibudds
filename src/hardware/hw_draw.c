@@ -352,12 +352,11 @@ void HWR_DrawCroppedPatch(patch_t *gpatch, fixed_t x, fixed_t y, fixed_t pscale,
 		// left offset
 		if (option & V_FLIP)
 		{
-			// float offseth = FIXED_TO_FLOAT(sx);
-			// if (w + sx < gpatch->width<<FRACBITS)
-			// 	offseth = FIXED_TO_FLOAT(w) - (float)gpatch->width;
+			float newWidth = min(FIXED_TO_FLOAT(w), (float)gpatch->width);
+			if (w + sx > gpatch->width<<FRACBITS)
+				newWidth -= FIXED_TO_FLOAT(sx);
 
-			// offsetx = (float)(gpatch->width - gpatch->leftoffset + offseth) * fscalew;
-			offsetx = (float)(gpatch->width - gpatch->leftoffset) * fscalew;
+			offsetx = (newWidth - (float)gpatch->leftoffset) * fscalew;
 		}
 		else
 			offsetx = (float)(gpatch->leftoffset) * fscalew;
