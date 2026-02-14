@@ -39,7 +39,8 @@ You can compile the source code normally (see "Compiling") and put the binary in
 - Addfilelocal from SRB2K Saturn! (use "`addfilelocal`" command or press R-ALT in the addons menu)
 - Minimum input delay from SRB2Kart Saturn/Ring Racers! (`mindelay`)
 - Improved startup times! (Code from [SRB2Classic](https://codeberg.org/srb2classic/srb2classic))
-- `cam_centertoggle` and `cam2_centertoggle` are no longer exclusive to Automatic.
+- "`cam_centertoggle`" and "`cam2_centertoggle`" are no longer exclusive to Automatic!
+- See private messages as host! (Code from [SRB2Classic](https://codeberg.org/srb2classic/srb2classic))
 
 ## Modding and Debugging
 - `renderhitbox` in multiplayer
@@ -53,6 +54,16 @@ You can compile the source code normally (see "Compiling") and put the binary in
 - Adjustable gif size cap, toggable too! (`gif_maxsize`, "Max GIF Size (MB)")
     - ^ When gif is capped, gif_rolling allows for another gif to immediately start! (`gif_rolling`, "Keep recording when capped")
 - Pause GIFs *WHILE* Recording! (Bound to F2 by default)
+
+## Console
+- `help` now lists commands and variables by origin. Parameters are as follows:
+  | Param      | Desc      |
+  | ------------- | ------------- |
+  | `-v` | Only show variables and/or commands from vanilla SRB2 only.  |
+  | `-c` | Only show variables and/or commands that are in SRB2-edit, and not vanilla. |
+  | `-a` | Only show variables and/or commands created by addons |
+
+- `help <cvar>` is now removed. Instead, all info is shown by just doing `<cvar>`. All flags are printed. `cvarinfo` lets you hide the flags and origin sections ("Show All" by default).
 
 # Lua Additions
 
