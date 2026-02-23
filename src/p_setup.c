@@ -7924,7 +7924,7 @@ boolean P_LoadLevel(boolean fromnetsave, boolean reloadinggamestate)
 	if (mapheaderinfo[gamemap-1]->forcecharacter[0] != '\0')
 		P_ForceCharacter(mapheaderinfo[gamemap-1]->forcecharacter);
 
-	if (!dedicated)
+	if (!dedicated && !reloadinggamestate)
 	{
 		// chasecam on in first-person gametypes and 2D
 		boolean chase = (!(gametyperules & GTR_FIRSTPERSON)) || (maptol & TOL_2D);
