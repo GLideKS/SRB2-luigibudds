@@ -11313,8 +11313,6 @@ void P_RemoveMobj(mobj_t *mobj)
 
 	R_RemoveMobjInterpolator(mobj);
 
-	P_RemoveThinker((thinker_t *)mobj);
-
 	// free block
 	if (!mobj->thinker.next)
 	{ // Uh-oh, the mobj doesn't think, P_RemoveThinker would never go through!
@@ -11324,6 +11322,7 @@ void P_RemoveMobj(mobj_t *mobj)
 			// no references, dump it directly in the mobj cache
 			mobj->hnext = mobjcache;
 			mobjcache = mobj;
+			LUA_InvalidateUserdata(mobj);
 			return;
 		}
 
@@ -11331,6 +11330,8 @@ void P_RemoveMobj(mobj_t *mobj)
 		P_AddThinker(THINK_MOBJ, (thinker_t *)mobj);
 		mobj->thinker.references = prevreferences;
 	}
+
+	P_RemoveThinker((thinker_t *)mobj);
 
 #ifdef PARANOIA
 	// Saved to avoid being scrambled like below...
