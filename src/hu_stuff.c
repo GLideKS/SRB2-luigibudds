@@ -1928,7 +1928,7 @@ void HU_DrawTabRankings(INT32 x, INT32 y, playersort_t *tab, INT32 scorelines, I
 		}
 
 		if (!players[tab[i].num].quittime || (leveltime / (TICRATE/2) & 1))
-			V_DrawString(x + 20, y,
+			V_DrawThinString(x + 20, y,
 		                 ((tab[i].num == whiteplayer) ? V_YELLOWMAP : 0)
 		                 | (greycheck ? V_60TRANS : 0)
 		                 | V_ALLOWLOWERCASE, tab[i].name);
@@ -2078,9 +2078,9 @@ static void HU_Draw32TeamTabRankings(playersort_t *tab, INT32 whiteplayer)
 		greycheck = greycheckdef;
 		supercheck = supercheckdef;
 
-		strlcpy(name, tab[i].name, 8);
+		strlcpy(name, tab[i].name, 12);
 		if (!players[tab[i].num].quittime || (leveltime / (TICRATE/2) & 1))
-			V_DrawString(x + 10, y,
+			V_DrawThinString(x + 10, y,
 			             ((tab[i].num == whiteplayer) ? V_YELLOWMAP : 0)
 			             | (greycheck ? V_TRANSLUCENT : 0)
 			             | V_ALLOWLOWERCASE, name);
@@ -2207,9 +2207,9 @@ void HU_DrawTeamTabRankings(playersort_t *tab, INT32 whiteplayer)
 		greycheck = greycheckdef;
 		supercheck = supercheckdef;
 
-		strlcpy(name, tab[i].name, 7);
+		strlcpy(name, tab[i].name, 12);
 		if (!players[tab[i].num].quittime || (leveltime / (TICRATE/2) & 1))
-			V_DrawString(x + 20, y,
+			V_DrawThinString(x + 20, y,
 			             ((tab[i].num == whiteplayer) ? V_YELLOWMAP : 0)
 			             | (greycheck ? V_TRANSLUCENT : 0)
 			             | V_ALLOWLOWERCASE, name);
@@ -2277,14 +2277,14 @@ void HU_DrawDualTabRankings(INT32 x, INT32 y, playersort_t *tab, INT32 scoreline
 		greycheck = greycheckdef;
 		supercheck = supercheckdef;
 
-		strlcpy(name, tab[i].name, 7);
+		strlcpy(name, tab[i].name, 12);
 		if (tab[i].num != serverplayer)
 			HU_drawPing(x+ 113, y, players[tab[i].num].quittime ? UINT32_MAX : playerpingtable[tab[i].num], false, 0);
 		//else
 		//	V_DrawSmallString(x+ 94, y+4, V_YELLOWMAP, "SERVER");
 
 		if (!players[tab[i].num].quittime || (leveltime / (TICRATE/2) & 1))
-			V_DrawString(x + 20, y,
+			V_DrawThinString(x + 20, y,
 			             ((tab[i].num == whiteplayer) ? V_YELLOWMAP : 0)
 			             | (greycheck ? V_TRANSLUCENT : 0)
 			             | V_ALLOWLOWERCASE, name);
@@ -2384,7 +2384,7 @@ static void HU_Draw32TabRankings(INT32 x, INT32 y, playersort_t *tab, INT32 scor
 		greycheck = greycheckdef;
 		supercheck = supercheckdef;
 
-		strlcpy(name, tab[i].name, 7);
+		strlcpy(name, tab[i].name, 12);
 		if (!splitscreen) // don't draw it on splitscreen,
 		{
 			if (tab[i].num != serverplayer)
@@ -2394,7 +2394,7 @@ static void HU_Draw32TabRankings(INT32 x, INT32 y, playersort_t *tab, INT32 scor
 		}
 
 		if (!players[tab[i].num].quittime || (leveltime / (TICRATE/2) & 1))
-			V_DrawString(x + 10, y,
+			V_DrawThinString(x + 10, y,
 			             ((tab[i].num == whiteplayer) ? V_YELLOWMAP : 0)
 			             | (greycheck ? V_TRANSLUCENT : 0)
 			             | V_ALLOWLOWERCASE, name);
