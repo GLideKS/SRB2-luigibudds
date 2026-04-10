@@ -6556,12 +6556,12 @@ static void M_DrawAddons(void)
 			}
 
 			// draw name of the item, use ... if too long
-#define charsonside 14
+#define charsonside 23
 			if (dirmenu[i][DIR_LEN] > (charsonside*2 + 3))
-				V_DrawString(x, y+4, flags, va("%.*s...%s", charsonside, dirmenu[i]+DIR_STRING, dirmenu[i]+DIR_STRING+dirmenu[i][DIR_LEN]-(charsonside+1)));
+				V_DrawThinString(x, y+4, flags, va("%.*s...%s", charsonside, dirmenu[i]+DIR_STRING, dirmenu[i]+DIR_STRING+dirmenu[i][DIR_LEN]-(charsonside+1)));
 #undef charsonside
 			else
-				V_DrawString(x, y+4, flags, dirmenu[i]+DIR_STRING);
+				V_DrawThinString(x, y+4, flags, dirmenu[i]+DIR_STRING);
 		}
 #undef type
 		y += 16;
