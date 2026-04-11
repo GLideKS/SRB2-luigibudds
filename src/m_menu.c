@@ -4462,7 +4462,7 @@ static void M_DrawGenericMenu(void)
 	{
 		V_DrawScaledPatch(currentMenu->x - 24, cursory, 0,
 			W_CachePatchName("M_CURSOR", PU_PATCH));
-		V_DrawString(currentMenu->x, cursory, V_YELLOWMAP|MENUCAPS, currentMenu->menuitems[itemOn].text);
+		V_DrawString(currentMenu->x, cursory, ((currentMenu->menuitems[itemOn].itemaction == M_QuitSRB2 || currentMenu->menuitems[itemOn].itemaction == M_ModeAttackEndGame) ? V_REDMAP : V_YELLOWMAP)|MENUCAPS, currentMenu->menuitems[itemOn].text);
 	}
 }
 
@@ -4978,7 +4978,7 @@ static void M_DrawCenteredMenu(void)
 	{
 		V_DrawScaledPatch(x - V_StringWidth(currentMenu->menuitems[itemOn].text, 0)/2 - 24, cursory, 0,
 			W_CachePatchName("M_CURSOR", PU_PATCH));
-		V_DrawCenteredString(x, cursory, V_YELLOWMAP|MENUCAPS, currentMenu->menuitems[itemOn].text);
+		V_DrawCenteredString(x, cursory, ((currentMenu->menuitems[itemOn].itemaction == M_QuitSRB2 || currentMenu->menuitems[itemOn].itemaction == M_ModeAttackEndGame) ? V_REDMAP : V_YELLOWMAP)|MENUCAPS, currentMenu->menuitems[itemOn].text);
 	}
 }
 
