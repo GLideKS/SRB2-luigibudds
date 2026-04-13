@@ -85,6 +85,16 @@ consvar_t cv_constextsize = CVAR_INIT ("con_textsize", "Medium", CV_SAVE|CV_CALL
 
 consvar_t cv_menucaps = CVAR_INIT ("menucaps", "On", CV_SAVE, CV_OnOff, NULL);
 
+static CV_PossibleValue_t menucolor_cons_t[] = {
+	{0, "White"},
+	{V_REDMAP, "Red"}, {V_ORANGEMAP, "Orange"}, {V_YELLOWMAP, "Yellow"},
+	{V_PERIDOTMAP, "Peridot"}, {V_GREENMAP, "Green"}, {V_AQUAMAP, "Aqua"},
+	{V_SKYMAP, "Sky"}, {V_AZUREMAP, "Azure"}, {V_BLUEMAP, "Blue"},
+	{V_PURPLEMAP, "Purple"}, {V_MAGENTAMAP, "Magenta"}, {V_ROSYMAP, "Rosy"},
+	{V_BROWNMAP, "Brown"}, {V_GRAYMAP, "Gray"}, {V_INVERTMAP, "Inverted"},
+	{0, NULL} };
+consvar_t cv_menucolor = CVAR_INIT("menucolor", "Yellow", CV_SAVE, menucolor_cons_t, NULL);
+
 // local copy of the palette for V_GetColor()
 RGBA_t *pLocalPalette = NULL;
 RGBA_t *pMasterPalette = NULL;
@@ -1094,6 +1104,30 @@ void V_DrawBlock(INT32 x, INT32 y, INT32 scrn, INT32 width, INT32 height, const 
 		dest += vid.width;
 		if (dest > deststop)
 			return;
+	}
+}
+//
+// Converts a Video Flag to the matching palette index defined in the function
+//
+int V_VMAPToPaletteIndex(INT32 v_map)
+{
+	switch (v_map) {
+		case V_REDMAP: return 34; break;    	// Red
+		case V_ORANGEMAP: return 52; break;  	// Orange
+		case V_YELLOWMAP: return 73; break;  	// Yellow
+		case V_PERIDOTMAP: return 188; break;	// Peridot
+		case V_GREENMAP: return 98; break;   	// Green
+		case V_AQUAMAP: return 122; break;   	// Aqua
+		case V_SKYMAP: return 131; break;    	// Sky
+		case V_AZUREMAP: return 146; break;  	// Azure
+		case V_BLUEMAP: return 149; break;   	// Blue
+		case V_PURPLEMAP: return 162; break; 	// Purple
+		case V_MAGENTAMAP: return 178; break;	// Magenta
+		case V_ROSYMAP: return 201; break;   	// Rosy
+		case V_BROWNMAP: return 226; break;  	// Brown
+		case V_GRAYMAP: return 12; break;    	// Gray
+		case V_INVERTMAP: return 29; break;  	// Inverted
+		default:          return 0;   break; 	// White
 	}
 }
 
