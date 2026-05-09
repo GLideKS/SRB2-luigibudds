@@ -9849,6 +9849,9 @@ consvar_t cv_cam2_turnmultiplier = CVAR_INIT ("cam2_turnmultiplier", "0.75", CV_
 consvar_t cv_cam2_orbit = CVAR_INIT ("cam2_orbit", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
 consvar_t cv_cam2_adjust = CVAR_INIT ("cam2_adjust", "On", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
 
+consvar_t cv_cam_noclip = CVAR_INIT ("cam_noclip", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
+consvar_t cv_cam2_noclip = CVAR_INIT ("cam2_noclip", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
+
 // [standard vs simple][p1 or p2]
 consvar_t cv_cam_savedist[2][2] = {
 	{ // standard
@@ -9981,7 +9984,7 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 		}
 	}
 
-	cameranoclip = (sign || player->powers[pw_carry] == CR_NIGHTSMODE || player->pflags & PF_NOCLIP) || (mo->flags & (MF_NOCLIP|MF_NOCLIPHEIGHT)); // Noclipping player camera noclips too!!
+	cameranoclip = (P_IsCameraNoclip(thiscam) || sign || player->powers[pw_carry] == CR_NIGHTSMODE || player->pflags & PF_NOCLIP) || (mo->flags & (MF_NOCLIP|MF_NOCLIPHEIGHT)); // Noclipping player camera noclips too!!
 
 	if (!(player->climbing || (player->powers[pw_carry] == CR_NIGHTSMODE) || player->playerstate == PST_DEAD || tutorialmode))
 	{
