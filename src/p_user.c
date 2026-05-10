@@ -10688,6 +10688,10 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 		movex = FixedMul(movex, FINECOSINE((tryzangle >> ANGLETOFINESHIFT) & FINEMASK));
 		movey = FixedMul(movey, FINECOSINE((tryzangle >> ANGLETOFINESHIFT) & FINEMASK));
 
+		// hack; decrease the camera's radius
+		INT32 radius = thiscam->radius;
+		thiscam->radius = radius / 3;
+
 		for (INT32 moved = 0; moved < trydist; moved += MAXTRYMOVE) {
 			thiscam->x += movex;
 			thiscam->y += movey;
@@ -10709,8 +10713,10 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 
 			// floor
 			if ((tmfloorz - thiscam->z > 0))
-				return false; // too big a step up
+				break; // too big a step up
 		}
+
+		thiscam->radius = radius;
 	}
 
 	return (x == thiscam->x && y == thiscam->y && z == thiscam->z && angle == thiscam->aiming);
