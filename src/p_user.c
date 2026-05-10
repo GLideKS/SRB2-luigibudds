@@ -10664,12 +10664,53 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 	if (!camstill && !resetcalled && !paused && cameraexact)
 		thiscam->angle = R_PointToAngle2(thiscam->x, thiscam->y, viewpointx, viewpointy);
 
+	// romoney5: roblox-style camera clipping
 	if (camclipping == 2)
 	{
-		INT32 newx = thiscam->x, newy = thiscam->y;
+		INT32 targetx = thiscam->x, targety = thiscam->y, targetz = thiscam->z;
+
 		thiscam->x = mo->x;
 		thiscam->y = mo->y;
-		P_TryCameraMove(newx, newy, thiscam, true);
+		if (mo->eflags & MFE_VERTICALFLIP)
+			thiscam->z = mo->z + mo->height - pviewheight - camheight / 2; // romoney5: reverse height is very slightly inaccurate
+		else
+			thiscam->z = mo->z + pviewheight;
+
+		INT32 tryangle = R_PointToAngle2(thiscam->x, thiscam->y, targetx, targety);
+		INT32 trydist = R_PointToDist2(targetx, targety, thiscam->x, thiscam->y);
+		INT32 tryzangle = R_PointToAngle2(0, 0, trydist, -(thiscam->z - targetz));
+		trydist = R_PointToDist2(0, 0, trydist, thiscam->z - targetz);
+		
+		INT32 MAXTRYMOVE = FRACUNIT / 2;
+		INT32 movex = FixedMul(FINECOSINE((tryangle >> ANGLETOFINESHIFT) & FINEMASK), MAXTRYMOVE);
+		INT32 movey = FixedMul(FINESINE((tryangle >> ANGLETOFINESHIFT) & FINEMASK), MAXTRYMOVE);
+		INT32 movez = FixedMul(FINESINE((tryzangle >> ANGLETOFINESHIFT) & FINEMASK), MAXTRYMOVE);
+		movex = FixedMul(movex, FINECOSINE((tryzangle >> ANGLETOFINESHIFT) & FINEMASK));
+		movey = FixedMul(movey, FINECOSINE((tryzangle >> ANGLETOFINESHIFT) & FINEMASK));
+
+		for (INT32 moved = 0; moved < trydist; moved += MAXTRYMOVE) {
+			thiscam->x += movex;
+			thiscam->y += movey;
+			thiscam->z += movez;
+
+			// reached max distance
+			if (moved >= trydist)
+				break;
+
+			// one-side wall
+			if (!P_CheckCameraPosition(thiscam->x, thiscam->y, thiscam))
+				break; // solid wall or thing
+
+			if (tmceilingz - tmfloorz < thiscam->height)
+				break; // doesn't fit
+
+			if (tmceilingz - thiscam->z < thiscam->height)
+				break;
+
+			// floor
+			if ((tmfloorz - thiscam->z > 0))
+				return false; // too big a step up
+		}
 	}
 
 	return (x == thiscam->x && y == thiscam->y && z == thiscam->z && angle == thiscam->aiming);
