@@ -2170,7 +2170,7 @@ static int lib_pTryCameraMove(lua_State *L)
 
 	if (!cam)
 		return LUA_ErrInvalid(L, "camera_t");
-	lua_pushboolean(L, P_TryCameraMove(x, y, cam));
+	lua_pushboolean(L, P_TryCameraMove(x, y, cam, false));
 	return 1;
 }
 

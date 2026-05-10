@@ -2314,12 +2314,12 @@ boolean P_IsCameraNoclip(camera_t *thiscam)
 {
 	if (thiscam == &camera)
 	{
-		if (cv_cam_noclip.value)
+		if (cv_cam_clipping.value != 1)
 			return true;
 	}
 	else // Camera 2
 	{
-		if (cv_cam2_noclip.value)
+		if (cv_cam2_clipping.value != 1)
 			return true;
 	}
 
@@ -2509,7 +2509,7 @@ boolean P_CheckCameraPosition(fixed_t x, fixed_t y, camera_t *thiscam)
 //
 // Return true if the move succeeded and no sliding should be done.
 //
-boolean P_TryCameraMove(fixed_t x, fixed_t y, camera_t *thiscam)
+boolean P_TryCameraMove(fixed_t x, fixed_t y, camera_t *thiscam, boolean exact)
 {
 	subsector_t *s = R_PointInSubsector(x, y);
 	boolean itsatwodlevel = false;
@@ -2524,7 +2524,7 @@ boolean P_TryCameraMove(fixed_t x, fixed_t y, camera_t *thiscam)
 		|| (thiscam == &camera2 && players[secondarydisplayplayer].mo && (players[secondarydisplayplayer].mo->flags2 & MF2_TWOD)))
 		itsatwodlevel = true;
 
-	if (!itsatwodlevel && players[displayplayer].mo && !P_IsCameraNoclip(thiscam))
+	if (!itsatwodlevel && players[displayplayer].mo && (!P_IsCameraNoclip(thiscam) || exact))
 	{
 		fixed_t tryx = thiscam->x;
 		fixed_t tryy = thiscam->y;
@@ -3621,11 +3621,11 @@ retry:
 	// move up to the wall
 	if (bestslidefrac == FRACUNIT+1)
 	{
-		retval = P_TryCameraMove(thiscam->x, thiscam->y + thiscam->momy, thiscam);
+		retval = P_TryCameraMove(thiscam->x, thiscam->y + thiscam->momy, thiscam, false);
 		// the move must have hit the middle, so stairstep
 stairstep:
 		if (!retval) // Allow things to drop off.
-			P_TryCameraMove(thiscam->x + thiscam->momx, thiscam->y, thiscam);
+			P_TryCameraMove(thiscam->x + thiscam->momx, thiscam->y, thiscam, false);
 		return;
 	}
 
@@ -3636,7 +3636,7 @@ stairstep:
 		newx = FixedMul(thiscam->momx, bestslidefrac);
 		newy = FixedMul(thiscam->momy, bestslidefrac);
 
-		retval = P_TryCameraMove(thiscam->x + newx, thiscam->y + newy, thiscam);
+		retval = P_TryCameraMove(thiscam->x + newx, thiscam->y + newy, thiscam, false);
 
 		if (!retval)
 			goto stairstep;
@@ -3660,7 +3660,7 @@ stairstep:
 	thiscam->momx = tmxmove;
 	thiscam->momy = tmymove;
 
-	retval = P_TryCameraMove(thiscam->x + tmxmove, thiscam->y + tmymove, thiscam);
+	retval = P_TryCameraMove(thiscam->x + tmxmove, thiscam->y + tmymove, thiscam, false);
 
 	if (!retval)
 		goto retry;
