@@ -9856,8 +9856,8 @@ consvar_t cv_cam_clipping = CVAR_INIT ("cam_clipping", "Vanilla", CV_SAVE|CV_ALL
 consvar_t cv_cam2_clipping = CVAR_INIT ("cam2_clipping", "Vanilla", CV_SAVE|CV_ALLOWLUA|CV_CLIENT, clipping_cons_t, NULL);
 
 // romoney5: exact camera aiming
-consvar_t cv_cam_exact = CVAR_INIT ("cam_exact", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
-consvar_t cv_cam2_exact = CVAR_INIT ("cam2_exact", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
+consvar_t cv_cam_exact = CVAR_INIT ("cam_exact", "Off", CV_SAVE|CV_ALLOWLUA|CV_CLIENT, CV_OnOff, NULL);
+consvar_t cv_cam2_exact = CVAR_INIT ("cam2_exact", "Off", CV_SAVE|CV_ALLOWLUA|CV_CLIENT, CV_OnOff, NULL);
 
 // [standard vs simple][p1 or p2]
 consvar_t cv_cam_savedist[2][2] = {
