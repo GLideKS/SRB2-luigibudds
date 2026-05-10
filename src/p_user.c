@@ -9849,6 +9849,7 @@ consvar_t cv_cam2_turnmultiplier = CVAR_INIT ("cam2_turnmultiplier", "0.75", CV_
 consvar_t cv_cam2_orbit = CVAR_INIT ("cam2_orbit", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
 consvar_t cv_cam2_adjust = CVAR_INIT ("cam2_adjust", "On", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
 
+// romoney5: noclip camera
 consvar_t cv_cam_noclip = CVAR_INIT ("cam_noclip", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
 consvar_t cv_cam2_noclip = CVAR_INIT ("cam2_noclip", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
 
@@ -10451,7 +10452,8 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 
 		// camera fit?
 		if (myceilingz != myfloorz
-			&& myceilingz - thiscam->height < z)
+			&& myceilingz - thiscam->height < z
+			&& !cameranoclip)
 		{
 /*			// no fit
 			if (!resetcalled && !cameranoclip)
