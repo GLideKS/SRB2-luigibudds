@@ -10227,7 +10227,8 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 		if (!resetcalled && ((thiscam == &camera && cv_cam_adjust.value) || (thiscam == &camera2 && cv_cam2_adjust.value)))
 		{
 			if (!(mo->eflags & MFE_JUSTHITFLOOR) && (P_IsObjectOnGround(mo)) // Check that player is grounded
-			&& thiscam->ceilingz - thiscam->floorz >= P_GetPlayerHeight(player)) // Check that camera's sector is large enough for the player to fit into, at least
+			&& thiscam->ceilingz - thiscam->floorz >= P_GetPlayerHeight(player) // Check that camera's sector is large enough for the player to fit into, at least
+			&& thiscam->z >= thiscam->floorz && thiscam->z <= thiscam->ceilingz) // romoney5: if the camera is out of bounds, don't snap
 			{
 				if (mo->eflags & MFE_VERTICALFLIP) // if player is upside-down
 				{
