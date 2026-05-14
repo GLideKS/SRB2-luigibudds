@@ -1460,8 +1460,8 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher, boolean heightcheck)
 					if (players[i].ingame && players[i].powers[pw_carry] == CR_NIGHTSMODE)
 						players[i].drillmeter += TICRATE/2;
 			}
-			else if (player->bot && player->bot != BOT_MPAI)
-				players[consoleplayer].drillmeter += TICRATE/2;
+			else if ((player->bot == BOT_2PAI || player->bot == BOT_2PHUMAN) && player->botleader)
+				player->botleader->drillmeter += TICRATE/2;
 			else
 				player->drillmeter += TICRATE/2;
 
