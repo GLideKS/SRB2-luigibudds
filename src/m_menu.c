@@ -3614,7 +3614,7 @@ void M_Drawer(void)
 				V_DrawThinString(vid.dup, vid.height - 17*vid.dup, V_NOSCALESTART|V_TRANSLUCENT|V_ALLOWLOWERCASE, compbranch);
 				V_DrawThinString(vid.dup, vid.height -  9*vid.dup, V_NOSCALESTART|V_TRANSLUCENT|V_ALLOWLOWERCASE, comprevision);
 #else // Regular build
-				V_DrawThinString(vid.dup, vid.height -  9*vid.dup, V_NOSCALESTART|V_TRANSLUCENT|V_ALLOWLOWERCASE, va("%s", VERSIONSTRING));
+				V_DrawThinString(vid.dup, vid.height -  9*vid.dup, V_NOSCALESTART|V_40TRANS|V_ALLOWLOWERCASE, "\x81""Banpyura ""\x80"VERSIONSTRING);
 #endif
 			}
 		}
