@@ -206,9 +206,6 @@ static void M_RoomMenu(INT32 choice);
 // NEEDED FUNCTION PROTOTYPES GO HERE
 // ==========================================================================
 
-// the haxor message menu
-menu_t MessageDef;
-
 menu_t SPauseDef;
 
 // Level Select
