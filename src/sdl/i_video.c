@@ -1846,6 +1846,9 @@ void I_StartupGraphics(void)
 	// Window icon
 #ifdef HAVE_IMAGE
 	icoSurface = IMG_ReadXPMFromArray(SDL_icon_xpm);
+
+	if (icoSurface == NULL)
+		CONS_Printf(M_GetText("Couldn't load XPM icon: %s\n"), SDL_GetError());
 #endif
 
 	// Fury: we do window initialization after GL setup to allow
