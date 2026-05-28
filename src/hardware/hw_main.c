@@ -4659,13 +4659,19 @@ static void HWR_ProjectSprite(mobj_t *thing)
 
 		vector2_t patch_defaultpivot = {.x = spr_offset, .y = (spr_height / 2)};
 		
-		// romoney5 TODO
-		/*R_GetPivotVectorFromSpriteInfo(&affine_pivot,
+		R_GetPivotVectorFromSpriteInfo(&affine_pivot,
 									   &patch_defaultpivot,
 									   sprinfo,
-									   (thing->frame & FF_FRAMEMASK));*/
+									   (thing->frame & FF_FRAMEMASK));
 
-		affine_pivotoffsetdiff.x = FIXED_TO_FLOAT(affine_pivot.x - spr_offset);
+		fixed_t use_xoffset = spr_offset;
+
+		if (flip)
+		{
+			use_xoffset = spr_width - spr_offset;
+		}
+
+		affine_pivotoffsetdiff.x = FIXED_TO_FLOAT(affine_pivot.x - use_xoffset);
 		affine_pivotoffsetdiff.y = FIXED_TO_FLOAT(affine_pivot.y - spr_topoffset);
 
 		affine_scale.x = FLOAT_TO_FIXED(spritexscale * this_scale);
@@ -4679,8 +4685,7 @@ static void HWR_ProjectSprite(mobj_t *thing)
 
 		/*const fixed_t rolloffs_x = FixedDiv(interptarg->rollingxoffset * FRACUNIT, highresscale) * (((thing->renderflags & RF_FLIPOFFSETS) && flip) ? -1 : 1);
 		const fixed_t rolloffs_y = FixedDiv(interptarg->rollingyoffset * FRACUNIT, highresscale);*/
-		// romoney5 TODO
-		const fixed_t rolloffs_x = 0 * (((thing->renderflags & RF_FLIPOFFSETS) && flip) ? -1 : 1);
+		const fixed_t rolloffs_x = 0;
 		const fixed_t rolloffs_y = 0;
 		fixed_t y_piv = affine_pivot.y;
 
@@ -4788,12 +4793,11 @@ static void HWR_ProjectSprite(mobj_t *thing)
 	else
 	{
 #ifdef ROTSPRITE
-		// romoney5 TODO?
-		//if (visoffs.x)
-		//{
-		//	//visoffs.x = (FixedDiv((visoffs.x * FRACUNIT), mapobjectscale));
-		//	visoffs.x = (visoffs.x * FRACUNIT);
-		//}
+		if (visoffs.x)
+		{
+			//visoffs.x = (FixedDiv((visoffs.x * FRACUNIT), mapobjectscale));
+			visoffs.x = (visoffs.x * FRACUNIT);
+		}
 #endif
 		if (affinesprite)
 		{
@@ -4899,12 +4903,8 @@ static void HWR_ProjectSprite(mobj_t *thing)
 				affine_rootpoint.x = tr_x;
 				affine_rootpoint.z = tr_y;
 
-				// Rescale X and Y so we can multiply the pivot offset differences by them.
-				const float f_affinexscale = f_xlen / (FIXED_TO_FLOAT(spr_width));
-				const float f_affineyscale = f_ylen / (FIXED_TO_FLOAT(spr_height));
-
-				affine_pivotoffsetdiff.x *= f_affinexscale;
-				affine_pivotoffsetdiff.y *= f_affineyscale;
+				affine_pivotoffsetdiff.x *= FIXED_TO_FLOAT(affine_scale.x);
+				affine_pivotoffsetdiff.y *= FIXED_TO_FLOAT(affine_scale.y);
 
 				affine_rootpoint.x -= (affine_pivotoffsetdiff.x * rightcos);
 				affine_rootpoint.z -= (affine_pivotoffsetdiff.x * rightsin);

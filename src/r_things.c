@@ -1947,28 +1947,27 @@ static void R_ProjectBoundingBox(mobj_t *thing, vissprite_t *vis)
 	}
 }
 
-// romoney5 TODO
-//void R_GetPivotVectorFromSpriteInfo(vector2_t* out,
-//				    vector2_t* defaultpiv,
-//				    spriteinfo_t* sprinfo,
-//				    size_t frame)
-//{
-//	if (in_bit_array(sprinfo->available, frame))
-//	{
-//		out->x = (sprinfo->pivot[frame].x * FRACUNIT);
-//		out->y = (sprinfo->pivot[frame].y * FRACUNIT);
-//	}
-//	else if (in_bit_array(sprinfo->available, SPRINFO_DEFAULT_PIVOT))
-//	{
-//		out->x = (sprinfo->pivot[SPRINFO_DEFAULT_PIVOT].x * FRACUNIT);
-//		out->y = (sprinfo->pivot[SPRINFO_DEFAULT_PIVOT].y * FRACUNIT);
-//	}
-//	else
-//	{
-//		out->x = defaultpiv->x;
-//		out->y = defaultpiv->y;
-//	}
-//}
+void R_GetPivotVectorFromSpriteInfo(vector2_t* out,
+				    vector2_t* defaultpiv,
+				    spriteinfo_t* sprinfo,
+				    size_t frame)
+{
+	if (sprinfo->available)
+	{
+		out->x = (sprinfo->pivot[frame].x * FRACUNIT);
+		out->y = (sprinfo->pivot[frame].y * FRACUNIT);
+	}
+	/*else if (sprinfo->available & SPRINFO_DEFAULT_PIVOT)
+	{
+		out->x = (sprinfo->pivot[SPRINFO_DEFAULT_PIVOT].x * FRACUNIT);
+		out->y = (sprinfo->pivot[SPRINFO_DEFAULT_PIVOT].y * FRACUNIT);
+	}*/
+	else
+	{
+		out->x = defaultpiv->x;
+		out->y = defaultpiv->y;
+	}
+}
 
 //
 // R_ProjectSprite
@@ -2376,12 +2375,8 @@ static void R_ProjectSprite(mobj_t *thing)
 
 		V_GetAffineBounds(&affine_transform, patch, FRACUNIT, &affine_bounds, true);
 
-		// Rescale X and Y so we can multiply the pivot offset differences by them.
-		const float f_affinexscale = (float)(affine_bounds.xlen) / (float)(patch->width);
-		const float f_affineyscale = (float)(affine_bounds.ylen) / (float)(patch->height);
-
-		affine_pivotoffsetdiff.x *= f_affinexscale;
-		affine_pivotoffsetdiff.y *= f_affineyscale;
+		affine_pivotoffsetdiff.x *= FIXED_TO_FLOAT(affine_scale.x);
+		affine_pivotoffsetdiff.y *= FIXED_TO_FLOAT(affine_scale.y);
 
 		spr_width = (affine_bounds.xlen * FRACUNIT);
 		spr_offset = (affine_bounds.xleft * FRACUNIT) - FLOAT_TO_FIXED(affine_pivotoffsetdiff.x);
