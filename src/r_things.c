@@ -4256,7 +4256,9 @@ boolean R_ThingIsAffineSprite(mobj_t *thing)
 	// Yes, I'm lazy; I've been at this for TWO WEEKS.
 	boolean papersprite = (R_ThingIsPaperSprite(thing));
 
-	boolean notaffine = ((thing->frame & FF_NOAFFINE || thing->renderflags & RF_NOAFFINE) || papersprite);
+	boolean player = (thing->player != NULL);
+
+	boolean notaffine = (((thing->frame & FF_NOAFFINE || thing->renderflags & RF_NOAFFINE) || papersprite) && !player);
 
 	return (!notaffine);
 }

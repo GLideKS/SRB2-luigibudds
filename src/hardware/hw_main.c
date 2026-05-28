@@ -2946,7 +2946,7 @@ static void HWR_DrawDropShadow(mobj_t *thing, fixed_t scale)
 // This is expecting a pointer to an array containing 4 wallVerts for a sprite
 static void HWR_RotateSpritePolyToAim(gl_vissprite_t *spr, FOutVector *wallVerts, const boolean precip)
 {
-	const boolean affine = ((spr->mobj && !P_MobjWasRemoved(spr->mobj)) && ((spr->mobj->player != NULL) || R_ThingIsAffineSprite(spr->mobj)));
+	const boolean affine = ((spr->mobj && !P_MobjWasRemoved(spr->mobj)) && R_ThingIsAffineSprite(spr->mobj));
 
 	if (cv_glspritebillboarding.value
 		&& spr && spr->mobj && !R_ThingIsPaperSprite(spr->mobj)
@@ -3395,7 +3395,7 @@ static void HWR_DrawSprite(gl_vissprite_t *spr)
 	FOutVector wallVerts[4];
 	patch_t *gpatch;
 	FSurfaceInfo Surf;
-	const boolean affine = ((spr->mobj && !P_MobjWasRemoved(spr->mobj)) && ((spr->mobj->player != NULL) || R_ThingIsAffineSprite(spr->mobj)));
+	const boolean affine = ((spr->mobj && !P_MobjWasRemoved(spr->mobj)) && R_ThingIsAffineSprite(spr->mobj));
 	const boolean splat = R_ThingIsFloorSprite(spr->mobj);
 
 	if (!spr->mobj)
@@ -4422,7 +4422,7 @@ static void HWR_ProjectSprite(mobj_t *thing)
 #endif
 
 	// Affines
-	boolean affinesprite = ((thing->player != NULL) || R_ThingIsAffineSprite(thing));
+	boolean affinesprite = R_ThingIsAffineSprite(thing);
 	affine_t affine_transform = {0};
 	vector2_t affine_scale = {0};
 	f_vector2_t affine_pivotoffsetdiff = {0};
