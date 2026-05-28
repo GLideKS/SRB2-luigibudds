@@ -2200,15 +2200,11 @@ static void R_ProjectSprite(mobj_t *thing)
 	patch = W_CachePatchNum(sprframe->lumppat[rot], PU_SPRITE);
 
 #ifdef ROTSPRITE
-//<<<<<<< HEAD:src/r_things.c
 	spriterotangle = R_SpriteRotationAngle(&interp);
-//=======
-//	spriterotangle = R_SpriteRotationAngle(thing, NULL, &interp, (affinesprite && vflip));
 
 	if (spriterotangle
 	&& !(splat && !(thing->renderflags & RF_NOSPLATROLLANGLE))
 	&& (!affinesprite)) // Affines are capable of rotation; this is redundant
-//>>>>>>> 6e99c9b5cd (Merge pull request '[FEAT] Affine sprite rendering' (#223) from softwarehell into next):src/r_things.cpp
 	{
 		if (papersprite && ang >= ANGLE_180)
 		{
