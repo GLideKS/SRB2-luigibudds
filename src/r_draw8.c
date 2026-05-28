@@ -19,6 +19,74 @@
 // a has a constant z depth from top to bottom.
 //
 
+// Function flow: Holes -> Translation -> Brightmap -> Colormap -> Translucency
+// "Why are these in nested functions for standard columns?" Uhhhhhh iunno lol
+// I make-a da code-a
+// romoney5: these functions are directly translated from c++slop
+
+//template<DrawColumnType Type>
+/*FUNCINLINE static ATTRINLINE UINT16 R_DrawColumnAffinePixel(UINT8* dest, INT32 bit)
+{
+	const UINT16 pixel = (UINT16 *)(dc_source)[bit];
+
+	UINT8 col = (UINT8)(pixel & 0xff);
+	
+	if (pixel < 0xff00)
+	{
+		return 0;
+	}
+	
+	// romoney5 TODO
+	//if (Type & DrawColumnType::DC_HOLES)
+	//{
+	//	if (col == TRANSPARENTPIXEL)
+	//	{
+	//		return 0;
+	//	}
+	//}
+
+	//if (Type & DrawColumnType::DC_COLORMAP)
+	//{
+	//	// Remap to the current translation
+	//	col = dc->translation[col];
+	//}
+
+	boolean was_brightmapped = false;
+
+	//if (Type & DrawColumnType::DC_BRIGHTMAP)
+	//{
+	//	// For affine drawers, dc->brightmap points to a *flat*, and not a *column*.
+	//	// Keep that in mind before you do something that causes a bunch of segfaults!
+
+	//	if (dc_brightmap)
+	//	{
+	//		const UINT16 bmpixel = (UINT16 *)(dc_brightmap)[bit];
+
+	//		if ((bmpixel & 0xff) == BRIGHTPIXEL)
+	//		{
+	//			// Pixel is part of the brightmap
+	//			col = dc_fullbright[col];
+	//			was_brightmapped = true;
+	//		}
+	//	}
+	//}
+
+	if (!was_brightmapped)
+	{
+		col = dc_colormap[col];
+	}
+
+	//if (Type & DrawColumnType::DC_TRANSMAP)
+	//{
+	//	// Pixel is translucent
+	//	col = *(dc_transmap + (col << 8) + (*dest));
+	//}
+
+	*dest = col;
+
+	return (0xff00 | col);
+}*/
+
 /**	\brief The R_DrawColumn_8 function
 	Experiment to make software go faster. Taken from the Boom source
 */
