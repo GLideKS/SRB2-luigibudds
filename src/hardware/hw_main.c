@@ -4865,6 +4865,7 @@ static void HWR_ProjectSprite(mobj_t *thing)
 		{
 			// Flip the upper offset, and use *that* as the pivot
 			y_piv = spr_height - y_piv;
+			angle = -angle;
 		}
 
 		//fixed_t sa = FSIN(angle), ca = FCOS(angle);

@@ -2329,6 +2329,7 @@ static void R_ProjectSprite(mobj_t *thing)
 		{
 			// Flip the upper offset, and use *that* as the pivot
 			y_piv = (patch->height * FRACUNIT) - y_piv;
+			angle = -angle;
 		}
 
 		//fixed_t sa = FSIN(angle), ca = FCOS(angle);
