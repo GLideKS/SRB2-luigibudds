@@ -194,11 +194,11 @@ consvar_t cv_renderstats = CVAR_INIT ("renderstats", "Off", 0, CV_OnOff, NULL);
 
 consvar_t cv_flashes = CVAR_INIT ("flashes", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
 
-consvar_t cv_affinerotation = CVAR_INIT("affinerotation", "On", CV_SAVE, CV_OnOff, NULL);
-consvar_t cv_fakerollangle = CVAR_INIT ("fakerollangle", "Off", CV_SAVE, CV_OnOff, NULL);
+consvar_t cv_affinerotation = CVAR_INIT("affinerotation", "On", CV_SAVE | CV_CLIENT, CV_OnOff, NULL);
+consvar_t cv_fakerollangle = CVAR_INIT ("fakerollangle", "Off", CV_SAVE | CV_CLIENT, CV_OnOff, NULL);
 
-consvar_t cv_affineprescale = CVAR_INIT ("affineprescale", "Off", CV_SAVE, CV_OnOff, NULL);
-consvar_t cv_affinemosaic = CVAR_INIT ("affinemosaic", "Off", CV_SAVE, CV_OnOff, NULL);
+consvar_t cv_affineprescale = CVAR_INIT ("affineprescale", "Off", CV_SAVE | CV_CLIENT, CV_OnOff, NULL);
+consvar_t cv_affinemosaic = CVAR_INIT ("affinemosaic", "Off", CV_SAVE | CV_CLIENT, CV_OnOff, NULL);
 
 static CV_PossibleValue_t affineangle_cons_t[] = {{0, "MIN"}, {360 * FRACUNIT, "MAX"}, {0, NULL}};
 static CV_PossibleValue_t affinetest_cons_t[] = {{0, "Off"}, {1, "On"}, {2, "Auto"}, {0, NULL}};
