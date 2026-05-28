@@ -38,6 +38,11 @@ You can compile the source code normally (see "Compiling") and put the binary in
 - When joining, show the amount of and types of addons loaded by the server! ("`showaddoninfo`", Code from [SRB2Kart Saturn](https://github.com/Indev450/SRB2Kart-Saturn/pull/224))
 
 ## Visual
+- Smooth/affine sprite rotation! (Code from [BlanKart](https://codeberg.org/NepDisk/blankart/pulls/223))
+  - "`affinerotation`": off = vanilla rotation, on = smooth rotation
+  - "`affinemosaic`": off = regular smooth rotation, on = aliased rotation
+  - "`affineprescale`": off = rotate then scale, on = scale then rotate
+  - "`fakerollangle`": off = regular smooth rotation, on = rotation in increments
 - Toggable mobj pitch/roll functional (3d rotation for models on slopes, like DRRR). Option located in Video Settings -> Level -> "Pitch/Roll Rotation"
 - New camera options!
   - "`cam_clipping`": 0 = noclip, 1 = vanilla, 2 = Roblox-style clip
