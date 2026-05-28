@@ -34,6 +34,7 @@
 #include "../r_main.h"
 #include "../tables.h"
 #include "../z_zone.h"
+#include <stdbool.h>
 #if defined (__GNUC__) || defined (__unix__)
 #include <unistd.h>
 #endif
@@ -153,11 +154,12 @@ void SV_SavedGame(void)
 #define TMPSAVENAME "$$$.sav"
 
 
-void CL_LoadReceivedSavegame(boolean reloading)
+boolean CL_LoadReceivedSavegame(boolean reloading)
 {
 	save_t savebuffer;
 	size_t decompressedlen;
 	char tmpsave[256];
+	boolean succeeded = true;
 
 	FreeFileNeeded();
 
@@ -170,7 +172,7 @@ void CL_LoadReceivedSavegame(boolean reloading)
 	if (!savebuffer.size)
 	{
 		I_Error("Can't read savegame sent");
-		return;
+		return false;
 	}
 
 	// Decompress saved game if necessary.
@@ -192,7 +194,7 @@ void CL_LoadReceivedSavegame(boolean reloading)
 	automapactive = false;
 
 	// load a base level
-	if (P_LoadNetGame(&savebuffer, reloading))
+	if ((succeeded = P_LoadNetGame(&savebuffer, reloading)))
 	{
 		const UINT8 actnum = mapheaderinfo[gamemap-1]->actnum;
 		CONS_Printf(M_GetText("Map is now \"%s"), G_BuildMapName(gamemap));
@@ -220,6 +222,8 @@ void CL_LoadReceivedSavegame(boolean reloading)
 	// so they know they can resume the game
 	netbuffer->packettype = PT_RECEIVEDGAMESTATE;
 	HSendPacket(servernode, true, 0, 0);
+
+	return succeeded;
 }
 
 void CL_ReloadReceivedSavegame(void)

@@ -1535,8 +1535,8 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 			if (fileneeded[0].status == FS_FOUND)
 			{
 				// Gamestate is now handled within CL_LoadReceivedSavegame()
-				CL_LoadReceivedSavegame(false);
-				cl_mode = CL_CONNECTED;
+				if (CL_LoadReceivedSavegame(false))
+					cl_mode = CL_CONNECTED;
 			} // don't break case continue to CL_CONNECTED
 			else
 				break;
@@ -1654,9 +1654,14 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 		if (gamekeydown[KEY_ESCAPE] || gamekeydown[KEY_JOY1+1] || cl_mode == CL_ABORTED)
 		{
 			CONS_Printf(M_GetText("Network game synchronization aborted.\n"));
-			M_StartMessage(M_GetText("Network game synchronization aborted.\n\nPress ESC\n"), NULL, MM_NOTHING);
+			// M_StartMessage(M_GetText("Network game synchronization aborted.\n\nPress ESC\n"), NULL, MM_NOTHING);
+
+			menu_t *menu = currentMenu;
 
 			AbortConnection();
+
+			if (menu == &MessageDef)
+				currentMenu = &MessageDef;
 
 			memset(gamekeydown, 0, NUMKEYS);
 			return false;

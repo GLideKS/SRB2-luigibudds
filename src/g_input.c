@@ -20,6 +20,7 @@
 #include "console.h"
 #include "lua_script.h"
 #include "lua_libs.h"
+#include "i_system.h" // I_SetJoystickFocus
 
 #define MAXMOUSESENSITIVITY 100 // sensitivity steps
 
@@ -32,6 +33,7 @@ consvar_t cv_mousesens2 = CVAR_INIT ("mousesens2", "20", CV_SAVE, mousesens_cons
 consvar_t cv_mouseysens = CVAR_INIT ("mouseysens", "20", CV_SAVE, mousesens_cons_t, NULL);
 consvar_t cv_mouseysens2 = CVAR_INIT ("mouseysens2", "20", CV_SAVE, mousesens_cons_t, NULL);
 consvar_t cv_controlperkey = CVAR_INIT ("controlperkey", "One", CV_SAVE, onecontrolperkey_cons_t, NULL);
+consvar_t cv_gamepadifunfocused = CVAR_INIT ("gamepadunfocused", "Off", CV_SAVE|CV_CALL|CV_CLIENT, CV_OnOff, I_SetJoystickFocus);
 
 mouse_t mouse;
 mouse_t mouse2;

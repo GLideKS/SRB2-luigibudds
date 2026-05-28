@@ -1338,6 +1338,11 @@ static int joy_open(int joyindex)
 	}
 }
 
+void I_SetJoystickFocus(void)
+{
+	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, cv_gamepadifunfocused.value ? "1" : "0");
+}
+
 //Joystick2
 
 /**	\brief Joystick 2 buttons states

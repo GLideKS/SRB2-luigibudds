@@ -189,6 +189,8 @@ INT32 I_NumJoys(void);
 */
 const char *I_GetJoyName(INT32 joyindex);
 
+void I_SetJoystickFocus(void);
+
 #ifndef NOMUMBLE
 #include "p_mobj.h" // mobj_t
 #include "s_sound.h" // listener_t

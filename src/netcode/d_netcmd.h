@@ -81,7 +81,6 @@ extern consvar_t cv_mute;
 extern consvar_t cv_killingdead;
 extern consvar_t cv_pause;
 
-extern consvar_t cv_restrictmoveskinchange;
 extern consvar_t cv_restrictskinchange, cv_allowteamchange, cv_respawntime;
 
 extern consvar_t cv_teleporters, cv_superring, cv_supersneakers, cv_invincibility;

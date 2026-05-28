@@ -174,7 +174,7 @@ void R_DrawFloorSplat(vissprite_t *spr)
 		splat.scale = FixedMul(splat.scale, ((skin_t *)mobj->skin)->highresscale);
 
 	if (spr->rotateflags & SRF_3D || renderflags & RF_NOSPLATBILLBOARD)
-		splatangle = mobj->angle;
+		splatangle = R_InterpolateAngle(mobj->old_angle, mobj->angle);
 	else
 		splatangle = spr->viewpoint.angle;
 

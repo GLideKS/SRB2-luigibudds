@@ -49,6 +49,7 @@
 #include "SDL_image.h"
 #elif defined (__unix__) || (!defined(__APPLE__) && defined (UNIXCOMMON)) // Windows & Mac don't need this, as SDL will do it for us.
 #define LOAD_XPM //I want XPM!
+#define EXTENDED_XPM_COLORS // romoney5: yeah, i've got space
 #include "IMG_xpm.c" //Alam: I don't want to add SDL_Image.dll/so
 #define HAVE_IMAGE //I have SDL_Image, sortof
 #endif
@@ -1687,7 +1688,7 @@ static SDL_bool Impl_CreateWindow(SDL_bool fullscreen)
 #endif
 
 	// Create a window
-	window = SDL_CreateWindow("SRB2 "VERSIONSTRING, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+	window = SDL_CreateWindow("SRB2 Banpyura "VERSIONSTRING, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			realwidth, realheight, flags);
 
 
@@ -1855,6 +1856,9 @@ void I_StartupGraphics(void)
 	// Window icon
 #ifdef HAVE_IMAGE
 	icoSurface = IMG_ReadXPMFromArray(SDL_icon_xpm);
+
+	if (icoSurface == NULL)
+		CONS_Printf(M_GetText("Couldn't load XPM icon: %s\n"), SDL_GetError());
 #endif
 
 	// Fury: we do window initialization after GL setup to allow

@@ -5007,7 +5007,6 @@ struct int_const_s const INT_CONST[] = {
 
 	// doomdef.h constants
 	{"TICRATE",TICRATE},
-	{"TR",TICRATE},
 	{"MUSICRATE",MUSICRATE},
 	{"RING_DIST",RING_DIST},
 	{"PUSHACCEL",PUSHACCEL},
