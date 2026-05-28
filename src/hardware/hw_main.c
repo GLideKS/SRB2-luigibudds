@@ -3104,18 +3104,25 @@ static void HWR_SplitSprite(gl_vissprite_t *spr)
 		baseWallVerts[0].t = baseWallVerts[1].t = ((GLPatch_t *)gpatch->hardware)->max_t;
 	}
 
-	// if it has a dispoffset, push it a little towards the camera
-	if (spr->dispoffset) {
-		float co = -gl_viewcos*(0.05f*spr->dispoffset);
-		float si = -gl_viewsin*(0.05f*spr->dispoffset);
-		baseWallVerts[0].z = baseWallVerts[3].z = baseWallVerts[0].z+si;
-		baseWallVerts[1].z = baseWallVerts[2].z = baseWallVerts[1].z+si;
-		baseWallVerts[0].x = baseWallVerts[3].x = baseWallVerts[0].x+co;
-		baseWallVerts[1].x = baseWallVerts[2].x = baseWallVerts[1].x+co;
-	}
-
 	// Let dispoffset work first since this adjust each vertex
 	HWR_RotateSpritePolyToAim(spr, baseWallVerts, false);
+
+	// push it toward the camera to mitigate floor-clipping sprites
+	float sprdist = 0;
+
+	float f_xdiff = (spr->x1 - gl_viewx);
+	float f_ydiff = (spr->z1 - gl_viewy);
+	float f_zdiff = (spr->gzt - gl_viewz);
+
+	sprdist = sqrtf((f_xdiff * f_xdiff) + (f_ydiff * f_ydiff) + (f_zdiff * f_zdiff));
+
+	float distfact = ((2.0f * spr->dispoffset)/* + 20.0f*/) / sprdist;
+	for (i = 0; i < 4; i++)
+	{
+		baseWallVerts[i].x += (gl_viewx - baseWallVerts[i].x) * distfact;
+		baseWallVerts[i].z += (gl_viewy - baseWallVerts[i].z) * distfact;
+		baseWallVerts[i].y += (gl_viewz - baseWallVerts[i].y) * distfact;
+	}
 
 	realtop = top = baseWallVerts[3].y;
 	realbot = bot = baseWallVerts[0].y;
@@ -3597,18 +3604,38 @@ static void HWR_DrawSprite(gl_vissprite_t *spr)
 
 	if (!splat)
 	{
-		// if it has a dispoffset, push it a little towards the camera
-		if (spr->dispoffset) {
-			float co = -gl_viewcos*(0.05f*spr->dispoffset);
-			float si = -gl_viewsin*(0.05f*spr->dispoffset);
-			wallVerts[0].z = wallVerts[3].z = wallVerts[0].z+si;
-			wallVerts[1].z = wallVerts[2].z = wallVerts[1].z+si;
-			wallVerts[0].x = wallVerts[3].x = wallVerts[0].x+co;
-			wallVerts[1].x = wallVerts[2].x = wallVerts[1].x+co;
-		}
-
 		// Let dispoffset work first since this adjust each vertex
 		HWR_RotateSpritePolyToAim(spr, wallVerts, false);
+
+		// push it toward the camera to mitigate floor-clipping sprites
+		polyvertex_t pushpoint = { 0 };
+
+		if (affine)
+		{
+			pushpoint.x = spr->affine.bounding_point.x;
+			pushpoint.y = spr->affine.bounding_point.y;
+			pushpoint.z = spr->affine.bounding_point.z;
+		}
+		else
+		{
+			pushpoint.x = spr->x1;
+			pushpoint.y = spr->z1;
+			pushpoint.z = spr->gzt;
+		}
+
+		float f_xdiff = (pushpoint.x - gl_viewx);
+		float f_ydiff = (pushpoint.y - gl_viewy);
+		float f_zdiff = (pushpoint.z - gl_viewz);
+
+		float sprdist = sqrtf((f_xdiff * f_xdiff) + (f_ydiff * f_ydiff) + (f_zdiff * f_zdiff));
+
+		float distfact = ((2.0f * spr->dispoffset)/* + 20.0f*/) / sprdist;
+		for (size_t i = 0; i < 4; i++)
+		{
+			wallVerts[i].x += (gl_viewx - wallVerts[i].x) * distfact;
+			wallVerts[i].z += (gl_viewy - wallVerts[i].z) * distfact;
+			wallVerts[i].y += (gl_viewz - wallVerts[i].y) * distfact;
+		}
 	}
 
 	// This needs to be AFTER the shadows so that the regular sprites aren't drawn completely black.
@@ -4604,11 +4631,11 @@ static void HWR_ProjectSprite(mobj_t *thing)
 			flip ^= (1<<rot);
 	}
 
-	float highresscale = 1.0f;
+	fixed_t highresscale = FRACUNIT;
 	if (thing->skin && ((skin_t*)thing->skin)->flags & SF_HIRES)
 	{
-		highresscale = FIXED_TO_FLOAT(((skin_t*)thing->skin)->highresscale);
-		this_scale *= highresscale;
+		highresscale = ((skin_t*)thing->skin)->highresscale;
+		this_scale *= FIXED_TO_FLOAT(highresscale);
 	}
 
 	spr_width = spritecachedinfo[lumpoff].width;
@@ -4667,6 +4694,15 @@ static void HWR_ProjectSprite(mobj_t *thing)
 		if (flip)
 		{
 			use_xoffset = spr_width - spr_offset;
+		}
+
+		if (thing->renderflags & RF_ABSOLUTEOFFSETS)
+		{
+			use_xoffset = FixedDiv(interp.spritexoffset, highresscale);
+		}
+		else
+		{
+			use_xoffset += (FixedDiv(interp.spritexoffset, highresscale) * (flip ? -1 : 1));
 		}
 
 		affine_pivotoffsetdiff.x = FIXED_TO_FLOAT(affine_pivot.x - use_xoffset);

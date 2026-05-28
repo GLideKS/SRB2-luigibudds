@@ -2265,7 +2265,8 @@ static void R_ProjectSprite(mobj_t *thing)
 	if (spritexscale < 1 || spriteyscale < 1)
 		return;
 
-//<<<<<<< HEAD:src/r_things.c
+	fixed_t use_sprxoff = interp.spritexoffset;
+
 	if (thing->renderflags & RF_ABSOLUTEOFFSETS)
 	{
 		spr_offset = interp.spritexoffset;
@@ -2279,7 +2280,6 @@ static void R_ProjectSprite(mobj_t *thing)
 	rotoffset.y = 0;
 
 	const fixed_t visoffs_xsc = (affinesprite) ? xscale : FRACUNIT;//FixedDiv(FRACUNIT, mapobjectscale);
-
 	const fixed_t visoffymul = (vflip ? -FRACUNIT : FRACUNIT);
 
 	/*if (R_ThingIsUsingBakedOffsets(thing))
@@ -2360,6 +2360,8 @@ static void R_ProjectSprite(mobj_t *thing)
 		affine_pivotoffsetdiff.x *= FIXED_TO_FLOAT(affine_scale.x);
 		affine_pivotoffsetdiff.y *= FIXED_TO_FLOAT(affine_scale.y);
 
+		use_sprxoff = FixedMul(interp.spritexoffset, affine_scale.x);
+
 		spr_width = (affine_bounds.xlen * FRACUNIT);
 		spr_offset = (affine_bounds.xleft * FRACUNIT) - FLOAT_TO_FIXED(affine_pivotoffsetdiff.x);
 
@@ -2372,7 +2374,7 @@ static void R_ProjectSprite(mobj_t *thing)
 
 	if (thing->renderflags & RF_ABSOLUTEOFFSETS)
 	{
-		spr_offset = FixedDiv(interp.spritexoffset, highresscale);
+		spr_offset = FixedDiv(use_sprxoff, highresscale);
 #ifdef ROTSPRITE
 		spr_topoffset = thingyoffset;
 #else
@@ -2386,7 +2388,7 @@ static void R_ProjectSprite(mobj_t *thing)
 		if ((thing->renderflags & RF_FLIPOFFSETS) && flip)
 			flipoffset = -1;
 
-		spr_offset += interp.spritexoffset * flipoffset;
+		spr_offset += use_sprxoff * flipoffset;
 #ifdef ROTSPRITE
 		thingyoffset *= flipoffset;
 
