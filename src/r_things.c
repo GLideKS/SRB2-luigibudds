@@ -4265,7 +4265,7 @@ boolean R_ThingIsAffineSprite(mobj_t *thing)
 
 	boolean player = (thing->player != NULL);
 
-	boolean notaffine = (((thing->frame & FF_NOAFFINE || thing->renderflags & RF_NOAFFINE) || papersprite) && !player);
+	boolean notaffine = (((thing->frame & FF_NOAFFINE || thing->renderflags & RF_NOAFFINE) || (papersprite && rendermode != render_opengl)) && !player);
 
 	return (!notaffine && cv_affinerotation.value);
 }

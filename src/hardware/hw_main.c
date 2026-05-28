@@ -4828,7 +4828,7 @@ static void HWR_ProjectSprite(mobj_t *thing)
 
 		angle_t angle;
 
-		INT32 flipsign = ((flip && papersprite) ? -1 : 1); // Flip OGL affine papersprites for Software parity
+		INT32 flipsign = ((papersprite) ? -1 : 1); // Flip OGL affine papersprites for Software parity
 
 		angle = R_ConvToRollAngle(spriterotangle) * flipsign;
 
