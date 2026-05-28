@@ -58,6 +58,7 @@ affine_bounding_t dc_affinebound;
 f_vector2_t dc_affineoffset;
 f_vector2_t dc_affinemosaic;
 fixed_t dc_affineystep;
+fixed_t dc_frac;
 
 f_vector2_t visoffs;
 f_vector2_t rotoffset;

@@ -3181,7 +3181,6 @@ static void HWR_SplitSprite(gl_vissprite_t *spr)
 		baseWallVerts[0].t = baseWallVerts[1].t = ((GLPatch_t *)gpatch->hardware)->max_t;
 	}
 
-	// romoney5 TODO
 	// if it has a dispoffset, push it a little towards the camera
 	if (spr->dispoffset) {
 		float co = -gl_viewcos*(0.05f*spr->dispoffset);
@@ -3703,7 +3702,6 @@ static void HWR_DrawSprite(gl_vissprite_t *spr)
 
 	if (!splat)
 	{
-		// romoney5 TODO
 		// if it has a dispoffset, push it a little towards the camera
 		if (spr->dispoffset) {
 			float co = -gl_viewcos*(0.05f*spr->dispoffset);

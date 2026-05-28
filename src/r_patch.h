@@ -42,9 +42,6 @@ patch_t *Patch_GetRotatedSprite(
 	size_t frame, size_t spriteangle,
 	boolean flip,
 	void *info, INT32 rotationangle);
-// romoney5 TODO:
-/*angle_t R_ModelRotationAngle(mobj_t *mobj, player_t *viewPlayer, boolean fliptilt);
-angle_t R_SpriteRotationAngle(mobj_t *mobj, player_t *viewPlayer, interpmobjstate_t *interp, boolean fliptilt);*/
 angle_t R_ModelRotationAngle(interpmobjstate_t *interp);
 angle_t R_SpriteRotationAngle(interpmobjstate_t *interp);
 INT32 R_GetRollAngle(angle_t rollangle);
