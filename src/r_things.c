@@ -4260,7 +4260,7 @@ boolean R_ThingIsAffineSprite(mobj_t *thing)
 
 	boolean notaffine = (((thing->frame & FF_NOAFFINE || thing->renderflags & RF_NOAFFINE) || papersprite) && !player);
 
-	return (!notaffine);
+	return (!notaffine && cv_affinerotation.value);
 }
 
 boolean R_ThingIsFloorSprite(mobj_t *thing)

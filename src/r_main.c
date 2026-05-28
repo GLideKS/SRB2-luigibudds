@@ -187,6 +187,7 @@ consvar_t cv_homremoval = CVAR_INIT ("homremoval", "No", CV_SAVE, homremoval_con
 
 consvar_t cv_renderstats = CVAR_INIT ("renderstats", "Off", 0, CV_OnOff, NULL);
 
+consvar_t cv_affinerotation = CVAR_INIT("affinerotation", "On", CV_SAVE, CV_OnOff, NULL);
 consvar_t cv_fakerollangle = CVAR_INIT ("fakerollangle", "Off", CV_SAVE, CV_OnOff, NULL);
 
 consvar_t cv_affineprescale = CVAR_INIT ("affineprescale", "Off", CV_SAVE, CV_OnOff, NULL);
@@ -1713,6 +1714,7 @@ void R_RegisterEngineStuff(void)
 	CV_RegisterVar(&cv_cam_saveheight[1][0]);
 	CV_RegisterVar(&cv_cam_saveheight[1][1]);
 
+	CV_RegisterVar(&cv_affinerotation);
 	CV_RegisterVar(&cv_fakerollangle);
 	CV_RegisterVar(&cv_affineprescale);
 	CV_RegisterVar(&cv_affinemosaic);
