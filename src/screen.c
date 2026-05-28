@@ -158,7 +158,236 @@ void SCR_SetDrawFuncs(void)
 		spanfuncs_npo2[SPANDRAWFUNC_TILTEDWATER] = R_DrawTiltedWaterSpan_NPO2_8;
 	}
 	else
+//<<<<<<< HEAD
 		I_Error("unknown bytes per pixel mode %d\n", vid.bpp);
+/*=======
+	{
+		colfuncs[BASEDRAWFUNC] = R_DrawColumn;
+		colfuncs[COLDRAWFUNC_FUZZY] = R_DrawTranslucentColumn;
+		colfuncs[COLDRAWFUNC_TRANS] = R_DrawTranslatedColumn;
+		colfuncs[COLDRAWFUNC_SHADOWED] = R_DrawColumnShadowed;
+		colfuncs[COLDRAWFUNC_TRANSTRANS] = R_DrawTranslatedTranslucentColumn;
+		colfuncs[COLDRAWFUNC_TWOSMULTIPATCH] = R_Draw2sMultiPatchColumn;
+		colfuncs[COLDRAWFUNC_TWOSMULTIPATCHTRANS] = R_Draw2sMultiPatchTranslucentColumn;
+	}
+
+	colfuncs[COLDRAWFUNC_FOG] = R_DrawFogColumn;
+	colfuncs[COLDRAWFUNC_DROPSHADOW] = R_DrawDropShadowColumn;
+
+	// Affine functions; the ones here are only relevant for sprites.
+	// We can't rotate texture columns normally, can we?
+
+	colfuncs[COLDRAWFUNC_AFFINE] = R_DrawAffineColumn;
+	colfuncs[COLDRAWFUNC_AFFINETRANS] = R_DrawTranslatedAffineColumn;
+	colfuncs[COLDRAWFUNC_AFFINEFUZZY] = R_DrawTranslucentAffineColumn;
+	colfuncs[COLDRAWFUNC_AFFINETRANSTRANS] = R_DrawTranslatedTranslucentAffineColumn;
+
+	colfuncs_bm[BASEDRAWFUNC] = R_DrawColumn_Brightmap;
+	colfuncs_bm[COLDRAWFUNC_FUZZY] = R_DrawTranslucentColumn_Brightmap;
+	colfuncs_bm[COLDRAWFUNC_TRANS] = R_DrawTranslatedColumn_Brightmap;
+	colfuncs_bm[COLDRAWFUNC_SHADOWED] = R_DrawColumnShadowed_Brightmap;
+	colfuncs_bm[COLDRAWFUNC_TRANSTRANS] = R_DrawTranslatedTranslucentColumn_Brightmap;
+	colfuncs_bm[COLDRAWFUNC_TWOSMULTIPATCH] = R_Draw2sMultiPatchColumn_Brightmap;
+	colfuncs_bm[COLDRAWFUNC_TWOSMULTIPATCHTRANS] = R_Draw2sMultiPatchTranslucentColumn_Brightmap;
+	colfuncs_bm[COLDRAWFUNC_FOG] = NULL; // Not needed
+	colfuncs_bm[COLDRAWFUNC_DROPSHADOW] = NULL; // Not needed
+
+	// Affine brightmap functions; needed but I don't care at the moment
+
+	colfuncs_bm[COLDRAWFUNC_AFFINE] = R_DrawAffineColumn_Brightmap;
+	colfuncs_bm[COLDRAWFUNC_AFFINETRANS] = R_DrawTranslatedAffineColumn_Brightmap;
+	colfuncs_bm[COLDRAWFUNC_AFFINEFUZZY] = R_DrawTranslucentAffineColumn_Brightmap;
+	colfuncs_bm[COLDRAWFUNC_AFFINETRANSTRANS] = R_DrawTranslatedTranslucentAffineColumn_Brightmap;
+
+	spanfuncs[BASEDRAWFUNC] = R_DrawSpan;
+	spanfuncs[SPANDRAWFUNC_TRANS] = R_DrawTranslucentSpan;
+	spanfuncs[SPANDRAWFUNC_TILTED] = R_DrawSpan_Tilted;
+	spanfuncs[SPANDRAWFUNC_TILTEDTRANS] = R_DrawTranslucentSpan_Tilted;
+	spanfuncs[SPANDRAWFUNC_SPLAT] = R_DrawSplat;
+	spanfuncs[SPANDRAWFUNC_TRANSSPLAT] = R_DrawTranslucentSplat;
+	spanfuncs[SPANDRAWFUNC_TILTEDSPLAT] = R_DrawSplat_Tilted;
+	spanfuncs[SPANDRAWFUNC_TILTEDTRANSSPLAT] = R_DrawTranslucentSplat_Tilted;
+	spanfuncs[SPANDRAWFUNC_SPRITE] = R_DrawFloorSprite;
+	spanfuncs[SPANDRAWFUNC_TRANSSPRITE] = R_DrawTranslucentFloorSprite;
+	spanfuncs[SPANDRAWFUNC_TILTEDSPRITE] = R_DrawFloorSprite_Tilted;
+	spanfuncs[SPANDRAWFUNC_TILTEDTRANSSPRITE] = R_DrawTranslucentFloorSprite_Tilted;
+	spanfuncs[SPANDRAWFUNC_WATER] = R_DrawTranslucentWaterSpan;
+	spanfuncs[SPANDRAWFUNC_TILTEDWATER] = R_DrawTranslucentWaterSpan_Tilted;
+	spanfuncs[SPANDRAWFUNC_FOG] = R_DrawFogSpan;
+	spanfuncs[SPANDRAWFUNC_TILTEDFOG] = R_DrawFogSpan_Tilted;
+
+	spanfuncs_bm[BASEDRAWFUNC] = R_DrawSpan_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_TRANS] = R_DrawTranslucentSpan_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_TILTED] = R_DrawSpan_Tilted_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_TILTEDTRANS] = R_DrawTranslucentSpan_Tilted_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_SPLAT] = R_DrawSplat_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_TRANSSPLAT] = R_DrawTranslucentSplat_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_TILTEDSPLAT] = R_DrawSplat_Tilted_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_TILTEDTRANSSPLAT] = R_DrawTranslucentSplat_Tilted_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_SPRITE] = R_DrawFloorSprite_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_TRANSSPRITE] = R_DrawTranslucentFloorSprite_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_TILTEDSPRITE] = R_DrawFloorSprite_Tilted_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_TILTEDTRANSSPRITE] = R_DrawTranslucentFloorSprite_Tilted_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_WATER] = R_DrawTranslucentWaterSpan_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_TILTEDWATER] = R_DrawTranslucentWaterSpan_Tilted_Brightmap;
+	spanfuncs_bm[SPANDRAWFUNC_FOG] = NULL; // Not needed
+	spanfuncs_bm[SPANDRAWFUNC_TILTEDFOG] = NULL; // Not needed
+
+	// Lactozilla: Non-powers-of-two
+	spanfuncs_npo2[BASEDRAWFUNC] = R_DrawSpan_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_TRANS] = R_DrawTranslucentSpan_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_TILTED] = R_DrawSpan_Tilted_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_TILTEDTRANS] = R_DrawTranslucentSpan_Tilted_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_SPLAT] = R_DrawSplat_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_TRANSSPLAT] = R_DrawTranslucentSplat_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_TILTEDSPLAT] = R_DrawSplat_Tilted_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_TILTEDTRANSSPLAT] = R_DrawTranslucentSplat_Tilted_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_SPRITE] = R_DrawFloorSprite_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_TRANSSPRITE] = R_DrawTranslucentFloorSprite_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_TILTEDSPRITE] = R_DrawFloorSprite_Tilted_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_TILTEDTRANSSPRITE] = R_DrawTranslucentFloorSprite_Tilted_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_WATER] = R_DrawTranslucentWaterSpan_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_TILTEDWATER] = R_DrawTranslucentWaterSpan_Tilted_NPO2;
+	spanfuncs_npo2[SPANDRAWFUNC_FOG] = NULL; // Not needed
+	spanfuncs_npo2[SPANDRAWFUNC_TILTEDFOG] = NULL; // Not needed
+
+	spanfuncs_bm_npo2[BASEDRAWFUNC] = R_DrawSpan_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_TRANS] = R_DrawTranslucentSpan_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_TILTED] = R_DrawSpan_Tilted_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_TILTEDTRANS] = R_DrawTranslucentSpan_Tilted_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_SPLAT] = R_DrawSplat_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_TRANSSPLAT] = R_DrawTranslucentSplat_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_TILTEDSPLAT] = R_DrawSplat_Tilted_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_TILTEDTRANSSPLAT] = R_DrawTranslucentSplat_Tilted_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_SPRITE] = R_DrawFloorSprite_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_TRANSSPRITE] = R_DrawTranslucentFloorSprite_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_TILTEDSPRITE] = R_DrawFloorSprite_Tilted_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_TILTEDTRANSSPRITE] = R_DrawTranslucentFloorSprite_Tilted_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_WATER] = R_DrawTranslucentWaterSpan_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_TILTEDWATER] = R_DrawTranslucentWaterSpan_Tilted_Brightmap_NPO2;
+	spanfuncs_bm_npo2[SPANDRAWFUNC_FOG] = NULL; // Not needed
+	spanfuncs_bm_npo2[SPANDRAWFUNC_TILTEDFOG] = NULL; // Not needed
+
+	// Debugging - highlight surfaces in flat colors
+	spanfuncs_flat[BASEDRAWFUNC] = R_DrawSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_TRANS] = R_DrawSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_TILTED] = R_DrawTiltedSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_TILTEDTRANS] = R_DrawTiltedSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_SPLAT] = R_DrawSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_TRANSSPLAT] = R_DrawSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_TILTEDSPLAT] = R_DrawTiltedSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_TILTEDTRANSSPLAT] = R_DrawTiltedSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_SPRITE] = R_DrawSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_TRANSSPRITE] = R_DrawSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_TILTEDSPRITE] = R_DrawTiltedSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_TILTEDTRANSSPRITE] = R_DrawTiltedSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_WATER] = R_DrawSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_TILTEDWATER] = R_DrawTiltedSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_FOG] = R_DrawSpan_Flat;
+	spanfuncs_flat[SPANDRAWFUNC_TILTEDFOG] = R_DrawTiltedSpan_Flat;
+
+	R_SetColumnFunc(BASEDRAWFUNC, false);
+	R_SetSpanFunc(BASEDRAWFUNC, false, false);
+}
+
+// used to switch between column buffering and drawing them directly to screen
+// our sky "plane" drawer cannot handle the buffer system due to multithreading
+// (that would require alot of extra complexity for smth with massive diminishing results)
+// Our masked drawing step draws things in a very particular order, which results in alot of flushing to screen
+// effectively adding massive overhead due to excessive flushing, so we draw our masked thing directly to screen instead
+void R_SetColumnContext(enum columncontext_e _columncontext)
+{
+	columncontext = _columncontext;
+	SCR_SetDrawFuncs(_columncontext); // set our column drawers
+}
+
+void R_SetColumnFunc(size_t id, boolean brightmapped)
+{
+	I_Assert(id < COLDRAWFUNC_MAX);
+
+	colfunctype = id;
+
+	if (debugrender_highlight != 0)
+	{
+		colfunc = R_DrawColumn_Flat;
+	}
+	else if (brightmapped == true && colfuncs_bm[id] != NULL)
+	{
+		colfunc = colfuncs_bm[id];
+	}
+	else
+	{
+		colfunc = colfuncs[id];
+	}
+}
+
+void R_SetSpanFunc(size_t id, boolean npo2, boolean brightmapped)
+{
+	I_Assert(id < SPANDRAWFUNC_MAX);
+
+	if (debugrender_highlight != 0 && R_SetSpanFuncFlat(id))
+	{
+		return;
+	}
+
+	if (brightmapped == true && spanfuncs_bm[id] != NULL)
+	{
+		if (npo2 == true && spanfuncs_bm_npo2[id] != NULL)
+		{
+			spanfunc = spanfuncs_bm_npo2[id];
+		}
+		else
+		{
+			spanfunc = spanfuncs_bm[id];
+		}
+	}
+	else
+	{
+		if (npo2 == true && spanfuncs_npo2[id] != NULL)
+		{
+			spanfunc = spanfuncs_npo2[id];
+		}
+		else
+		{
+			spanfunc = spanfuncs[id];
+		}
+	}
+}
+
+boolean R_SetSpanFuncFlat(size_t id)
+{
+	I_Assert(id < SPANDRAWFUNC_MAX);
+
+	if (spanfuncs_flat[id] == NULL)
+	{
+		return false;
+	}
+
+	spanfunc = spanfuncs_flat[id];
+
+	return true;
+}
+
+boolean R_CheckColumnFunc(size_t id)
+{
+	size_t i;
+
+	if (colfunc == NULL)
+	{
+		// Shouldn't happen.
+		return false;
+	}
+
+	for (i = 0; i < COLDRAWFUNC_MAX; i++)
+	{
+		if (colfunc == colfuncs[id] || colfunc == colfuncs_bm[id])
+		{
+			return true;
+		}
+	}
+
+	return false;
+>>>>>>> 6e99c9b5cd (Merge pull request '[FEAT] Affine sprite rendering' (#223) from softwarehell into next)*/
 }
 
 void SCR_SetMode(void)
