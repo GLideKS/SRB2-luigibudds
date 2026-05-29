@@ -4263,9 +4263,13 @@ boolean R_ThingIsAffineSprite(mobj_t *thing)
 	// Yes, I'm lazy; I've been at this for TWO WEEKS.
 	boolean papersprite = (R_ThingIsPaperSprite(thing));
 
+	// romoney5: splats should not have affine rotation
+	boolean splat = (R_ThingIsFloorSprite(thing));
+
 	boolean player = (thing->player != NULL);
 
-	boolean notaffine = (((thing->frame & FF_NOAFFINE || thing->renderflags & RF_NOAFFINE) || (papersprite && rendermode != render_opengl)) && !player);
+	boolean notaffine = ((((thing->frame & FF_NOAFFINE || thing->renderflags & RF_NOAFFINE)
+		|| (papersprite && rendermode != render_opengl)) && !player) || splat);
 
 	return (!notaffine && cv_affinerotation.value);
 }
