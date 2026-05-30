@@ -756,8 +756,7 @@ HMS_fetch_servers (msg_server_t *list, int room_number, int query_id)
 				}
 				else
 				{
-					section_end = 0;/* malformed so quit the parsing */
-					break;
+					continue;
 				}
 			}
 
