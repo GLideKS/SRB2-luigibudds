@@ -193,9 +193,6 @@ consvar_t cv_fakerollangle = CVAR_INIT ("fakerollangle", "Off", CV_SAVE, CV_OnOf
 consvar_t cv_affineprescale = CVAR_INIT ("affineprescale", "Off", CV_SAVE, CV_OnOff, NULL);
 consvar_t cv_affinemosaic = CVAR_INIT ("affinemosaic", "Off", CV_SAVE, CV_OnOff, NULL);
 
-static CV_PossibleValue_t affineangle_cons_t[] = {{0, "MIN"}, {360 * FRACUNIT, "MAX"}, {0, NULL}};
-static CV_PossibleValue_t affinetest_cons_t[] = {{0, "Off"}, {1, "On"}, {2, "Auto"}, {0, NULL}};
-
 void SplitScreen_OnChange(void)
 {
 	if (!cv_debug && netgame)

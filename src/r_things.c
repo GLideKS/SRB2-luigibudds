@@ -2318,9 +2318,8 @@ static void R_ProjectSprite(mobj_t *thing)
 
 		angle = R_ConvToRollAngle(spriterotangle) * flipsign;
 
-		const boolean renderflip = ((thing->renderflags & RF_FLIPOFFSETS) == RF_FLIPOFFSETS);
-		const fixed_t rolloffs_x = 0;//FixedDiv(thing->rollingxoffset * FRACUNIT, highresscale) * (((!renderflip) && flip) ? -1 : 1);
-		const fixed_t rolloffs_y = 0;//FixedDiv(thing->rollingyoffset * FRACUNIT, highresscale) * (((!renderflip) && vflip) ? -1 : 1);
+		const fixed_t rolloffs_x = 0;
+		const fixed_t rolloffs_y = 0;
 		fixed_t y_piv = affine_pivot.y;
 
 		if (vflip)
@@ -2404,12 +2403,9 @@ static void R_ProjectSprite(mobj_t *thing)
 		offset = -spr_offset;
 
 #ifdef ROTSPRITE
-	if (visoffs.x)
-	{
-		offset -= (visoffs.x * visoffs_xsc);
-	}
+	offset -= (visoffs.x * visoffs_xsc);
 
-	if ((rotoffset.x) && (!affinesprite))
+	if (!affinesprite)
 	{
 		offset -= rotoffset.x;
 	}
