@@ -2523,11 +2523,6 @@ enum DrawColumnType
 	//DC_DIRECT = 0x0020, // draw our columns directly to screen!
 };
 
-static UINT8 *R_Address(INT32 px, INT32 py)
-{
-	return screens[0] + (py + viewwindowy) * vid.width + (viewwindowx + px);
-}
-
 // Function flow: Holes -> Translation -> Brightmap -> Colormap -> Translucency
 // "Why are these in nested functions for standard columns?" Uhhhhhh iunno lol
 // I make-a da code-a
@@ -2574,8 +2569,6 @@ static void R_DrawAffineColumnTemplate(UINT16 type)
 {
 	INT32 count;
 	register UINT8* dest;
-	register fixed_t frac;
-	fixed_t fracstep;
 
 	count = dc_yh - dc_yl;
 
@@ -2592,36 +2585,15 @@ static void R_DrawAffineColumnTemplate(UINT16 type)
 
 	count++;
 
-	// Determine scaling, which is the only mapping to be done.
-	fracstep = dc_iscale;
-	frac = dc_texturemid + FixedMul((dc_yl << FRACBITS) - centeryfrac, fracstep);
-
 	// Inner loop that does the actual texture mapping, e.g. a DDA-like scaling.
 	// This is as fast as it gets.
 	{
-		// This is as fast as it gets.       (Yeah, right!!! -- killough)
-		//
 		// killough 2/1/98: more performance tuning
-
-		intptr_t frac;
-		// Looks familiar.
-		const intptr_t fracstep = dc_iscale;
-		const intptr_t heightmask = dc_sourcelength - 1; // CPhipps - specify type
-		INT32 npow2min = -1;
-		const INT32 npow2max = dc_sourcelength;
 
 		// Framebuffer destination address.
 		// SoM: MAGIC
-		UINT8* dest;
-
-		dest = R_Address(dc_x, dc_yl);
 
 		const INT32 stride = vid.width; // SoM: Oh, Oh it's MAGIC! You know...
-
-		count++;
-
-		// Determine scaling, which is the only mapping to be done.
-		frac = (dc_texturemid + FixedMul((dc_yl << FRACBITS) - centeryfrac, fracstep));
 
 		const affine_t* transform = &dc_affine;
 		const affine_bounding_t* bounds = &dc_affinebound;
