@@ -748,19 +748,11 @@ HMS_fetch_servers (msg_server_t *list, int room_number, int query_id)
 
 						i++;
 					}
-
-					if (end == section_end)/* end of list for this room */
-						break;
-					else
-						p = ( end + 1 );/* skip server delimiter */
 				}
-				else
-				{
-					if (end == section_end)/* end of list for this room */
-						break;
-					else
-						p = ( end + 1 );/* skip server delimiter */
-				}
+                if (end == section_end)/* end of list for this room */
+                    break;
+                else
+                    p = ( end + 1 );/* skip server delimiter */
 			}
 
 			if (! doing_shit)
