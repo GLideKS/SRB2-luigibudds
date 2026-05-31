@@ -101,8 +101,6 @@ typedef off_t off64_t;
  #endif
 #endif
 
-boolean attemptingrejoin = false;
-
 static CV_PossibleValue_t screenshot_cons_t[] = {{0, "Default"}, {1, "HOME"}, {2, "SRB2"}, {3, "CUSTOM"}, {0, NULL}};
 consvar_t cv_screenshot_option = CVAR_INIT ("screenshot_option", "Default", CV_SAVE|CV_CALL, screenshot_cons_t, Screenshot_option_Onchange);
 consvar_t cv_screenshot_folder = CVAR_INIT ("screenshot_folder", "", CV_SAVE, NULL, NULL);
@@ -176,48 +174,44 @@ boolean takescreenshot = false; // Take a screenshot this tic
 moviemode_t moviemode = MM_OFF;
 static INT32 movieframesrecorded = 0;
 
-char joinedIPlist[NUMLOGIP][2][MAX_LOGIP];
+char joinedIPlist[NUMLOGIP][3][MAX_LOGIP];
 char joinedIP[MAX_LOGIP];
 
 // This initializes the above array to have NULL evrywhere it should.
 void M_InitJoinedIPArray(void)
 {
-	UINT8 i;
-	for (i=0; i < NUMLOGIP; i++)
-	{
-		joinedIPlist[i][0][0] = joinedIPlist[i][1][0] = '\0';
-	}
+	for (UINT8 index = 0; index < NUMLOGIP; index++)
+		joinedIPlist[index][0][0] = joinedIPlist[index][1][0] = joinedIPlist[index][2][0] = '\0';
 }
 
 // This adds an entry to the above array
-void M_AddToJoinedIPs(char *address, char *servname)
+void M_AddToJoinedIPs(char *address, char *date, char *servname)
 {
-	UINT8 i = 0;
+	UINT8 index = 0;
+	if ((stricmp(address, "localhost") == 0) || (stricmp(address, "self") == 0))
+		return;
 
-	// Check for dupes...
-	for (i = 0; i < NUMLOGIP-1; i++) // intentionally not < NUMLOGIP
+	for (index = 0; index < (NUMLOGIP - 1); index++)
 	{
-		// Check the addresses
-		if (strcmp(joinedIPlist[i][0], address) == 0)
-		{
+		if (strcmp(joinedIPlist[index][0], address) == 0)
 			break;
-		}
 	}
 
-	CONS_Printf("Adding %s (%s) to list of manually joined IPs\n", servname, address);
+	CONS_Printf("Adding %s (%s) to list of joined servers - %s\n", servname, address, date);
 
 	// Start by moving every IP up 1 slot (dropping the last IP in the table)
-	for (; i; i--)
+	for (; index; index--)
 	{
-		strlcpy(joinedIPlist[i][0], joinedIPlist[i-1][0], MAX_LOGIP);
-		strlcpy(joinedIPlist[i][1], joinedIPlist[i-1][1], MAX_LOGIP);
+		strlcpy(joinedIPlist[index][0], joinedIPlist[index - 1][0], MAX_LOGIP);
+		strlcpy(joinedIPlist[index][1], joinedIPlist[index - 1][1], MAX_LOGIP);
+		strlcpy(joinedIPlist[index][2], joinedIPlist[index - 1][2], MAX_LOGIP);
 	}
 
 	// and add the new IP at the start of the table!
 	strlcpy(joinedIPlist[0][0], address, MAX_LOGIP);
-	strlcpy(joinedIPlist[0][1], servname, MAX_LOGIP);
-
-	attemptingrejoin = false;
+	strlcpy(joinedIPlist[0][1], date, MAX_LOGIP);
+	strlcpy(joinedIPlist[0][2], servname, MAX_LOGIP);
+	M_SaveJoinedIPs();
 }
 
 
@@ -489,83 +483,71 @@ boolean FIL_CheckExtension(const char *in)
 	return false;
 }
 
-// LAST IPs JOINED LOG FILE!
-// ...It won't be as overly engineered as the config file because let's be real there's 0 need to...
-
-// Save the file:
 void M_SaveJoinedIPs(void)
 {
-	FILE *f = NULL;
-	UINT8 i;
+	FILE *file = NULL;
+	UINT8 index;
 	const char *filepath = va("%s" PATHSEP "%s", srb2home, IPLOGFILE);
-
 	if (!*joinedIPlist[0][0])
-		return;	// Don't bother, there's nothing to save.
+		return;
 
-	f = fopen(filepath, "w");
-
-	if (!f)
+	file = fopen(filepath, "w");
+	if (!file)
 	{
 		CONS_Alert(CONS_WARNING, "Could not save recent IP list into %s\n", IPLOGFILE);
 		return;
 	}
 
-	for (i = 0; i < NUMLOGIP; i++)
+	for (index = 0; index < NUMLOGIP; index++)
 	{
-		if (*joinedIPlist[i][0])
+		if (*joinedIPlist[index][0])
 		{
-			fprintf(f, "%s%s%s\n", joinedIPlist[i][0], IPLOGFILESEP, joinedIPlist[i][1]);
+			fprintf(file, "%s%s%s%s%s\n", joinedIPlist[index][0], IPLOGFILESEP, joinedIPlist[index][1], IPLOGFILESEP, joinedIPlist[index][2]);
 		}
 	}
-
-	fclose(f);
+	fclose(file);
 }
 
-
-// Load the file:
 void M_LoadJoinedIPs(void)
 {
-	FILE *f = NULL;
-	UINT8 i = 0;
+	FILE *file = NULL;
+	UINT8 index = 0;
 	char *filepath;
-	char *s;
-	char buffer[2*(MAX_LOGIP+1)];
-
+	char *string;
+	char buffer[2 * (MAX_LOGIP + 1)];
 	filepath = va("%s" PATHSEP "%s", srb2home, IPLOGFILE);
-	f = fopen(filepath, "r");
+	file = fopen(filepath, "r");
+	if (file == NULL)
+		return;
 
-	if (f == NULL)
-		return;	// File doesn't exist? sure, just do nothing then.
-
-	for (i = 0; fgets(buffer, (int)sizeof(buffer), f); i++)	// Don't let us write more than we can chew!
+	for (index = 0; fgets(buffer, (int)sizeof(buffer), file); index++)
 	{
-		if (i >= NUMLOGIP)
+		if (index >= NUMLOGIP)
 			break;
 
-		if (!*buffer || *buffer == '\n')
+		if (!*buffer || (*buffer == '\n'))
 			break;
 
-		s = strtok(buffer, IPLOGFILESEP);	// We got the address
-		strlcpy(joinedIPlist[i][0], s, MAX_LOGIP);
-
-		s = strtok(NULL, IPLOGFILESEP);	// Let's get rid of this awful \n while we're here!
-
-		if (s)
+		for (size_t sub = 0; sub < sizeof(buffer); sub++)
 		{
-			UINT16 j = 1;
-			//strcpy(joinedIPlist[i][1], s); -- get rid of \n too...
-			char *c = joinedIPlist[i][1];
-			while (*s && *s != '\n' && j < MAX_LOGIP)
+			if (buffer[sub] == '\n')
 			{
-				*c = *s;
-				s++;
-				c++;
-				j++;
+				buffer[sub] = '\0';
+				break;
 			}
-			*c = '\0';
 		}
+
+		string = strtok(buffer, IPLOGFILESEP);
+		strlcpy(joinedIPlist[index][0], string, MAX_LOGIP);
+		string = strtok(NULL, IPLOGFILESEP);
+		if (string)
+			strlcpy(joinedIPlist[index][1], string, MAX_LOGIP);
+
+		string = strtok(NULL, IPLOGFILESEP);
+		if (string)
+			strlcpy(joinedIPlist[index][2], string, MAX_LOGIP);
 	}
-	fclose(f);	// We're done here
+	fclose(file);
 }
 
 // ==========================================================================

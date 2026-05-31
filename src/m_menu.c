@@ -12,6 +12,7 @@
 /// \file  m_menu.c
 /// \brief XMOD's extremely revamped menu system.
 
+#include "screen.h"
 #ifdef __GNUC__
 #include <unistd.h>
 #endif
@@ -11280,7 +11281,7 @@ static void M_RejoinConnect(INT32 choice)
 	if (!(joinedIPlist[index][0][0]))
 		return;
 
-	COM_BufAddText(va("connect rejoin %s\n", joinedIPlist[index][0]));
+	COM_BufAddText(va("connect %s\n", joinedIPlist[index][0]));
 }
 
 static void M_Refresh(INT32 choice)
@@ -11401,22 +11402,29 @@ static void M_DrawRejoinMenu(void)
 	// now, iterate through our saved IPs
 	for (index = 0; index < NUMLOGIP; index++)
 	{
-		char str[MAX_LOGIP];
-		char str_ip[MAX_LOGIP];
+		char string_ip[MAX_LOGIP] = "\0";
+		char string_date[MAX_LOGIP] = "\0";
+		char string_name[MAX_LOGIP] = "\0";
 		boolean namepassed = false;
-		INT32 highlight = (itemOn == index + 2 ? V_YELLOWMAP : 0);
+		INT32 highlight = (itemOn == index + 2 ? MENUCOLOR : 0);
+		y = currentMenu->y + 24 + (index * SERVERLINEHEIGHT);
+
+		if (strlen(joinedIPlist[index][2]) > 0)
+		{
+			strlcpy(string_name, joinedIPlist[index][2], MAX_LOGIP);
+		}
 
 		if (joinedIPlist[index][1][0])	// Try drawing server name
 		{
-			strlcpy(str, joinedIPlist[index][1], MAX_LOGIP);
-			namepassed = true;
+			strlcpy(string_date, joinedIPlist[index][1], MAX_LOGIP);
 		}
 
 		if (joinedIPlist[index][0][0])
 		{
-			if (!namepassed)	// If that fails, get the address
-				strlcpy(str, joinedIPlist[index][0], MAX_LOGIP);
-			strlcpy(str_ip, joinedIPlist[index][0], MAX_LOGIP);
+			if (strlen(string_name) <= 0)
+				strlcpy(string_name, joinedIPlist[index][0], MAX_LOGIP);
+
+			strlcpy(string_ip, joinedIPlist[index][0], MAX_LOGIP);
 		}
 		else if (!namepassed)
 		{
@@ -11431,16 +11439,9 @@ static void M_DrawRejoinMenu(void)
 			continue;
 		}
 
-		// min width is probably like 268px (sorry for shitty formatting)
-		V_DrawFill(currentMenu->x - 2,
-			y + (22 + 35),
-			BASEVIDWIDTH - (x*2), 12,
-			(itemOn == index + 2) ? 153 : ((index & 1) ? 159 : 156)
-		);
-		V_DrawString(x, y + (22 + 35), V_ALLOWLOWERCASE|highlight,
-			str);
-		V_DrawSmallString(x, y + (22 + 35) + 8, V_ALLOWLOWERCASE|highlight,
-			str_ip);
+		V_DrawString(x, y, MENUCAPS|highlight, string_name);
+		V_DrawSmallString(x, y + 8, MENUCAPS|highlight, string_ip);
+		V_DrawRightAlignedSmallString(BASEVIDWIDTH - x, y + 8, MENUCAPS|highlight, string_date);
 		
 		MP_RejoinMenu[index + 2].status = IT_STRING | IT_CALL;
 		count++;
@@ -11804,30 +11805,25 @@ static void M_ConnectMenuModChecks(INT32 choice)
 	M_ConnectMenu(-1);
 }
 
-// lol
 void M_RejoinMenu(INT32 choice)
 {
 	(void)choice;
-	// modified game check: no longer handled
-	// we don't request a restart unless the filelist differs
 
 	M_SetupNextMenu(&MP_RejoinDef);
 	itemOn = 1;
 	M_UpdateItemOn();
-	M_Refresh(0);
+	M_RefreshRejoins(0);
 }
 
 static void M_RejoinMenuModChecks(INT32 choice)
 {
 	(void)choice;
-	// okay never mind we want to COMMUNICATE to the player pre-emptively instead of letting them try and then get confused when it doesn't work
 
 	if (modifiedgame)
 	{
 		M_StartMessage(M_GetText("You have add-ons loaded.\nYou won't be able to join netgames!\n\nTo play online, restart the game\nand don't load any addons.\nSRB2 will automatically add\neverything you need when you join.\n\n(Press a key)\n"),M_RejoinMenu,MM_EVENTHANDLER);
 		return;
 	}
-
 	M_RejoinMenu(-1);
 }
 

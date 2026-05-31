@@ -46,22 +46,22 @@ float M_GetMovieSize(void);
 
 // The file where we'll save the last IPs we joined
 #define IPLOGFILE "srb2savedips.txt"
-#define IPLOGFILESEP ";"
-#define NUMLOGIP 9
+#define IPLOGFILESEP "\x90"
+#define NUMLOGIP 11
 #define MAX_LOGIP 255
 
 // Array where we'll store addresses to display for last servers joined
 // {address, servame}
-extern char joinedIPlist[NUMLOGIP][2][MAX_LOGIP];
+extern char joinedIPlist[NUMLOGIP][3][MAX_LOGIP];
 
 // Keep the address we're joining in mind until we've finished joining.
 // Since we don't wanna add an IP address we aren't even sure worked out.
 extern char joinedIP[MAX_LOGIP];
 // Attempting to rejoin a server from the rejoin menu
-extern boolean attemptingrejoin;
 
 void M_InitJoinedIPArray(void);
-void M_AddToJoinedIPs(char *address, char *servname);
+void M_AddToJoinedIPs(char *address, char *date, char *servname);
+boolean M_RemoveJoinedIP(UINT8 index);
 void M_SaveJoinedIPs(void);
 void M_LoadJoinedIPs(void);
 

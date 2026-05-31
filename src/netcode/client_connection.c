@@ -33,6 +33,10 @@
 #include "../z_zone.h"
 #include "../doomtype.h"
 #include "../doomstat.h"
+#include "../hu_stuff.h"
+#include "d_net.h"
+#include "../r_main.h"
+#include <time.h>
 #if defined (__GNUC__) || defined (__unix__)
 #include <unistd.h>
 #endif
@@ -1954,10 +1958,17 @@ void CL_ConnectToServer(void)
 
 	if (joinedIP[0])	// false if we have "" which is \0
 	{
-		M_AddToJoinedIPs(joinedIP, tmpsave);
-	}
+		time_t t;
+		struct tm *tmp;
+		time(&t);
+		tmp = localtime(&t);
 
-	joinedIP[0] = '\0';	// And empty this for good measure regardless of whether or not we actually used it.
+		char date[256];
+		strftime(date, sizeof(date), "%Y/%m/%d %H:%M:%S", tmp);
+
+		M_AddToJoinedIPs(joinedIP, date, tmpsave);
+	}
+	joinedIP[0] = '\0';
 }
 
 /** Called when a PT_SERVERINFO packet is received
