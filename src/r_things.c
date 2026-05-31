@@ -1212,8 +1212,8 @@ static void R_DrawVisSprite(vissprite_t *vis)
 		dc_affine.ox = vis->affine.transform.ox;
 		dc_affine.oy = vis->affine.transform.oy;
 
-		dc_affineoffset.x = vis->affine.offset.x;
-		dc_affineoffset.y = vis->affine.offset.y;
+		dc_affineoffset.x = 0;
+		dc_affineoffset.y = 0;
 
 		dc_affinemosaic.x = vis->affine.mosaic.x;
 		dc_affinemosaic.y = vis->affine.mosaic.y;

@@ -206,7 +206,6 @@ typedef struct vissprite_s
 	struct {
 		vector2_t scaling; // Affine scaling
 		vector2_t distscale; // X/Y scale based on camera distance
-		vector2_t offset; // Per-pixel offset
 		f_vector2_t mosaic; // Truncates how columndrawers "move" across the screen
 		angle_t rollangle; // Affine rotation angle
 		affine_t transform; // The actual affine transformation.
