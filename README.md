@@ -67,6 +67,7 @@ It works without any additional assets, just copy the build to your existing SRB
 - See private messages as host! (Code from [SRB2Classic](https://codeberg.org/srb2classic/srb2classic))
 - Lifted maxsend limits
 - Allow gamepad controls on unfocused window ("`cv_gamepadifunfocused`")
+- Added custom turning sensitivity for gamepads (hi im saxa and i made this) ("`cam_gamepadxsensitivity`", "`cam_gamepadysensitivity`")
 
 ## Modding and Debugging
 - "`renderhitbox`" in multiplayer
