@@ -1163,7 +1163,8 @@ static menuitem_t OP_Joystick1Menu[] =
 	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Analog Deadzone", &cv_deadzone, 70},
 	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Digital Deadzone", &cv_digitaldeadzone, 75},
 
-	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Turning Sensitivity", &cv_cam_gamepadsensitivity, 85}
+	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Camera X Sensitivity", &cv_cam_gamepadxsensitivity, 85},
+	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Camera Y Sensitivity", &cv_cam_gamepadysensitivity, 90}
 };
 
 static menuitem_t OP_Joystick2Menu[] =
@@ -1183,7 +1184,8 @@ static menuitem_t OP_Joystick2Menu[] =
 	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Analog Deadzone", &cv_deadzone2,70},
 	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Digital Deadzone", &cv_digitaldeadzone2,75},
 
-	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Turning Sensitivity", &cv_cam2_gamepadsensitivity, 85}
+	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Camera X Sensitivity", &cv_cam2_gamepadxsensitivity, 85},
+	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Camera Y Sensitivity", &cv_cam2_gamepadysensitivity, 90},
 };
 
 static menuitem_t OP_JoystickSetMenu[1+MAX_JOYSTICKS];
