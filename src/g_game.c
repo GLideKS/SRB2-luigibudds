@@ -1133,7 +1133,7 @@ void G_BuildTiccmd(ticcmd_t *cmd, INT32 realtics, UINT8 ssplayer)
 	INT32 *myaiming = (ssplayer == 1 ? &localaiming : &localaiming2);
 
 	angle_t drawangleoffset = (player->powers[pw_carry] == CR_ROLLOUT) ? ANGLE_180 : 0;
-	INT32 chasecam, chasefreelook, alwaysfreelook, usejoystick, invertmouse, turnmultiplier, mousemove;
+	INT32 chasecam, chasefreelook, alwaysfreelook, usejoystick, invertmouse, turnmultiplier, gamepadsensitivity, mousemove;
 	controlstyle_e controlstyle = G_ControlStyle(ssplayer);
 	INT32 mdx, mdy, mldy;
 
@@ -1157,6 +1157,7 @@ void G_BuildTiccmd(ticcmd_t *cmd, INT32 realtics, UINT8 ssplayer)
 		usejoystick = cv_usejoystick.value;
 		invertmouse = cv_invertmouse.value;
 		turnmultiplier = cv_cam_turnmultiplier.value;
+		gamepadsensitivity = cv_cam_gamepadsensitivity.value;
 		mousemove = cv_mousemove.value;
 		mdx = mouse.dx;
 		mdy = -mouse.dy;
@@ -1171,6 +1172,7 @@ void G_BuildTiccmd(ticcmd_t *cmd, INT32 realtics, UINT8 ssplayer)
 		usejoystick = cv_usejoystick2.value;
 		invertmouse = cv_invertmouse2.value;
 		turnmultiplier = cv_cam2_turnmultiplier.value;
+		gamepadsensitivity = cv_cam2_gamepadsensitivity.value;
 		mousemove = cv_mousemove2.value;
 		mdx = mouse2.dx;
 		mdy = -mouse2.dy;
@@ -1298,7 +1300,7 @@ void G_BuildTiccmd(ticcmd_t *cmd, INT32 realtics, UINT8 ssplayer)
 		if (analogjoystickmove && lookjoystickvector.xaxis != 0)
 		{
 			// JOYAXISRANGE should be 1023 (divide by 1024)
-			cmd->angleturn = (INT16)(cmd->angleturn - ((((lookjoystickvector.xaxis * angleturn[1]) >> 10) * turnmultiplier)>>FRACBITS)); // ANALOG!
+			cmd->angleturn = (INT16)(cmd->angleturn - ((((lookjoystickvector.xaxis * angleturn[1]) >> 10) * gamepadsensitivity)>>FRACBITS)); // ANALOG!
 		}
 
 		if (turnright || turnleft || abs(cmd->angleturn) > angleturn[2])
@@ -1537,7 +1539,7 @@ void G_BuildTiccmd(ticcmd_t *cmd, INT32 realtics, UINT8 ssplayer)
 		}
 
 		if (analogjoystickmove && joyaiming[forplayer] && lookjoystickvector.yaxis != 0 && configlookaxis != 0)
-			*myaiming += (lookjoystickvector.yaxis<<16) * screen_invert;
+			*myaiming += (FixedMul(lookjoystickvector.yaxis, gamepadsensitivity)<<16) * screen_invert;
 
 		// spring back if not using keyboard neither mouselookin'
 		if (!keyboard_look[forplayer] && configlookaxis == 0 && !joyaiming[forplayer] && !mouseaiming)
