@@ -1094,7 +1094,10 @@ boolean HU_Responder(event_t *ev)
 			chat_on = true;
 			chat_on_first_event = false;
 			if (cv_exitchatwipe.value)
+			{
 				w_chat[0] = 0;
+				c_input = 0;
+			}
 			teamtalk = false;
 			chat_scrollmedown = true;
 			typelines = 1;
@@ -1107,7 +1110,10 @@ boolean HU_Responder(event_t *ev)
 			chat_on = true;
 			chat_on_first_event = false;
 			if (cv_exitchatwipe.value)
+			{
 				w_chat[0] = 0;
+				c_input = 0;
+			}
 			teamtalk = G_GametypeHasTeams(); // Don't teamtalk if we don't have teams.
 			chat_scrollmedown = true;
 			typelines = 1;
@@ -1182,8 +1188,6 @@ boolean HU_Responder(event_t *ev)
 			I_SetTextInputMode(false);
 			chat_on = false;
 			c_input = 0; // reset input cursor
-			if (!cv_exitchatwipe.value) // should still clear on send
-				w_chat[0] = 0;
 			chat_scrollmedown = true; // you hit enter, so you might wanna autoscroll to see what you just sent. :)
 			I_UpdateMouseGrab();
 		}
@@ -1555,7 +1559,8 @@ static void HU_DrawChat(void)
 			y += charheight;
 			typelines += 1;
 		}
-		typed_chars += 1;
+		if (cv_exitchatwipe.value)
+			typed_chars += 1;
 	}
 
 	if (!(cv_showchatlimit.value == 0))
@@ -1662,7 +1667,8 @@ static void HU_DrawChat_Old(void)
 		if (w_chat[i] >= FONTSTART)
 		{
 			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
-			charcount++;
+			if (cv_exitchatwipe.value)
+				charcount++;
 		}
 
 		c += charwidth;
