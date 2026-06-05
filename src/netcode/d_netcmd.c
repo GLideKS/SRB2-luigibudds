@@ -653,7 +653,6 @@ void D_RegisterServerCommands(void)
 	CV_RegisterVar(&cv_pingtimeout);
 	CV_RegisterVar(&cv_showping);
 	CV_RegisterVar(&cv_pingmeasurement);
-	CV_RegisterVar(&cv_showcsays);
 	CV_RegisterVar(&cv_cvarinformation);
 	COM_AddCommand("getlogfile", Command_GetLogFile_f, COM_CLIENT);
 
@@ -833,6 +832,7 @@ void D_RegisterClientCommands(void)
 	CV_RegisterVar(&cv_chats2);
 	CV_RegisterVar(&cv_chatnotifications);
 	CV_RegisterVar(&cv_showchatlimit);
+	CV_RegisterVar(&cv_showcsays); // FIXME: this doesnt belong here but I do not actually know where to put it
 	CV_RegisterVar(&cv_crosshair);
 	CV_RegisterVar(&cv_crosshair2);
 	CV_RegisterVar(&cv_crosshair_invert);

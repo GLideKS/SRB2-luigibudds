@@ -790,9 +790,13 @@ static void COM_CEcho_f(void)
 
 	cechotext[sizeof(cechotext) - 1] = '\0';
 
-	HU_DoCEcho(cechotext);
-	if (cv_showcsays.value)
+	if (!cv_showcsays.value) {
+		I_OutputMsg("CECHO:");
+	} else {
 		CONS_Printf(M_GetText("CECHO: %s\n"), cechotext);
+	}
+
+	HU_DoCEcho(cechotext);
 }
 
 /** Sets drawing flags for the CECHO command.

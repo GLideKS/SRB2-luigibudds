@@ -707,9 +707,15 @@ static void Got_Saycmd(UINT8 **p, INT32 playernum)
 	if (flags & HU_CSAY)
 	{
 		HU_SetCEchoDuration(5);
-		I_OutputMsg("Server message: ");
-		if (cv_showcsays.value)
-			CONS_Printf("CSAY: %s\n", msg);
+		#define CSAYAUTHOR (flags & HU_SERVER_SAY ? "SERVER" : player_names[playernum])
+		if (!cv_showcsays.value)
+		{
+			I_OutputMsg("Server message [from %s]: ", CSAYAUTHOR);
+		} else
+		{
+			CONS_Printf("CSAY [from %s]: %s\n", CSAYAUTHOR, msg);
+		}
+		#undef CSAYAUTHOR
 		HU_DoCEcho(msg);
 		return;
 	}
@@ -2835,7 +2841,8 @@ void HU_SetCEchoFlags(INT32 flags)
 
 void HU_DoCEcho(const char *msg)
 {
-	I_OutputMsg("%s\n", msg); // print to log
+	if (!cv_showcsays.value)
+		I_OutputMsg("%s\n", msg); // print to log
 
 	strncpy(cechotext, msg, sizeof(cechotext)-1);
 	strncat(cechotext, "\\", sizeof(cechotext) - strlen(cechotext) - 1);
