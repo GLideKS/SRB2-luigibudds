@@ -1036,10 +1036,13 @@ static void HU_sendChatMessage(void)
 
 void HU_clearChatChars(void)
 {
-	memset(w_chat, '\0', sizeof(w_chat));
 	I_SetTextInputMode(false);
 	chat_on = false;
-	c_input = 0;
+	if (cv_exitchatwipe.value)
+	{
+		memset(w_chat, '\0', sizeof(w_chat));
+		c_input = 0;
+	}
 
 	I_UpdateMouseGrab();
 }
@@ -1090,7 +1093,8 @@ boolean HU_Responder(event_t *ev)
 			I_SetTextInputMode(true);
 			chat_on = true;
 			chat_on_first_event = false;
-			w_chat[0] = 0;
+			if (cv_exitchatwipe.value)
+				w_chat[0] = 0;
 			teamtalk = false;
 			chat_scrollmedown = true;
 			typelines = 1;
@@ -1102,7 +1106,8 @@ boolean HU_Responder(event_t *ev)
 			I_SetTextInputMode(true);
 			chat_on = true;
 			chat_on_first_event = false;
-			w_chat[0] = 0;
+			if (cv_exitchatwipe.value)
+				w_chat[0] = 0;
 			teamtalk = G_GametypeHasTeams(); // Don't teamtalk if we don't have teams.
 			chat_scrollmedown = true;
 			typelines = 1;
@@ -1177,6 +1182,8 @@ boolean HU_Responder(event_t *ev)
 			I_SetTextInputMode(false);
 			chat_on = false;
 			c_input = 0; // reset input cursor
+			if (!cv_exitchatwipe.value) // should still clear on send
+				w_chat[0] = 0;
 			chat_scrollmedown = true; // you hit enter, so you might wanna autoscroll to see what you just sent. :)
 			I_UpdateMouseGrab();
 		}

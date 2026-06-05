@@ -66,7 +66,7 @@ It works without any additional assets, just copy the build to your existing SRB
 - "`cam_centertoggle`" and "`cam2_centertoggle`" are no longer exclusive to Automatic!
 - See private messages as host! (Code from [SRB2Classic](https://codeberg.org/srb2classic/srb2classic))
 - Lifted maxsend limits
-- Allow gamepad controls on unfocused window ("`cv_gamepadifunfocused`")
+- Allow gamepad controls on unfocused window ("`gamepadunfocused`", from [SRB2Kart Saturn](https://github.com/Indev450/SRB2Kart-Saturn))
 
 ## Modding and Debugging
 - "`renderhitbox`" in multiplayer

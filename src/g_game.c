@@ -332,6 +332,7 @@ consvar_t cv_chats2 = CVAR_INIT ("chatupdownsnapping", "Bottom", CV_SAVE|CV_CLIE
 // (archiNiko: Should this REALLY be here ??? I'm-
 // - putting it here since [REDACTED] put chatx here...)
 consvar_t cv_showchatlimit = CVAR_INIT ("showchatlimit", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
+consvar_t cv_exitchatwipe = CVAR_INIT ("chatexit_clearinput", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL); // FIXME: name sucks
 
 // Pause game upon window losing focus
 consvar_t cv_pauseifunfocused = CVAR_INIT ("pauseifunfocused", "Yes", CV_SAVE, CV_YesNo, NULL);
