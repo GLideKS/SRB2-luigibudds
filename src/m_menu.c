@@ -1440,27 +1440,27 @@ static menuitem_t OP_ColorOptionsMenu[] =
 static menuitem_t OP_OpenGLOptionsMenu[] =
 {
 	{IT_HEADER, NULL, "3D Models", NULL, 0},
-	{IT_STRING|IT_CVAR,         NULL, "Models",              &cv_glmodels,             12},
-	{IT_STRING|IT_CVAR,         NULL, "Frame interpolation", &cv_glmodelinterpolation, 22},
-	{IT_STRING|IT_CVAR,         NULL, "Ambient lighting",    &cv_glmodellighting,      32},
+	{IT_STRING|IT_CVAR,         NULL, "Models",              &cv_glmodels,             6},
+	{IT_STRING|IT_CVAR,         NULL, "Frame interpolation", &cv_glmodelinterpolation, 11},
+	{IT_STRING|IT_CVAR,         NULL, "Ambient lighting",    &cv_glmodellighting,      16},
 
-	{IT_HEADER, NULL, "General", NULL, 51},
-	{IT_STRING|IT_CVAR,         NULL, "Shaders",             &cv_glshaders,            63},
-	{IT_STRING|IT_CVAR,         NULL, "Palette rendering",   &cv_glpaletterendering,   73},
-	{IT_STRING | IT_CVAR, 	    NULL, "Light Dithering",     &cv_gllightdither,        83},
-	{IT_STRING|IT_CVAR,         NULL, "Lack of perspective", &cv_glshearing,           93},
-	{IT_STRING|IT_CVAR,         NULL, "Field of view",       &cv_fov,                  103},
+	{IT_HEADER, NULL, "General", NULL, 25},
+	{IT_STRING|IT_CVAR,         NULL, "Shaders",             &cv_glshaders,            31},
+	{IT_STRING|IT_CVAR,         NULL, "Palette rendering",   &cv_glpaletterendering,   36},
+	{IT_STRING | IT_CVAR, 	    NULL, "Light Dithering",     &cv_gllightdither,        41},
+	{IT_STRING|IT_CVAR,         NULL, "Lack of perspective", &cv_glshearing,           46},
+	{IT_STRING|IT_CVAR,         NULL, "Field of view",       &cv_fov,                  51},
 
-	{IT_HEADER, NULL, "Miscellaneous", NULL, 122},
-	{IT_STRING|IT_CVAR,         NULL, "Bit depth",           &cv_scr_depth,           134},
-	{IT_STRING|IT_CVAR,         NULL, "Texture filter",      &cv_glfiltermode,        144},
-	{IT_STRING|IT_CVAR,         NULL, "Anisotropic",         &cv_glanisotropicmode,   154},
-	{IT_STRING|IT_CVAR,         NULL, "Render distance",     &cv_glrenderdistance,    164},
+	{IT_HEADER, NULL, "Miscellaneous", NULL, 60},
+	{IT_STRING|IT_CVAR,         NULL, "Bit depth",           &cv_scr_depth,           66},
+	{IT_STRING|IT_CVAR,         NULL, "Texture filter",      &cv_glfiltermode,        71},
+	{IT_STRING|IT_CVAR,         NULL, "Anisotropic",         &cv_glanisotropicmode,   76},
+	{IT_STRING|IT_CVAR,         NULL, "Render distance",     &cv_glrenderdistance,    81},
 #ifdef ALAM_LIGHTING
-	{IT_SUBMENU|IT_STRING,      NULL, "Lighting...",         &OP_OpenGLLightingDef,   174},
+	{IT_SUBMENU|IT_STRING,      NULL, "Lighting...",         &OP_OpenGLLightingDef,   86},
 #endif
 #if defined (_WINDOWS) && (!(defined (__unix__) || defined (UNIXCOMMON) || defined (HAVE_SDL)))
-	{IT_STRING|IT_CVAR,         NULL, "Fullscreen",          &cv_fullscreen,          184},
+	{IT_STRING|IT_CVAR,         NULL, "Fullscreen",          &cv_fullscreen,          91},
 #endif
 };
 
@@ -2265,7 +2265,7 @@ static void M_OpenGLOptionsMenu(void)
 		M_StartMessage(M_GetText("You must be in OpenGL mode\nto access this menu.\n\n(Press a key)\n"), NULL, MM_NOTHING);
 }
 
-menu_t OP_OpenGLOptionsDef = DEFAULTMENUSTYLE(
+menu_t OP_OpenGLOptionsDef = DEFAULTSCROLLMENUSTYLE(
 	MTREE3(MN_OP_MAIN, MN_OP_VIDEO, MN_OP_OPENGL),
 	"M_VIDEO", OP_OpenGLOptionsMenu, &OP_VideoOptionsDef, 30, 30);
 #ifdef ALAM_LIGHTING
