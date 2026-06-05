@@ -55,7 +55,7 @@ extern consvar_t cv_instantretry;
 extern consvar_t cv_tutorialprompt;
 extern consvar_t cv_chatwidth, cv_chatnotifications, cv_chatheight, cv_chattime, cv_consolechat, cv_chatbacktint, cv_chatspamprotection, cv_chatspamspeed, cv_chatspamburst, cv_compactscoreboard;
 //				 x-pos	   y-pos	 left/right up/down
-extern consvar_t cv_chatx, cv_chaty, cv_chats1, cv_chats2;
+extern consvar_t cv_chatx, cv_chaty, cv_chats1, cv_chats2, cv_showchatlimit;
 extern consvar_t cv_crosshair, cv_crosshair2;
 extern consvar_t cv_crosshair_invert, cv_crosshair2_invert;
 extern consvar_t cv_invertmouse, cv_alwaysfreelook, cv_chasefreelook, cv_mousemove;

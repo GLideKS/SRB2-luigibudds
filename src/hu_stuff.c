@@ -1544,11 +1544,17 @@ static void HU_DrawChat(void)
 		}
 		typed_chars += 1;
 	}
-	// Limit
-	V_DrawSmallString(cv_chatx.value, cv_chaty.value,
-		HU_GetChatSnapping()|(HU_MAXMSGLEN - typed_chars > 64 ? V_TRANSLUCENT : (typed_chars == HU_MAXMSGLEN ? V_REDMAP : V_YELLOWMAP)),
-		va("%d/%d",typed_chars,HU_MAXMSGLEN)
-	);
+
+	#define CURCHARS (HU_MAXMSGLEN - typed_chars)
+	if (cv_showchatlimit.value <= CURCHARS || cv_showchatlimit.value == 0)
+	{
+		// Limit
+			V_DrawSmallString(cv_chatx.value, cv_chaty.value,
+				HU_GetChatSnapping()|(CURCHARS > 64 ? V_TRANSLUCENT : (typed_chars == HU_MAXMSGLEN ? V_REDMAP : V_YELLOWMAP)),
+				va("%d/%d",typed_chars,HU_MAXMSGLEN)
+			);
+	}
+	#undef CURCHARS
 
 	// handle /pm list. It's messy, horrible and I don't care.
 	if (strnicmp(w_chat, "/pm", 3) == 0 && vid.width >= 400 && !teamtalk) // 320x200 unsupported kthxbai
@@ -1615,7 +1621,7 @@ static void HU_DrawChat(void)
 
 static void HU_DrawChat_Old(void)
 {
-	INT32 t = 0, c = 0, y = HU_INPUTY;
+	INT32 t = 0, c = 0, y = HU_INPUTY, charcount = 0;
 	size_t i = 0;
 	const char *ntalk = "Say: ", *ttalk = "Say-Team: ";
 	const char *talk = ntalk;
@@ -1643,7 +1649,10 @@ static void HU_DrawChat_Old(void)
 		}
 
 		if (w_chat[i] >= FONTSTART)
+		{
 			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
+			charcount++;
+		}
 
 		c += charwidth;
 		if (c >= vid.width)
@@ -1652,6 +1661,23 @@ static void HU_DrawChat_Old(void)
 			y += charheight;
 		}
 	}
+
+	// console chat users are FINALLY being fed!
+	#define CHARS (HU_MAXMSGLEN - charcount)
+	if (cv_showchatlimit.value <= CHARS || cv_showchatlimit.value == 0) {
+		const char *lim = va("(%i/%i)", charcount, HU_MAXMSGLEN); 
+		for (i = 0; lim[i]; i++)
+		{
+			V_DrawCharacter(HU_INPUTX + c, y, lim[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
+			c += charwidth;
+			if (c >= vid.width)
+			{
+				c = 0;
+				y += charheight;
+			}
+		}
+	}
+	#undef CHARS
 }
 
 // Draw crosshairs at the exact center of the view.
