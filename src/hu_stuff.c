@@ -1048,6 +1048,33 @@ void HU_clearChatChars(void)
 	I_UpdateMouseGrab();
 }
 
+// based on CON_InputDelSelection()
+// \note ONLY meant to be used with c_selection!
+static void Chat_DeleteSelection(void)
+{
+	size_t start, end, len, clen;
+
+	clen = strlen(w_chat);
+
+	if (c_input > c_selection)
+	{
+		start = c_selection;
+		end = c_input;
+	}
+	else
+	{
+		start = c_input;
+		end = c_selection;
+	}
+	len = (end - start);
+
+	if (end != clen)
+		memmove(&w_chat[start], &w_chat[end], clen-end);
+	memset(&w_chat[clen - len], 0, len);
+
+	c_selection = c_input = start;
+}
+
 //
 // Returns true if key eaten
 //
@@ -1215,11 +1242,7 @@ boolean HU_Responder(event_t *ev)
 					c_selection = (c_input += pastelen);
 					return true;
                 case 'c':
-					if (CHAT_MUTE) // Do not bother! We have no input!
-						return true;
-
-					// ok it obviously cant below 0 but im doing it just because I do not trust myself
-					if (chatlen <= 0)
+					if (CHAT_MUTE || chatlen <= 0) // check length anyway for safetys sake
 						return true;
 
 					// The following has been taken from console.c
@@ -1231,30 +1254,37 @@ boolean HU_Responder(event_t *ev)
                         I_ClipboardCopy(&w_chat[c_selection], c_input-c_selection);
                     return true;
 				case 'x':
-					CONS_Alert(CONS_NOTICE, "CTRL+X is not implemented yet!");
+					if (CHAT_MUTE || chatlen <= 0) // check length anyway for safetys sake
+						return true;
+
+					if (c_selection == c_input) // Nothing
+						return true;
+					else if (c_selection > c_input)
+						I_ClipboardCopy(&w_chat[c_input], c_selection-c_input);
+					else
+						I_ClipboardCopy(&w_chat[c_selection], c_input-c_selection);
+
+					Chat_DeleteSelection();
 					return true;
 				case 'a':
-					if (CHAT_MUTE)
+					if (CHAT_MUTE || chatlen <= 0) // check length anyway for safetys sake
 						return true;
 
-					// ok it obviously cant below 0 but im doing it just because I do not trust myself
-					if (chatlen <= 0)
-						return true;
-
-					c_selection = 0; // beginning of text
-					c_input = chatlen; // end of text
+					c_selection = 0;
+					c_input = chatlen;
 					return true;
 				default:
 					break; // Might be some KEY_* constant and not a character.
 			}
 		}
 
+		// Bad and lazy code alert
+		#define CRAPPYMACRO (c_selection > c_input ? c_selection-c_input : c_input-c_selection)
 		if ((c == KEY_UPARROW || c == KEY_MOUSEWHEELUP) && chat_scroll > 0 && !OLDCHAT) // CHAT SCROLLING YAYS!
 		{
-			// TODO: Support shift for the INPUT, not just CTRL for moving to the top of the log.
 			if (ctrldown)
 			{
-				chat_scroll = chat_maxscroll;
+				chat_scroll = 0;
 				justscrolledup = true;
 				chat_scrolltime = 4;
 			} else if (!(shiftdown || ctrldown))
@@ -1266,7 +1296,6 @@ boolean HU_Responder(event_t *ev)
 		}
 		else if ((c == KEY_DOWNARROW || c == KEY_MOUSEWHEELDOWN) && chat_scroll < chat_maxscroll && chat_maxscroll > 0 && !OLDCHAT)
 		{
-			// TODO: Support shift for the INPUT, not just CTRL for moving to the bottom of the log!
 			if (ctrldown)
 			{
 				chat_scrollmedown = true;
@@ -1277,7 +1306,7 @@ boolean HU_Responder(event_t *ev)
 				chat_scrolltime = 4;
 			}
 		}
-		else if (c == KEY_LEFTARROW && c_input != 0 && !OLDCHAT) // i said go back
+		else if (c == KEY_LEFTARROW && c_input != 0) // i said go back
 		{
 			if (ctrldown)
 			{
@@ -1289,36 +1318,50 @@ boolean HU_Responder(event_t *ev)
 				if (c_selection == c_input && (c_input != 0 && c_selection != 0))
 				{
 					c_selection = (c_input -= 1);
-				} else if (!((c_input-c_selection) >= 1)) {
-					c_selection = (c_input -= c_selection);
+				} else {
+					if (c_selection == 0)
+						c_selection = c_input = 0;
+					else
+						c_selection = (c_input -= CRAPPYMACRO);
 				}
 			}
 		}
-		else if (c == KEY_RIGHTARROW && c_input < strlen(w_chat) && !OLDCHAT) // don't need to check for admin or w/e here since the chat won't ever contain anything if it's muted.
+		else if (c == KEY_RIGHTARROW && c_input < strlen(w_chat)) // don't need to check for admin or w/e here since the chat won't ever contain anything if it's muted.
 		{
 			if (ctrldown)
 			{
 				c_selection = (c_input += M_JumpWord(&w_chat[c_input]));
-			} else if (shiftdown && c_selection < strlen(w_chat)) {
+			} else if (shiftdown && c_selection <= strlen(w_chat)) {
 				c_selection++;
 			} else if (!(shiftdown || ctrldown))
 			{
 				if (c_selection == c_input && (c_input != HU_MAXMSGLEN && c_selection != HU_MAXMSGLEN))
 				{
 					c_selection = (c_input += 1);
-				} else if (!((c_input+c_selection) > HU_MAXMSGLEN)) {
-					c_selection = (c_input += c_selection);
+				} else if (c_selection != 0) {
+					if ((c_input+CRAPPYMACRO) > strlen(w_chat))
+						c_selection = (c_input = strlen(w_chat));
+					else
+						c_selection = (c_input += CRAPPYMACRO);
 				}
 			}
 		}
 		else if (c == KEY_BACKSPACE)
 		{
-			// TODO: CTRL Support
 			if (CHAT_MUTE || c_input <= 0)
 				return true;
 
-			memmove(&w_chat[c_input - 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
-			c_selection = (c_input -= 1);
+			if (ctrldown)
+				c_selection = M_JumpWordReverse(w_chat, c_input);
+
+			if (c_selection == c_input)
+			{
+				memmove(&w_chat[c_input - 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
+				c_input--;
+			} else
+			{
+				Chat_DeleteSelection();
+			}
 		}
 		else if (c == KEY_DEL)
 		{
@@ -1328,12 +1371,13 @@ boolean HU_Responder(event_t *ev)
 			memmove(&w_chat[c_input], &w_chat[c_input + 1], strlen(w_chat) - c_input);
 		}
 
+		#undef CRAPPYMACRO
+
 		return true;
 	}
 
 	return false;
 }
-
 
 //======================================================================
 //                         HEADS UP DRAWING
@@ -1757,10 +1801,10 @@ static void HU_DrawChat_Old(void)
 
 		if (w_chat[i] >= FONTSTART)
 		{
-			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
-
 			if ((c_selection > i && c_input <= i) || (c_selection <= i && c_input > i))
-				V_DrawFill(HU_INPUTX+c, y, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|t);
+				V_DrawFill(HU_INPUTX+c, y, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|V_NOSCALESTART|t);
+
+			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
 
 			if (cv_exitchatwipe.value)
 				charcount++;
