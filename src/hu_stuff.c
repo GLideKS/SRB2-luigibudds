@@ -1704,8 +1704,6 @@ static void HU_DrawChat(void)
 				va("%d/%d",typed_chars,HU_MAXMSGLEN)
 			);
 	}
-	// NOTE: REMOVE THIS BEFORE MARKING AS READY FOR MERGE! (I will forget)
-	V_DrawSmallString(cv_chatx.value+50, cv_chaty.value, HU_GetChatSnapping()|V_GREENMAP, va("SEL: %zu|CUR: %zu", c_selection, c_input));
 
 	// handle /pm list. It's messy, horrible and I don't care.
 	if (strnicmp(w_chat, "/pm", 3) == 0 && vid.width >= 400 && !teamtalk) // 320x200 unsupported kthxbai
