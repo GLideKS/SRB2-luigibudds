@@ -890,6 +890,142 @@ static void COM_Wait_f(void)
 		com_wait = 1; // 1 frame
 }
 
+// Print out the info of a cvar.
+static void CV_Info(consvar_t *v)
+{
+	boolean floatmode = false;
+	INT32 i = 0;
+
+	CONS_Printf("\x82""Variable %s:\n", v->name);
+	if (!(cv_cvarinformation.value == 2 || cv_cvarinformation.value == 3))
+	{
+		CONS_Printf(M_GetText("  flags: "));
+
+		// This sucks. But I do not want to overcomplicate either.
+		if (v->flags & CV_SAVE)
+			CONS_Printf("CV_SAVE ");
+
+		if (v->flags & CV_CALL)
+			CONS_Printf("CV_CALL ");
+
+		if (v->flags & CV_NETVAR)
+			CONS_Printf("CV_NETVAR ");
+
+		if (v->flags & CV_NOINIT)
+			CONS_Printf("CV_NOINIT ");
+
+		if (v->flags & CV_FLOAT)
+		{
+			CONS_Printf("CV_FLOAT ");
+			floatmode = true;
+		}
+
+		if (v->flags & CV_NOTINNET)
+			CONS_Printf("CV_NOTINNET ");
+
+		if (v->flags & CV_MODIFIED)
+			CONS_Printf("CV_MODIFIED ");
+
+		if (v->flags & CV_SHOWMODIF)
+			CONS_Printf("CV_SHOWMODIF ");
+
+		if (v->flags & CV_SHOWMODIFONETIME)
+			CONS_Printf("CV_SHOWMODIFONETIME ");
+
+		if (v->flags & CV_NOSHOWHELP)
+			CONS_Printf("CV_NOSHOWHELP ");
+
+		if (v->flags & CV_CHEAT)
+			CONS_Printf("CV_CHEAT ");
+
+		if (v->flags & CV_ALLOWLUA)
+			CONS_Printf("CV_ALLOWLUA ");
+
+		if (v->flags & CV_LUAVAR)
+			CONS_Printf("CV_LUAVAR ");
+
+		if (v->flags & CV_CLIENT)
+			CONS_Printf("CV_CLIENT");
+
+		CONS_Printf("\n");
+	}
+	if (!(cv_cvarinformation.value == 1 || cv_cvarinformation.value == 3))
+	{
+		if (!(v->flags & (CV_LUAVAR | CV_CLIENT)))
+		{
+			CONS_Printf("\tOrigin: Vanilla""\x82"" (Check wiki.srb2.org for more information)\n");
+		} else if (v->flags & CV_LUAVAR)
+		{
+			CONS_Printf("\tOrigin: Addon""\x82"" (Refer to the addon for more information)\n");
+		} else if (v->flags & CV_CLIENT && !(v->flags & CV_LUAVAR))
+		{
+			CONS_Printf("\tOrigin: Client""\x82"" (Check Banpyura's README for more information)\n");
+		}
+	}
+			
+	if (v->PossibleValue)
+	{
+		CONS_Printf("\tPossible values:\n");
+		if (v->PossibleValue == CV_YesNo)
+			CONS_Printf("\t  Yes or No (On or Off, True or False, 1 or 0)\n");
+		else if (v->PossibleValue == CV_OnOff)
+			CONS_Printf("\t  On or Off (Yes or No, True or False, 1 or 0)\n");
+		else if (v->PossibleValue == CV_TrueFalse)
+			CONS_Printf("\t  True or False (On or Off, Yes or No, 1 or 0)\n");
+		else if (v->PossibleValue == Color_cons_t)
+		{
+			for (i = 1; i < numskincolors; ++i)
+			{
+				if (skincolors[i].accessible)
+				{
+					CONS_Printf("\t  %-2d : %s\n", i, skincolors[i].name);
+				}
+			}
+		}
+		else
+		{
+#define MINVAL 0
+#define MAXVAL 1
+		if (!stricmp(v->PossibleValue[MINVAL].strvalue, "MIN"))
+		{
+			if (floatmode)
+			{
+				float fu = FIXED_TO_FLOAT(v->PossibleValue[MINVAL].value);
+				float ck = FIXED_TO_FLOAT(v->PossibleValue[MAXVAL].value);
+				CONS_Printf("\t  range from %ld%s to %ld%s\n",
+					(long)fu, M_Ftrim(fu),
+					(long)ck, M_Ftrim(ck));
+			}
+			else
+				CONS_Printf("\t  range from %d to %d\n", v->PossibleValue[MINVAL].value,
+					v->PossibleValue[MAXVAL].value);
+			i = MAXVAL+1;
+		}
+#undef MINVAL
+#undef MAXVAL
+
+		while (v->PossibleValue[i].strvalue)
+		{
+			if (floatmode)
+			{
+				CONS_Printf("\t  %-2f : %s\n", FIXED_TO_FLOAT(v->PossibleValue[i].value),
+					v->PossibleValue[i].strvalue);
+			} else
+			{
+				CONS_Printf("\t  %-2d : %s\n", v->PossibleValue[i].value,
+					v->PossibleValue[i].strvalue);
+			}
+			i++;
+		}
+		}
+	}
+
+	CONS_Printf("\nValue is \"%s\" default is \"%s\"\n", v->string, v->defaultvalue);
+
+	if (v->revert.v.string != NULL && strcmp(v->revert.v.string, v->string) != 0)
+		CONS_Printf(" Value before netgame: %s\n", v->revert.v.string);
+}
+
 /*
 *Prints help on variables and commands.
 * TODO: This thing has too many booleans. Seriously.
@@ -924,7 +1060,7 @@ static void COM_Help_f(void)
 		CONS_Printf("CV_CHEAT\t\t\t | Can only be used if cheats are enabled.\n");
 		CONS_Printf("CV_ALLOWLUA\t\t | Lua can call this console variable.\n");
 		CONS_Printf("CV_LUAVAR\t\t\t | This console variable was made by Lua.\n");
-		CONS_Printf("CV_CLIENT\t\t\t | Variable is not in vanilla SRB2.\n"); // Saying "made by SRB2-edit" feels wrong when some of them are ports
+		CONS_Printf("CV_CLIENT\t\t\t | Variable is not in vanilla SRB2.\n"); // Saying "made by Banpyura" feels wrong when some of them are ports
 		CONS_Printf("Commands with COM_LUA can be executed by Lua. Command flags are self-explanatory.\n");
 		return;
 	} 
@@ -932,7 +1068,11 @@ static void COM_Help_f(void)
 	if (COM_Argc() > 1 && !(parmv || parmc || parma))
 	{
 		const char *help = COM_Argv(1);
-
+		cvar = CV_FindVar(help);
+		if (cvar) {
+			CV_Info(cvar);
+			return;
+		} else {
 			for (cmd = com_commands; cmd; cmd = cmd->next)
 			{
 				if (strcmp(cmd->name, help))
@@ -961,7 +1101,7 @@ static void COM_Help_f(void)
 
 					if (cmd->flags & COM_SPLITSCREEN)
 						CONS_Printf("COM_SPLITSCREEN");
-			
+				
 					CONS_Printf("\n");
 				}
 
@@ -971,16 +1111,17 @@ static void COM_Help_f(void)
 						CONS_Printf("\tOrigin: Vanilla""\x82"" (Check wiki.srb2.org for more information)\n");
 					} else if (cmd->flags & COM_CLIENT && !(cmd->flags & COM_LUACOM))
 					{
-						CONS_Printf("\tOrigin: Client""\x82"" (Check SRB2-edit's \"README.md\" file for more information)\n");
+						CONS_Printf("\tOrigin: Client""\x82"" (Check Banpyura's \"README.md\" file for more information)\n");
 					} else {
 						CONS_Printf("\tOrigin: Addon""\x82"" (Refer to the addon page for more information)\n");
 					}
 				}
 				return;
 			}
+		}
 
-			CV_FindVar(COM_Argv(1)) ? CONS_Printf("No command named %s exists. If you want info about that variable, do \"%s\" instead.", help, help) : CONS_Printf("No command named %s exists.", help);
-			CONS_Printf("\x82""\nCheck wiki.srb2.org for more or try typing help without arguments. For info on flags, do \"help -f\".\n");
+		CONS_Printf("No command or variable named %s exists.", help);
+		CONS_Printf("\x82""\nCheck wiki.srb2.org for more or try typing help without arguments. For info on flags, do \"help -f\".\n");
 		return;
 	}
 	else
@@ -1063,7 +1204,7 @@ static void COM_Help_f(void)
 			iscomloop ^= 1;
 		}
 
-		CONS_Printf("\x82""\nCheck wiki.srb2.org for more or type help <command>. For info on flags, do \"help -f\".\n");
+		CONS_Printf("\x82""\nCheck wiki.srb2.org for more or type help <cvar/command>. For info on flags, do \"help -f\".\n");
 
 	}
 }
@@ -2638,8 +2779,6 @@ static boolean CV_FilterVarByVersion(consvar_t *v, const char *valstr)
 static boolean CV_Command(void)
 {
 	consvar_t *v;
-	boolean floatmode = false;
-	INT32 i = 0;
 
 	// check variables
 	v = CV_FindVar(COM_Argv(0));
@@ -2655,143 +2794,17 @@ static boolean CV_Command(void)
 	// perform a variable print or set
 	if (COM_Argc() == 1)
 	{
-
-		CONS_Printf("\x82""Variable %s:\n", v->name);
-		if (!(cv_cvarinformation.value == 2 || cv_cvarinformation.value == 3)) {
-			CONS_Printf(M_GetText("  flags: "));
-
-			// This sucks. But I do not want to overcomplicate either.
-			if (v->flags & CV_SAVE)
-				CONS_Printf("CV_SAVE ");
-
-			if (v->flags & CV_CALL)
-				CONS_Printf("CV_CALL ");
-
-			if (v->flags & CV_NETVAR)
-				CONS_Printf("CV_NETVAR ");
-
-			if (v->flags & CV_NOINIT)
-				CONS_Printf("CV_NOINIT ");
-
-			if (v->flags & CV_FLOAT)
-			{
-				CONS_Printf("CV_FLOAT ");
-				floatmode = true;
-			}
-
-			if (v->flags & CV_NOTINNET)
-				CONS_Printf("CV_NOTINNET ");
-
-			if (v->flags & CV_MODIFIED)
-				CONS_Printf("CV_MODIFIED ");
-
-			if (v->flags & CV_SHOWMODIF)
-				CONS_Printf("CV_SHOWMODIF ");
-
-			if (v->flags & CV_SHOWMODIFONETIME)
-				CONS_Printf("CV_SHOWMODIFONETIME ");
-
-			if (v->flags & CV_NOSHOWHELP)
-				CONS_Printf("CV_NOSHOWHELP ");
-
-			if (v->flags & CV_CHEAT)
-				CONS_Printf("CV_CHEAT ");
-
-			if (v->flags & CV_ALLOWLUA)
-				CONS_Printf("CV_ALLOWLUA ");
-
-			if (v->flags & CV_LUAVAR)
-				CONS_Printf("CV_LUAVAR ");
-
-			if (v->flags & CV_CLIENT)
-				CONS_Printf("CV_CLIENT");
-
-			CONS_Printf("\n");
-			}
-		if (!(cv_cvarinformation.value == 1 || cv_cvarinformation.value == 3))
-		{
-			if (!(v->flags & (CV_LUAVAR | CV_CLIENT)))
-			{
-				CONS_Printf("\tOrigin: Vanilla""\x82"" (Check wiki.srb2.org for more information)\n");
-			} else if (v->flags & CV_LUAVAR)
-			{
-				CONS_Printf("\tOrigin: Addon""\x82"" (Refer to the addon for more information)\n");
-			} else if (v->flags & CV_CLIENT && !(v->flags & CV_LUAVAR))
-			{
-				CONS_Printf("\tOrigin: Client""\x82"" (Check SRB2-edit's README for more information)\n");
-			}
-		}
-			
-		if (v->PossibleValue)
-		{
-			CONS_Printf("\tPossible values:\n");
-			if (v->PossibleValue == CV_YesNo)
-				CONS_Printf("\t  Yes or No (On or Off, True or False, 1 or 0)\n");
-			else if (v->PossibleValue == CV_OnOff)
-				CONS_Printf("\t  On or Off (Yes or No, True or False, 1 or 0)\n");
-			else if (v->PossibleValue == CV_TrueFalse)
-				CONS_Printf("\t  True or False (On or Off, Yes or No, 1 or 0)\n");
-			else if (v->PossibleValue == Color_cons_t)
-			{
-				for (i = 1; i < numskincolors; ++i)
-				{
-					if (skincolors[i].accessible)
-					{
-						CONS_Printf("\t  %-2d : %s\n", i, skincolors[i].name);
-					}
-				}
-			}
-			else
-			{
-#define MINVAL 0
-#define MAXVAL 1
-				if (!stricmp(v->PossibleValue[MINVAL].strvalue, "MIN"))
-				{
-					if (floatmode)
-					{
-						float fu = FIXED_TO_FLOAT(v->PossibleValue[MINVAL].value);
-						float ck = FIXED_TO_FLOAT(v->PossibleValue[MAXVAL].value);
-							CONS_Printf("\t  range from %ld%s to %ld%s\n",
-									(long)fu, M_Ftrim(fu),
-									(long)ck, M_Ftrim(ck));
-					}
-					else
-							CONS_Printf("\t  range from %d to %d\n", v->PossibleValue[MINVAL].value,
-								v->PossibleValue[MAXVAL].value);
-						i = MAXVAL+1;
-					}
-#undef MINVAL
-#undef MAXVAL
-
-				while (v->PossibleValue[i].strvalue)
-				{
-					if (floatmode)
-					{
-							CONS_Printf("\t  %-2f : %s\n", FIXED_TO_FLOAT(v->PossibleValue[i].value),
-								v->PossibleValue[i].strvalue);
-					} else {
-							CONS_Printf("\t  %-2d : %s\n", v->PossibleValue[i].value,
-								v->PossibleValue[i].strvalue);
-					}
-						i++;
-				}
-			}
-		}
-
-			CONS_Printf("\nValue is \"%s\" default is \"%s\"\n", v->string, v->defaultvalue);
-
-			if (v->revert.v.string != NULL && strcmp(v->revert.v.string, v->string) != 0)
-					CONS_Printf(" Value before netgame: %s\n", v->revert.v.string);
-			return true;
-		}
-		
-		if (!(v->flags & CV_SAVE) || CV_FilterVarByVersion(v, COM_Argv(1)))
-		{
-			CV_Set(v, COM_Argv(1));
-			v->changed = 1; // now it's been changed by (presumably) the user
-		}
+		CV_Info(v);
 		return true;
 	}
+		
+	if (!(v->flags & CV_SAVE) || CV_FilterVarByVersion(v, COM_Argv(1)))
+	{
+		CV_Set(v, COM_Argv(1));
+		v->changed = 1; // now it's been changed by (presumably) the user
+	}
+	return true;
+}
 
 /** Marks all variables as unchanged, indicating they've not been changed
   * by the user this game.
