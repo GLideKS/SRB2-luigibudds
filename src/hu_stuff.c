@@ -1170,6 +1170,9 @@ boolean HU_Responder(event_t *ev)
 			if (CHAT_MUTE || strlen(w_chat) >= HU_MAXMSGLEN)
 				return true;
 
+			if (c_selection != c_input && (strlen(w_chat) > 0)) // tiny hack for text replacement
+				Chat_DeleteSelection();
+
 			memmove(&w_chat[c_input + 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
 			w_chat[c_input] = c;
 			c_selection = (c_input += 1);
