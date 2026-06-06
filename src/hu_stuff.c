@@ -84,6 +84,7 @@ boolean chat_on; // entering a chat message?
 boolean chat_on_first_event; // blocker for first chat input event
 static char w_chat[HU_MAXMSGLEN + 1];
 static size_t c_input = 0; // let's try to make the chat input less shitty.
+static size_t c_selection = 0; // whatevers inbetween this and c_input is selected, if c_input = c_selection, then there's no selection.
 static boolean headsupactive = false;
 boolean hu_showscores; // draw rankings
 static char hu_tick;
@@ -962,7 +963,7 @@ static void HU_sendChatMessage(void)
 	buf[ci] = '\0';
 
 	memset(w_chat, '\0', sizeof(w_chat));
-	c_input = 0;
+	c_selection = c_input = 0;
 
 	// last minute mute check
 	if (CHAT_MUTE)
@@ -1041,7 +1042,7 @@ void HU_clearChatChars(void)
 	if (cv_exitchatwipe.value)
 	{
 		memset(w_chat, '\0', sizeof(w_chat));
-		c_input = 0;
+		c_selection = c_input = 0;
 	}
 
 	I_UpdateMouseGrab();
@@ -1096,7 +1097,7 @@ boolean HU_Responder(event_t *ev)
 			if (cv_exitchatwipe.value)
 			{
 				w_chat[0] = 0;
-				c_input = 0;
+				c_selection = c_input = 0;
 			}
 			teamtalk = false;
 			chat_scrollmedown = true;
@@ -1112,7 +1113,7 @@ boolean HU_Responder(event_t *ev)
 			if (cv_exitchatwipe.value)
 			{
 				w_chat[0] = 0;
-				c_input = 0;
+				c_selection = c_input = 0;
 			}
 			teamtalk = G_GametypeHasTeams(); // Don't teamtalk if we don't have teams.
 			chat_scrollmedown = true;
@@ -1144,7 +1145,7 @@ boolean HU_Responder(event_t *ev)
 
 			memmove(&w_chat[c_input + 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
 			w_chat[c_input] = c;
-			c_input++;
+			c_selection = (c_input += 1);
 			return true;
 		}
 
@@ -1156,40 +1157,20 @@ boolean HU_Responder(event_t *ev)
 		 || ev->key == KEY_LALT || ev->key == KEY_RALT)
 			return true;
 
-		// pasting. pasting is cool. chat is a bit limited, though :(
-		if (c == 'v' && ctrldown)
-		{
-			const char *paste;
-			size_t chatlen;
-			size_t pastelen;
-
-			if (CHAT_MUTE)
-				return true;
-
-			paste = I_ClipboardPaste();
-			if (paste == NULL)
-				return true;
-
-			chatlen = strlen(w_chat);
-			pastelen = strlen(paste);
-			if (chatlen+pastelen > HU_MAXMSGLEN)
-				return true; // we can't paste this!!
-
-			memmove(&w_chat[c_input + pastelen], &w_chat[c_input], (chatlen - c_input) + 1); // +1 for '\0'
-			memcpy(&w_chat[c_input], paste, pastelen); // copy all of that.
-			c_input += pastelen;
-			return true;
-		}
-		else if (c == KEY_ENTER)
+		if (c == KEY_ENTER)
 		{
 			if (!CHAT_MUTE)
 				HU_sendChatMessage();
 
 			I_SetTextInputMode(false);
 			chat_on = false;
-			c_input = 0; // reset input cursor
+			if (cv_exitchatwipe.value) // I'm too sleep deprived to know if this is needed but I'll just assume yes
+			{
+				c_selection = c_input = 0; // reset cursor entirely
+			}
 			chat_scrollmedown = true; // you hit enter, so you might wanna autoscroll to see what you just sent. :)
 			I_UpdateMouseGrab();
+			return true; // Probably eat this...?
 		}
 		else if (c == KEY_ESCAPE
 			|| ((c == gamecontrol[GC_TALKKEY][0] || c == gamecontrol[GC_TALKKEY][1]
@@ -1198,42 +1179,146 @@ boolean HU_Responder(event_t *ev)
 		{
 			I_SetTextInputMode(false);
 			chat_on = false;
-			c_input = 0; // reset input cursor
+			if (cv_exitchatwipe.value) // I'm too sleep deprived to know if this is needed but I'll just assume yes
+			{
+				c_selection = c_input = 0; // reset cursor entirely
+			}
 			I_UpdateMouseGrab();
+			return true;
 		}
-		else if ((c == KEY_UPARROW || c == KEY_MOUSEWHEELUP) && chat_scroll > 0 && !OLDCHAT) // CHAT SCROLLING YAYS!
+
+		// CTRL modifiers (CTRL+[V/C/X/A])!
+		if (ctrldown)
 		{
-			chat_scroll--;
-			justscrolledup = true;
-			chat_scrolltime = 4;
+            size_t chatlen = strlen(w_chat);
+			switch(c)
+			{
+				case 'v':
+					const char *paste;
+					size_t pastelen;
+
+					if (CHAT_MUTE)
+						return true;
+
+					paste = I_ClipboardPaste();
+					if (paste == NULL)
+						return true;
+
+					pastelen = strlen(paste);
+					if (chatlen+pastelen > HU_MAXMSGLEN) {
+						HU_AddChatText(va("%s>ERROR: Too long to paste!", "\x85"), false);
+						return true; // we can't paste this!!
+					}
+
+					memmove(&w_chat[c_input + pastelen], &w_chat[c_input], (chatlen - c_input) + 1); // +1 for '\0'
+					memcpy(&w_chat[c_input], paste, pastelen); // copy all of that.
+					c_selection = (c_input += pastelen);
+					return true;
+                case 'c':
+					if (CHAT_MUTE) // Do not bother! We have no input!
+						return true;
+
+					// ok it obviously cant below 0 but im doing it just because I do not trust myself
+					if (chatlen <= 0)
+						return true;
+
+					// The following has been taken from console.c
+                    if (c_selection == c_input) // nothing to copy!
+                        return true;
+                    else if (c_selection > c_input)
+                        I_ClipboardCopy(&w_chat[c_input], c_selection-c_input);
+                    else
+                        I_ClipboardCopy(&w_chat[c_selection], c_input-c_selection);
+                    return true;
+				case 'x':
+					CONS_Alert(CONS_NOTICE, "CTRL+X is not implemented yet!");
+					return true;
+				case 'a':
+					if (CHAT_MUTE)
+						return true;
+
+					// ok it obviously cant below 0 but im doing it just because I do not trust myself
+					if (chatlen <= 0)
+						return true;
+
+					c_selection = 0; // beginning of text
+					c_input = chatlen; // end of text
+					return true;
+				default:
+					break; // Might be some KEY_* constant and not a character.
+			}
+		}
+
+		if ((c == KEY_UPARROW || c == KEY_MOUSEWHEELUP) && chat_scroll > 0 && !OLDCHAT) // CHAT SCROLLING YAYS!
+		{
+			// TODO: Support shift for the INPUT, not just CTRL for moving to the top of the log.
+			if (ctrldown)
+			{
+				chat_scroll = chat_maxscroll;
+				justscrolledup = true;
+				chat_scrolltime = 4;
+			} else if (!(shiftdown || ctrldown))
+			{
+				chat_scroll--;
+				justscrolledup = true;
+				chat_scrolltime = 4;
+			}
 		}
 		else if ((c == KEY_DOWNARROW || c == KEY_MOUSEWHEELDOWN) && chat_scroll < chat_maxscroll && chat_maxscroll > 0 && !OLDCHAT)
 		{
-			chat_scroll++;
-			justscrolleddown = true;
-			chat_scrolltime = 4;
+			// TODO: Support shift for the INPUT, not just CTRL for moving to the bottom of the log!
+			if (ctrldown)
+			{
+				chat_scrollmedown = true;
+			} else if (!(shiftdown || ctrldown))
+			{
+				chat_scroll++;
+				justscrolleddown = true;
+				chat_scrolltime = 4;
+			}
 		}
 		else if (c == KEY_LEFTARROW && c_input != 0 && !OLDCHAT) // i said go back
 		{
 			if (ctrldown)
-				c_input = M_JumpWordReverse(w_chat, c_input);
-			else
-				c_input--;
+			{
+				c_selection = (c_input = M_JumpWordReverse(w_chat, c_input));
+			} else if (shiftdown && c_selection != 0) {
+				c_selection--;
+			} else if (!(shiftdown || ctrldown))
+			{
+				if (c_selection == c_input && (c_input != 0 && c_selection != 0))
+				{
+					c_selection = (c_input -= 1);
+				} else if (!((c_input-c_selection) >= 1)) {
+					c_selection = (c_input -= c_selection);
+				}
+			}
 		}
 		else if (c == KEY_RIGHTARROW && c_input < strlen(w_chat) && !OLDCHAT) // don't need to check for admin or w/e here since the chat won't ever contain anything if it's muted.
 		{
 			if (ctrldown)
-				c_input += M_JumpWord(&w_chat[c_input]);
-			else
-				c_input++;
+			{
+				c_selection = (c_input += M_JumpWord(&w_chat[c_input]));
+			} else if (shiftdown && c_selection < strlen(w_chat)) {
+				c_selection++;
+			} else if (!(shiftdown || ctrldown))
+			{
+				if (c_selection == c_input && (c_input != HU_MAXMSGLEN && c_selection != HU_MAXMSGLEN))
+				{
+					c_selection = (c_input += 1);
+				} else if (!((c_input+c_selection) > HU_MAXMSGLEN)) {
+					c_selection = (c_input += c_selection);
+				}
+			}
 		}
 		else if (c == KEY_BACKSPACE)
 		{
+			// TODO: CTRL Support
 			if (CHAT_MUTE || c_input <= 0)
 				return true;
 
 			memmove(&w_chat[c_input - 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
-			c_input--;
+			c_selection = (c_input -= 1);
 		}
 		else if (c == KEY_DEL)
 		{
@@ -1550,7 +1635,11 @@ static void HU_DrawChat(void)
 		}
 
 		if (w_chat[i] >= FONTSTART)
-			V_DrawChatCharacter(cv_chatx.value + c + 2, y, w_chat[i] | HU_GetChatSnapping() | t, true, NULL);
+		{
+			if ((c_selection > i && c_input <= i) || (c_selection <= i && c_input > i))
+				V_DrawFill(cv_chatx.value+c+2, y-2, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|t);
+			V_DrawChatCharacter(cv_chatx.value+c+2, y, w_chat[i] | HU_GetChatSnapping() | t, true, NULL);
+		}
 
 		c += charwidth;
 		if (c > boxw-charwidth && !skippedline)
@@ -1571,6 +1660,8 @@ static void HU_DrawChat(void)
 				va("%d/%d",typed_chars,HU_MAXMSGLEN)
 			);
 	}
+	// NOTE: REMOVE THIS BEFORE MARKING AS READY FOR MERGE! (I will forget)
+	V_DrawSmallString(cv_chatx.value+50, cv_chaty.value, HU_GetChatSnapping()|V_GREENMAP, va("SEL: %zu|CUR: %zu", c_selection, c_input));
 
 	// handle /pm list. It's messy, horrible and I don't care.
 	if (strnicmp(w_chat, "/pm", 3) == 0 && vid.width >= 400 && !teamtalk) // 320x200 unsupported kthxbai
@@ -1667,6 +1758,10 @@ static void HU_DrawChat_Old(void)
 		if (w_chat[i] >= FONTSTART)
 		{
 			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
+
+			if ((c_selection > i && c_input <= i) || (c_selection <= i && c_input > i))
+				V_DrawFill(HU_INPUTX+c, y, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|t);
+
 			if (cv_exitchatwipe.value)
 				charcount++;
 		}
