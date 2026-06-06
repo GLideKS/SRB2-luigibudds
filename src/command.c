@@ -60,8 +60,6 @@ static void COM_Find_f(void);
 static void COM_Toggle_f(void);
 static void COM_Cycle_f(void);
 static void COM_Add_f(void);
-static void COM_LocalMute_f(void);
-
 
 static void CV_EnforceExecVersion(void);
 static boolean CV_FilterVarByVersion(consvar_t *v, const char *valstr);
@@ -362,7 +360,6 @@ void COM_Init(void)
 	COM_AddCommand("toggle", COM_Toggle_f, COM_LUA);
 	COM_AddCommand("add", COM_Add_f, COM_LUA);
 	COM_AddCommand("cycle", COM_Cycle_f, COM_CLIENT);
-	COM_AddCommand("localmute", COM_LocalMute_f, COM_CLIENT);
 	RegisterNetXCmd(XD_NETVAR, Got_NetVar);
 }
 
@@ -1298,31 +1295,6 @@ static void COM_Add_f(void)
 	}
 	else
 		CV_AddValue(cvar, atoi(COM_Argv(2)));
-}
-
-/** Local mute!
- *  Forces a player's message to save to log instead of appear in chat.
- * Of course, does not work if PlayerMsg hooks hijack chat due to netsafety, but still...
-*/
-static void COM_LocalMute_f(void)
-{
-
-	if (COM_Argc() != 1)
-	{
-		CONS_Printf("localmute <player>: Force a user's messages to save to log instead of being added to chat!\n");
-		CONS_Printf("(Does not save if some Lua scripts handle the chat on their own instead. To unmute, do it again.)\n");
-		return;
-	}
-
-	SINT8 pn = nametonum(COM_Argv(1));
-
-	if (pn == -1)
-	{
-		CONS_Printf("Player not found!\n");
-		return;
-	}
-
-	p_localmute[pn] = !p_localmute[pn];
 }
 
 // =========================================================================

@@ -849,11 +849,7 @@ static void Got_Saycmd(UINT8 **p, INT32 playernum)
 			fmt2 = "%s<%s%s>\x80%s %s%s";
 		}
 
-		if (p_localmute[playernum]) {
-			CON_LogMessage(va(fmt2, prefix, cstart, dispname, cend, textcolor, msg));
-			CON_LogMessage("\n");
-		} else
-			HU_AddChatText(va(fmt2, prefix, cstart, dispname, cend, textcolor, msg), cv_chatnotifications.value); // add to chat
+		HU_AddChatText(va(fmt2, prefix, cstart, dispname, cend, textcolor, msg), cv_chatnotifications.value); // add to chat
 
 		if (tempchar)
 			Z_Free(tempchar);
