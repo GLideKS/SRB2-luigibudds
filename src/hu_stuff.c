@@ -1049,7 +1049,7 @@ void HU_clearChatChars(void)
 }
 
 // based on CON_InputDelSelection()
-// \note ONLY meant to be used with c_selection!
+// \note ONLY meant to be used while c_selection != c_input!
 static void Chat_DeleteSelection(void)
 {
 	size_t start, end, len, clen;
