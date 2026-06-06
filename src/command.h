@@ -34,7 +34,7 @@ typedef enum
 	// CANNOT be run from Lua.
 	COM_LUA         = 8,
 	COM_LUACOM = 16, // Command was created by Lua
-	COM_CLIENT = 32 // Command is in SRB2-edit, but not Vanilla.
+	COM_CLIENT = 32 // Command is in Banpyura, but not Vanilla.
 } com_flags_t;
 
 typedef void (*com_func_t)(void);
@@ -128,7 +128,7 @@ typedef enum
 	CV_CHEAT = 2048, // Don't let this be used in multiplayer unless cheats are on.
 	CV_ALLOWLUA = 4096, // Let this be called from Lua
 	CV_LUAVAR = 8192, // Variable was created by Lua.
-	CV_CLIENT = 16384, // Variable is in SRB2-edit, but not Vanilla.
+	CV_CLIENT = 16384, // Variable is in Banpyura, but not Vanilla.
 } cvflags_t;
 
 typedef struct CV_PossibleValue_s

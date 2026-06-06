@@ -60,6 +60,7 @@ static void COM_Find_f(void);
 static void COM_Toggle_f(void);
 static void COM_Cycle_f(void);
 static void COM_Add_f(void);
+static void COM_LocalMute_f(void);
 
 
 static void CV_EnforceExecVersion(void);
@@ -360,7 +361,8 @@ void COM_Init(void)
 	COM_AddCommand("find", COM_Find_f, COM_LUA);
 	COM_AddCommand("toggle", COM_Toggle_f, COM_LUA);
 	COM_AddCommand("add", COM_Add_f, COM_LUA);
-	COM_AddCommand("cycle", COM_Cycle_f, COM_CLIENT); // doesn't check CV_Immutable(), add COM_LUA at own your risk.
+	COM_AddCommand("cycle", COM_Cycle_f, COM_CLIENT);
+	COM_AddCommand("localmute", COM_LocalMute_f, COM_CLIENT);
 	RegisterNetXCmd(XD_NETVAR, Got_NetVar);
 }
 
@@ -928,7 +930,7 @@ static void COM_Help_f(void)
 		CONS_Printf("CV_CHEAT\t\t\t | Can only be used if cheats are enabled.\n");
 		CONS_Printf("CV_ALLOWLUA\t\t | Lua can call this console variable.\n");
 		CONS_Printf("CV_LUAVAR\t\t\t | This console variable was made by Lua.\n");
-		CONS_Printf("CV_CLIENT\t\t\t | Variable is not in vanilla SRB2.\n"); // Saying "made by SRB2-edit" feels wrong when some of them are ports
+		CONS_Printf("CV_CLIENT\t\t\t | Variable is not in vanilla SRB2.\n"); // Saying "made by Banpyura" feels wrong when some of them are ports
 		CONS_Printf("Commands with COM_LUA can be executed by Lua. Command flags are self-explanatory.\n");
 		return;
 	} 
@@ -975,7 +977,7 @@ static void COM_Help_f(void)
 						CONS_Printf("\tOrigin: Vanilla""\x82"" (Check wiki.srb2.org for more information)\n");
 					} else if (cmd->flags & COM_CLIENT && !(cmd->flags & COM_LUACOM))
 					{
-						CONS_Printf("\tOrigin: Client""\x82"" (Check SRB2-edit's \"README.md\" file for more information)\n");
+						CONS_Printf("\tOrigin: Client""\x82"" (Check Banpyura's \"README.md\" file for more information)\n");
 					} else {
 						CONS_Printf("\tOrigin: Addon""\x82"" (Refer to the addon page for more information)\n");
 					}
@@ -1203,7 +1205,7 @@ static void COM_Toggle_f(void)
 }
 
 /*
- * [SRB2-edit] cycle a cvar's values through given args (not bools tho)
+ * [Banpyura] cycle a cvar's values through given args (not bools tho)
  * 
  * meant to lessen the load on autoexec.cfgs having like 30 billion binds
  * half of those being changing some vars back.
@@ -1216,7 +1218,6 @@ static void COM_Cycle_f(void)
 	consvar_t *cvar;
 
 	boolean parmb = COM_CheckPartialParm("-b");
-	boolean parms = COM_CheckPartialParm("-s");
 
 	UINT16 arg = 2; // used for manually counting args
 	UINT16 args; // exists for the while loop, don't wanna spam call COM_Argc there
@@ -1243,13 +1244,12 @@ static void COM_Cycle_f(void)
 		return;
 	}
 
-	args = (COM_Argc()-(parms+parmb));
+	args = (COM_Argc()-parmb);
 
 	while (args > arg) {
 		if (!(strcmp(COM_Argv(arg), cvar->string)) || (atoi(COM_Argv(arg)) == cvar->value))
 		{
-			if (!parms)
-				cvar->flags |= CV_SHOWMODIFONETIME;
+			cvar->flags |= CV_SHOWMODIFONETIME;
 			if (args > (arg+1)) {
 				CV_Set(cvar, COM_Argv(arg+1));
 			} else { // loop backwards kthxbai
@@ -1261,8 +1261,7 @@ static void COM_Cycle_f(void)
 	}
 
 	if (parmb) {
-		if (!parms)
-			cvar->flags |= CV_SHOWMODIFONETIME;
+		cvar->flags |= CV_SHOWMODIFONETIME;
 		CV_Set(cvar, COM_Argv(2));
 		return;
 	} else { // our guy is stupid
@@ -1299,6 +1298,31 @@ static void COM_Add_f(void)
 	}
 	else
 		CV_AddValue(cvar, atoi(COM_Argv(2)));
+}
+
+/** Local mute!
+ *  Forces a player's message to save to log instead of appear in chat.
+ * Of course, does not work if PlayerMsg hooks hijack chat due to netsafety, but still...
+*/
+static void COM_LocalMute_f(void)
+{
+
+	if (COM_Argc() != 1)
+	{
+		CONS_Printf("localmute <player>: Force a user's messages to save to log instead of being added to chat!\n");
+		CONS_Printf("(Does not save if some Lua scripts handle the chat on their own instead. To unmute, do it again.)\n");
+		return;
+	}
+
+	SINT8 pn = nametonum(COM_Argv(1));
+
+	if (pn == -1)
+	{
+		CONS_Printf("Player not found!\n");
+		return;
+	}
+
+	p_localmute[pn] = !p_localmute[pn];
 }
 
 // =========================================================================
@@ -2722,7 +2746,7 @@ static boolean CV_Command(void)
 				CONS_Printf("\tOrigin: Addon""\x82"" (Refer to the addon for more information)\n");
 			} else if (v->flags & CV_CLIENT && !(v->flags & CV_LUAVAR))
 			{
-				CONS_Printf("\tOrigin: Client""\x82"" (Check SRB2-edit's README for more information)\n");
+				CONS_Printf("\tOrigin: Client""\x82"" (Check Banpyura's README for more information)\n");
 			}
 		}
 			

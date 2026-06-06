@@ -66,6 +66,8 @@ extern tic_t maketic;
 extern tic_t neededtic;
 extern INT16 consistancy[BACKUPTICS];
 
+extern boolean p_localmute[MAXPLAYERS];
+
 void Command_Ping_f(void);
 extern tic_t connectiontimeout;
 extern UINT16 pingmeasurecount;

@@ -99,6 +99,8 @@ tic_t neededtic;
 SINT8 servernode = 0; // the number of the server node
 SINT8 joinnode = 0; // used for CL_VIEWSERVER
 
+boolean p_localmute[MAXPLAYERS] = {0}; // only here to reset on CL_Reset()
+
 boolean acceptnewnode = true;
 
 UINT16 software_MAXPACKETLENGTH;
@@ -174,6 +176,8 @@ void CL_Reset(void)
 	filedownload.http_failed = false;
 	filedownload.http_running = false;
 	filedownload.http_source[0] = '\0';
+
+	memset(p_localmute, 0, sizeof(p_localmute));
 
 	// D_StartTitle should get done now, but the calling function will handle it
 }
