@@ -790,7 +790,7 @@ static void COM_CEcho_f(void)
 	cechotext[sizeof(cechotext) - 1] = '\0';
 
 	if (!cv_showcsays.value) {
-		I_OutputMsg("CECHO:");
+		I_OutputMsg("CECHO: ");
 	} else {
 		CONS_Printf(M_GetText("CECHO: %s\n"), cechotext);
 	}

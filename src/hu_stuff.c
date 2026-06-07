@@ -453,7 +453,7 @@ static void DoSayCommand(SINT8 target, size_t usedargs, UINT8 flags)
 
 	// We handle HU_SERVER_SAY, not the caller.
 	flags &= ~HU_SERVER_SAY;
-	if(dedicated && !(flags & HU_CSAY))
+	if (dedicated && !(flags & HU_CSAY))
 		flags |= HU_SERVER_SAY;
 
 	buf[0] = target;
@@ -510,6 +510,14 @@ static void DoSayCommand(SINT8 target, size_t usedargs, UINT8 flags)
 		buf[0] = target;
 		newmsg = msg+5+spc;
 		strlcpy(msg, newmsg, HU_MAXMSGLEN + 1);
+	}
+
+	// So dedicated servers can crash entirely from submitting a message of "great" length.
+	// If over DEDI_MAXMSGLEN, notify them and bail!
+	if (dedicated && (flags & HU_SERVER_SAY) && strlen(msg) > DEDI_MAXMSGLEN)
+	{
+		CONS_Printf("NOTICE: Too long, not sending! (max: %i, length: %li)\n", DEDI_MAXMSGLEN, strlen(msg));
+		return;
 	}
 
 	SendNetXCmd(XD_SAY, buf, strlen(msg) + 1 + msg-buf);
@@ -708,7 +716,7 @@ static void Got_Saycmd(UINT8 **p, INT32 playernum)
 	if (flags & HU_CSAY)
 	{
 		HU_SetCEchoDuration(5);
-		#define CSAYAUTHOR (flags & HU_SERVER_SAY ? "SERVER" : player_names[playernum])
+		#define CSAYAUTHOR (playernum == serverplayer ? "SERVER" : player_names[playernum])
 		if (!cv_showcsays.value)
 		{
 			I_OutputMsg("Server message [from %s]: ", CSAYAUTHOR);
@@ -1156,7 +1164,8 @@ boolean HU_Responder(event_t *ev)
 			// we need to make sure that nothing is displayed once the chat
 			// opens, otherwise a 't' would be outputted.
 			chat_on_first_event = true;
-			return true;
+			if (!(c == KEY_ENTER && !cv_exitchatwipe.value)) // Let me send!!!!
+				return true;
 		}
 
 		if (ev->type == ev_text)
@@ -1170,7 +1179,7 @@ boolean HU_Responder(event_t *ev)
 			if (CHAT_MUTE || strlen(w_chat) >= HU_MAXMSGLEN)
 				return true;
 
-			if (c_selection != c_input && (strlen(w_chat) > 0)) // tiny hack for text replacement
+			if (c_selection != c_input && (strlen(w_chat) > 0)) // tiny hack for text replacement: delete selection first
 				Chat_DeleteSelection();
 
 			memmove(&w_chat[c_input + 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
@@ -1276,6 +1285,31 @@ boolean HU_Responder(event_t *ev)
 					c_selection = 0;
 					c_input = chatlen;
 					return true;
+				case 'w':
+					// "Close current tab or open file". Here it's a very quick shortcut to wipe input
+					// (TL;DR: CTRL+A+BACKSPACE but instant, probably unnecessary, -
+					// - but it pairs very nicely with cv_exitchatwipe off imo)
+					memset(w_chat, '\0', sizeof(w_chat));
+					c_selection = c_input = 0;
+					return true;
+				case 'r':
+					// If you want this in old chat, you'll have to use the clearscreen
+					// command instead, as HU_AddChatText() is a CONS_Printf() wrapper
+					// if you have Console chat enabled.
+					if ((chat_nummsg_log < 1) || OLDCHAT)
+						return true;
+
+					// Clear the log.
+					for (size_t i=0; chat_nummsg_log; i++)
+						HU_removeChatText_Log();
+
+					if (chat_nummsg_min == 0) // Nothing to clear! Stop!
+						return true;
+
+					for (size_t i=0; chat_nummsg_min; i++)
+						HU_removeChatText_Mini();
+
+					return true;
 				default:
 					break; // Might be some KEY_* constant and not a character.
 			}
@@ -1289,8 +1323,8 @@ boolean HU_Responder(event_t *ev)
 			{
 				chat_scroll = 0;
 				justscrolledup = true;
-				chat_scrolltime = 4;
-			} else if (!(shiftdown || ctrldown))
+				chat_scrolltime = 2; // half of normal
+			} else
 			{
 				chat_scroll--;
 				justscrolledup = true;
@@ -1302,7 +1336,7 @@ boolean HU_Responder(event_t *ev)
 			if (ctrldown)
 			{
 				chat_scrollmedown = true;
-			} else if (!(shiftdown || ctrldown))
+			} else
 			{
 				chat_scroll++;
 				justscrolleddown = true;
@@ -1334,7 +1368,7 @@ boolean HU_Responder(event_t *ev)
 			if (ctrldown)
 			{
 				c_selection = (c_input += M_JumpWord(&w_chat[c_input]));
-			} else if (shiftdown && c_selection <= strlen(w_chat)) {
+			} else if (shiftdown && c_selection < strlen(w_chat)) {
 				c_selection++;
 			} else if (!(shiftdown || ctrldown))
 			{
@@ -1360,7 +1394,7 @@ boolean HU_Responder(event_t *ev)
 			if (c_selection == c_input)
 			{
 				memmove(&w_chat[c_input - 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
-				c_input--;
+				c_selection = (c_input -= 1);
 			} else
 			{
 				Chat_DeleteSelection();
@@ -1371,7 +1405,16 @@ boolean HU_Responder(event_t *ev)
 			if (CHAT_MUTE || c_input >= strlen(w_chat))
 				return true;
 
-			memmove(&w_chat[c_input], &w_chat[c_input + 1], strlen(w_chat) - c_input);
+			if (ctrldown)
+				c_selection = M_JumpWord(w_chat);
+
+			if (c_selection == c_input)
+			{
+				memmove(&w_chat[c_input], &w_chat[c_input + 1], strlen(w_chat) - c_input);
+			} else
+			{
+				Chat_DeleteSelection();
+			}
 		}
 
 		#undef CRAPPYMACRO
@@ -1684,7 +1727,7 @@ static void HU_DrawChat(void)
 		if (w_chat[i] >= FONTSTART)
 		{
 			if ((c_selection > i && c_input <= i) || (c_selection <= i && c_input > i))
-				V_DrawFill(cv_chatx.value+c+2, y-2, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|t);
+				V_DrawFill(cv_chatx.value+c+3, y-1, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|t);
 			V_DrawChatCharacter(cv_chatx.value+c+2, y, w_chat[i] | HU_GetChatSnapping() | t, true, NULL);
 		}
 
@@ -1695,7 +1738,7 @@ static void HU_DrawChat(void)
 			y += charheight;
 			typelines += 1;
 		}
-		if (cv_exitchatwipe.value)
+		if (cv_showchatlimit.value)
 			typed_chars += 1;
 	}
 
@@ -1803,7 +1846,7 @@ static void HU_DrawChat_Old(void)
 		if (w_chat[i] >= FONTSTART)
 		{
 			if ((c_selection > i && c_input <= i) || (c_selection <= i && c_input > i))
-				V_DrawFill(HU_INPUTX+c, y, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|V_NOSCALESTART|t);
+				V_DrawFill(HU_INPUTX+c-2, y+2, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|V_NOSCALESTART|t);
 
 			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
 
