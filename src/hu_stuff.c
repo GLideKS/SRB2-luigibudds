@@ -1727,7 +1727,7 @@ static void HU_DrawChat(void)
 		if (w_chat[i] >= FONTSTART)
 		{
 			if ((c_selection > i && c_input <= i) || (c_selection <= i && c_input > i))
-				V_DrawFill(cv_chatx.value+c+3, y-1, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|t);
+				V_DrawFill(cv_chatx.value+c+2, y-1, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|t);
 			V_DrawChatCharacter(cv_chatx.value+c+2, y, w_chat[i] | HU_GetChatSnapping() | t, true, NULL);
 		}
 
@@ -1742,7 +1742,7 @@ static void HU_DrawChat(void)
 			typed_chars += 1;
 	}
 
-	if (!(cv_showchatlimit.value == 0))
+	if (cv_showchatlimit.value)
 	{
 		// Limit
 			V_DrawSmallString(cv_chatx.value, cv_chaty.value,
@@ -1850,7 +1850,7 @@ static void HU_DrawChat_Old(void)
 
 			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
 
-			if (cv_exitchatwipe.value)
+			if (cv_showchatlimit.value)
 				charcount++;
 		}
 
@@ -1863,7 +1863,7 @@ static void HU_DrawChat_Old(void)
 	}
 
 	// console chat users are FINALLY being fed!
-	if (!(cv_showchatlimit.value == 0)) {
+	if (cv_showchatlimit.value) {
 		const char *lim = va(" (%i/%i)", charcount, HU_MAXMSGLEN);
 		for (i = 0; lim[i]; i++)
 		{
