@@ -1846,7 +1846,7 @@ static void HU_DrawChat_Old(void)
 		if (w_chat[i] >= FONTSTART)
 		{
 			if ((c_selection > i && c_input <= i) || (c_selection <= i && c_input > i))
-				V_DrawFill(HU_INPUTX+c-2, y+2, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|V_NOSCALESTART|t);	
+				V_DrawFill(HU_INPUTX+c-2, y+2, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|V_NOSCALESTART|t);
 
 			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
 
