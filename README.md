@@ -68,6 +68,24 @@ It works without any additional assets, just copy the build to your existing SRB
 - Lifted maxsend limits
 - Allow gamepad controls on unfocused window ("`gamepadunfocused`", from [SRB2Kart Saturn](https://github.com/Indev450/SRB2Kart-Saturn))
 
+### Chat
+- Console chat can now make use of arrow keys the same way as Windowed chat can!
+- - Unless specified otherwise, everything mentioned here works in Console chat.
+- CTRL+C (Copy), CTRL+X (Cut) and CTRL+A (Highlight all) are all supported for input.
+- Highlighting with shift+left/right arrow keys is now supported.
+- - Deleting and inserting over them does too.
+- Various CTRL modifiers:
+- - CTRL+Up arrow key or mouse wheel to move to the top of the log,
+- - CTRL+Down arrow key or mouse wheel to move to the bottom of the log,
+- - CTRL+W to wipe chat input (i.e, basically a shorter variant of CTRL+A+BACKSPACE),
+- - CTRL+Backspace to delete a whole word,
+- - CTRL+DEL to delete a whole word infront of the cursor,
+- - CTRL+R to clear the chat display *(This is exclusive to Windowed mode!)*
+- `cv_showchatlimit` to show character count and max allowed.
+- `chatexit_clearinput` can be turned off to only clear chat input once you send a message instead of also clearing it on exit.
+- Dedicated servers can no longer crash from sending a `say` command with a long message, as they won't send the packet if it would cause a crash and instead show a notice.
+- Whenever someone sends `csay`, the author is exposed in log. (If you have `showcsays` enabled, then it exposes the author in the console print. This will not duplicate.)
+
 ## Modding and Debugging
 - "`renderhitbox`" in multiplayer
 - Lua HUD interpolation from SRB2K Saturn

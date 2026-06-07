@@ -1203,7 +1203,7 @@ boolean HU_Responder(event_t *ev)
 
 			I_SetTextInputMode(false);
 			chat_on = false;
-			if (cv_exitchatwipe.value) // I'm too sleep deprived to know if this is needed but I'll just assume yes
+			if (cv_exitchatwipe.value)
 			{
 				c_selection = c_input = 0; // reset cursor entirely
 			}
@@ -1218,7 +1218,7 @@ boolean HU_Responder(event_t *ev)
 		{
 			I_SetTextInputMode(false);
 			chat_on = false;
-			if (cv_exitchatwipe.value) // I'm too sleep deprived to know if this is needed but I'll just assume yes
+			if (cv_exitchatwipe.value)
 			{
 				c_selection = c_input = 0; // reset cursor entirely
 			}
@@ -1316,7 +1316,8 @@ boolean HU_Responder(event_t *ev)
 		}
 
 		// Bad and lazy code alert
-		#define CRAPPYMACRO (c_selection > c_input ? c_selection-c_input : c_input-c_selection)
+		// The output is the amount to jump by. Meant to be used while c_selection != c_input
+		#define SELECTDIFF (c_selection > c_input ? c_selection-c_input : c_input-c_selection)
 		if ((c == KEY_UPARROW || c == KEY_MOUSEWHEELUP) && chat_scroll > 0 && !OLDCHAT) // CHAT SCROLLING YAYS!
 		{
 			if (ctrldown)
@@ -1356,10 +1357,10 @@ boolean HU_Responder(event_t *ev)
 				{
 					c_selection = (c_input -= 1);
 				} else {
-					if (c_selection == 0)
+					if (c_selection == 0 || (c_selection < (c_input-SELECTDIFF)))
 						c_selection = c_input = 0;
 					else
-						c_selection = (c_input -= CRAPPYMACRO);
+						c_selection = (c_input -= SELECTDIFF);
 				}
 			}
 		}
@@ -1372,14 +1373,14 @@ boolean HU_Responder(event_t *ev)
 				c_selection++;
 			} else if (!(shiftdown || ctrldown))
 			{
-				if (c_selection == c_input && (c_input != HU_MAXMSGLEN && c_selection != HU_MAXMSGLEN))
+				if (c_selection == c_input && !(c_input >= HU_MAXMSGLEN && c_selection >= HU_MAXMSGLEN))
 				{
 					c_selection = (c_input += 1);
 				} else if (c_selection != 0) {
-					if ((c_input+CRAPPYMACRO) > strlen(w_chat))
+					if ((c_input+SELECTDIFF) > strlen(w_chat))
 						c_selection = (c_input = strlen(w_chat));
 					else
-						c_selection = (c_input += CRAPPYMACRO);
+						c_selection = (c_input += SELECTDIFF);
 				}
 			}
 		}
@@ -1417,7 +1418,7 @@ boolean HU_Responder(event_t *ev)
 			}
 		}
 
-		#undef CRAPPYMACRO
+		#undef SELECTDIFF
 
 		return true;
 	}
@@ -1842,11 +1843,10 @@ static void HU_DrawChat_Old(void)
 			INT32 cursory = (cursorx != HU_INPUTX) ? (y) : (y+charheight);
 			V_DrawCharacter(cursorx, cursory+2*con_scalefactor, '_' |cv_constextsize.value | V_NOSCALESTART|t, true);
 		}
-
 		if (w_chat[i] >= FONTSTART)
 		{
 			if ((c_selection > i && c_input <= i) || (c_selection <= i && c_input > i))
-				V_DrawFill(HU_INPUTX+c-2, y+2, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|V_NOSCALESTART|t);
+				V_DrawFill(HU_INPUTX+c-2, y+2, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|V_NOSCALESTART|t);	
 
 			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
 
