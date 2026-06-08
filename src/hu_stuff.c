@@ -1184,7 +1184,7 @@ boolean HU_Responder(event_t *ev)
 
 			hu_tick = 0; // romoney5: reset blinking
 
-			if (c_selection != c_input && (strlen(w_chat) > 0)) // tiny hack for text replacement: delete selection first
+			if (c_selection != c_input)
 				Chat_DeleteSelection();
 
 			memmove(&w_chat[c_input + 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
@@ -1253,9 +1253,14 @@ boolean HU_Responder(event_t *ev)
 						return true; // we can't paste this!!
 					}
 
+					if (c_selection != c_input)
+						Chat_DeleteSelection(); // ctrl+v replaces selection
+
 					memmove(&w_chat[c_input + pastelen], &w_chat[c_input], (chatlen - c_input) + 1); // +1 for '\0'
 					memcpy(&w_chat[c_input], paste, pastelen); // copy all of that.
-					c_selection = (c_input += pastelen);
+
+					c_input += pastelen;
+					c_selection = c_input;
 					return true;
 				case 'c':
 					if (CHAT_MUTE || chatlen <= 0) // check length anyway for safetys sake
