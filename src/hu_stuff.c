@@ -1426,13 +1426,13 @@ boolean HU_Responder(event_t *ev)
 		}
 		else if (c == KEY_DEL)
 		{
-			if (CHAT_MUTE || c_input >= strlen(w_chat))
+			if (CHAT_MUTE)
 				return true;
 
 			hu_tick = 0;
 
 			if (ctrldown)
-				c_selection = M_JumpWord(w_chat);
+				c_input += M_JumpWord(&w_chat[c_input]);
 
 			if (c_selection == c_input)
 				memmove(&w_chat[c_input], &w_chat[c_input + 1], strlen(w_chat) - c_input);
