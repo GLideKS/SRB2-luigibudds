@@ -4,7 +4,9 @@ A custom net-compatible build of SRB2 that includes a plethora of fixes, improve
 
 # Installation:
 
-You can either use the Github Actions build (go to the Actions tab on the top, then select the one that corresponds to your platform; x64 Windows builds require different DLLs) or compile from the source code.
+- You can either use the Github Actions build (go to the Actions tab on the top, then select the one that corresponds to your platform; x64 Windows builds require - different DLLs)
+- Compile from the source code.
+- [Download the build from nightly.link (x86)](https://nightly.link/GLideKS/SRB2-Banpyura/workflows/windows-x86-makefile/master?preview)
 
 It works without any additional assets, just copy the build to your existing SRB2 folder and it will work fine.
 
