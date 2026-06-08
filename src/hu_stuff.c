@@ -1224,9 +1224,7 @@ boolean HU_Responder(event_t *ev)
 			I_SetTextInputMode(false);
 			chat_on = false;
 			if (cv_exitchatwipe.value)
-			{
 				c_selection = c_input = 0; // reset cursor entirely
-			}
 			I_UpdateMouseGrab();
 			return true;
 		}
@@ -1234,22 +1232,23 @@ boolean HU_Responder(event_t *ev)
 		// CTRL modifiers (CTRL+[V/C/X/A])!
 		if (ctrldown)
 		{
-            size_t chatlen = strlen(w_chat);
+			size_t chatlen = strlen(w_chat);
+
 			switch(c)
 			{
 				case 'v':
-					const char *paste;
-					size_t pastelen;
-
 					if (CHAT_MUTE)
 						return true;
 
-					paste = I_ClipboardPaste();
+					const char *paste = I_ClipboardPaste();
+					size_t pastelen;
+
 					if (paste == NULL)
 						return true;
 
 					pastelen = strlen(paste);
-					if (chatlen+pastelen > HU_MAXMSGLEN) {
+					if (chatlen+pastelen > HU_MAXMSGLEN)
+					{
 						HU_AddChatText(va("%s>ERROR: Too long to paste!", "\x85"), false);
 						return true; // we can't paste this!!
 					}
@@ -1258,18 +1257,18 @@ boolean HU_Responder(event_t *ev)
 					memcpy(&w_chat[c_input], paste, pastelen); // copy all of that.
 					c_selection = (c_input += pastelen);
 					return true;
-                case 'c':
+				case 'c':
 					if (CHAT_MUTE || chatlen <= 0) // check length anyway for safetys sake
 						return true;
 
 					// The following has been taken from console.c
-                    if (c_selection == c_input) // nothing to copy!
-                        return true;
-                    else if (c_selection > c_input)
-                        I_ClipboardCopy(&w_chat[c_input], c_selection-c_input);
-                    else
-                        I_ClipboardCopy(&w_chat[c_selection], c_input-c_selection);
-                    return true;
+					if (c_selection == c_input) // nothing to copy!
+						return true;
+					else if (c_selection > c_input)
+						I_ClipboardCopy(&w_chat[c_input], c_selection-c_input);
+					else
+						I_ClipboardCopy(&w_chat[c_selection], c_input-c_selection);
+					return true;
 				case 'x':
 					if (CHAT_MUTE || chatlen <= 0) // check length anyway for safetys sake
 						return true;
@@ -1330,7 +1329,8 @@ boolean HU_Responder(event_t *ev)
 				chat_scroll = 0;
 				justscrolledup = true;
 				chat_scrolltime = 2; // half of normal
-			} else
+			}
+			else
 			{
 				chat_scroll--;
 				justscrolledup = true;
@@ -1340,9 +1340,8 @@ boolean HU_Responder(event_t *ev)
 		else if ((c == KEY_DOWNARROW || c == KEY_MOUSEWHEELDOWN) && chat_scroll < chat_maxscroll && chat_maxscroll > 0 && !OLDCHAT)
 		{
 			if (ctrldown)
-			{
 				chat_scrollmedown = true;
-			} else
+			else
 			{
 				chat_scroll++;
 				justscrolleddown = true;
@@ -1353,16 +1352,15 @@ boolean HU_Responder(event_t *ev)
 		{
 			hu_tick = 0;
 			if (ctrldown)
-			{
 				c_selection = (c_input = M_JumpWordReverse(w_chat, c_input));
-			} else if (shiftdown && c_selection != 0) {
+			else if (shiftdown && c_selection != 0)
 				c_selection--;
-			} else if (!(shiftdown || ctrldown))
+			else if (!(shiftdown || ctrldown))
 			{
 				if (c_selection == c_input && (c_input != 0 && c_selection != 0))
-				{
 					c_selection = (c_input -= 1);
-				} else {
+				else
+				{
 					if (c_selection == 0 || (c_selection < (c_input-SELECTDIFF)))
 						c_selection = c_input = 0;
 					else
@@ -1374,16 +1372,15 @@ boolean HU_Responder(event_t *ev)
 		{
 			hu_tick = 0;
 			if (ctrldown)
-			{
 				c_selection = (c_input += M_JumpWord(&w_chat[c_input]));
-			} else if (shiftdown && c_selection < strlen(w_chat)) {
+			else if (shiftdown && c_selection < strlen(w_chat))
 				c_selection++;
-			} else if (!(shiftdown || ctrldown))
+			else if (!(shiftdown || ctrldown))
 			{
 				if (c_selection == c_input && !(c_input >= HU_MAXMSGLEN && c_selection >= HU_MAXMSGLEN))
-				{
 					c_selection = (c_input += 1);
-				} else if (c_selection != 0) {
+				else if (c_selection != 0)
+				{
 					if ((c_input+SELECTDIFF) > strlen(w_chat))
 						c_selection = (c_input = strlen(w_chat));
 					else
@@ -1405,10 +1402,9 @@ boolean HU_Responder(event_t *ev)
 			{
 				memmove(&w_chat[c_input - 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
 				c_selection = (c_input -= 1);
-			} else
-			{
-				Chat_DeleteSelection();
 			}
+			else
+				Chat_DeleteSelection();
 		}
 		else if (c == KEY_DEL)
 		{
@@ -1421,12 +1417,9 @@ boolean HU_Responder(event_t *ev)
 				c_selection = M_JumpWord(w_chat);
 
 			if (c_selection == c_input)
-			{
 				memmove(&w_chat[c_input], &w_chat[c_input + 1], strlen(w_chat) - c_input);
-			} else
-			{
+			else
 				Chat_DeleteSelection();
-			}
 		}
 
 		#undef SELECTDIFF
