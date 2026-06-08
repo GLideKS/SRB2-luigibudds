@@ -1748,7 +1748,7 @@ static void HU_DrawChat(void)
 		if (w_chat[i] >= FONTSTART)
 		{
 			if ((c_selection > i && c_input <= i) || (c_selection <= i && c_input > i))
-				V_DrawFill(cv_chatx.value+c+2, y-1, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|t);
+				V_DrawFill(cv_chatx.value+c+2, y-1, charwidth, charheight, V_VMAPToPaletteIndex(cv_menucolor.value)|HU_GetChatSnapping()|t);
 			V_DrawChatCharacter(cv_chatx.value+c+2, y, w_chat[i] | HU_GetChatSnapping() | t, true, NULL);
 		}
 
@@ -1878,7 +1878,7 @@ static void HU_DrawChat_Old(void)
 		if (w_chat[i] >= FONTSTART)
 		{
 			if ((c_selection > i && c_input <= i) || (c_selection <= i && c_input > i))
-				V_DrawFill(HU_INPUTX+c-2, y+1, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|V_NOSCALESTART|t);
+				V_DrawFill(HU_INPUTX+c-2, y+1, charwidth, charheight, V_VMAPToPaletteIndex(cv_menucolor.value)|HU_GetChatSnapping()|V_NOSCALESTART|t);
 
 			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
 
