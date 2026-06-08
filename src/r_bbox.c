@@ -34,7 +34,7 @@ static CV_PossibleValue_t renderhitbox_cons_t[] = {
 	{RENDERHITBOX_RINGS, "Rings"},
 	{0}};
 
-consvar_t cv_renderhitbox = CVAR_INIT ("renderhitbox", "Off", CV_CHEAT|CV_NOTINNET, renderhitbox_cons_t, NULL);
+consvar_t cv_renderhitbox = CVAR_INIT ("renderhitbox", "Off", CV_CHEAT, renderhitbox_cons_t, NULL);
 consvar_t cv_renderhitboxinterpolation = CVAR_INIT ("renderhitbox_interpolation", "On", CV_SAVE, CV_OnOff, NULL);
 consvar_t cv_renderhitboxgldepth = CVAR_INIT ("renderhitbox_gldepth", "Off", CV_SAVE, CV_OnOff, NULL);
 
@@ -269,8 +269,8 @@ boolean R_ThingBoundingBoxVisible(mobj_t *thing)
 	INT32 cvmode = cv_renderhitbox.value;
 	boolean ring = false;
 
-	if (multiplayer) // No hitboxes in multiplayer to avoid cheating
-		return false;
+	// if (multiplayer) // No hitboxes in multiplayer to avoid cheating
+	// 	return false;
 
 	switch (thing->type)
 	{
