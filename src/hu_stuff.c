@@ -1319,9 +1319,7 @@ boolean HU_Responder(event_t *ev)
 			}
 		}
 
-		// Bad and lazy code alert
-		// The output is the amount to jump by. Meant to be used while c_selection != c_input
-		#define SELECTDIFF (c_selection > c_input ? c_selection-c_input : c_input-c_selection)
+		// handler for arrow keys
 		if ((c == KEY_UPARROW || c == KEY_MOUSEWHEELUP) && chat_scroll > 0 && !OLDCHAT) // CHAT SCROLLING YAYS!
 		{
 			if (ctrldown)
@@ -1351,40 +1349,42 @@ boolean HU_Responder(event_t *ev)
 		else if (c == KEY_LEFTARROW && c_input != 0) // i said go back
 		{
 			hu_tick = 0;
-			if (ctrldown)
+			if (ctrldown) // move back a word
 				c_selection = (c_input = M_JumpWordReverse(w_chat, c_input));
-			else if (shiftdown && c_selection != 0)
+			else if (shiftdown && c_selection != 0) // shift-select a character behind
 				c_selection--;
-			else if (!(shiftdown || ctrldown))
+			else if (!(shiftdown || ctrldown)) // regular movement
 			{
-				if (c_selection == c_input && (c_input != 0 && c_selection != 0))
-					c_selection = (c_input -= 1);
-				else
+				if (c_selection == c_input) // no selection, move the cursor
 				{
-					if (c_selection == 0 || (c_selection < (c_input-SELECTDIFF)))
-						c_selection = c_input = 0;
-					else
-						c_selection = (c_input -= SELECTDIFF);
+					c_input = max(c_input - 1, 0);
+					c_selection = c_input;
+				}
+				else // was selecting, move the cursor to the start of the selection
+				{
+					c_input = min(c_input, c_selection);
+					c_selection = c_input;
 				}
 			}
 		}
 		else if (c == KEY_RIGHTARROW && c_input < strlen(w_chat)) // don't need to check for admin or w/e here since the chat won't ever contain anything if it's muted.
 		{
 			hu_tick = 0;
-			if (ctrldown)
+			if (ctrldown) // move forward a word
 				c_selection = (c_input += M_JumpWord(&w_chat[c_input]));
-			else if (shiftdown && c_selection < strlen(w_chat))
+			else if (shiftdown && c_selection < strlen(w_chat)) // shift-select a character in front
 				c_selection++;
-			else if (!(shiftdown || ctrldown))
+			else if (!(shiftdown || ctrldown)) // regular movement
 			{
-				if (c_selection == c_input && !(c_input >= HU_MAXMSGLEN && c_selection >= HU_MAXMSGLEN))
-					c_selection = (c_input += 1);
-				else if (c_selection != 0)
+				if (c_selection == c_input) // no selection, move the cursor
 				{
-					if ((c_input+SELECTDIFF) > strlen(w_chat))
-						c_selection = (c_input = strlen(w_chat));
-					else
-						c_selection = (c_input += SELECTDIFF);
+					c_input = min(c_input + 1, HU_MAXMSGLEN);
+					c_selection = c_input;
+				}
+				else // was selecting, move the cursor to the end of the selection
+				{
+					c_input = max(c_input, c_selection);
+					c_selection = c_input;
 				}
 			}
 		}
@@ -1421,8 +1421,6 @@ boolean HU_Responder(event_t *ev)
 			else
 				Chat_DeleteSelection();
 		}
-
-		#undef SELECTDIFF
 
 		return true;
 	}
