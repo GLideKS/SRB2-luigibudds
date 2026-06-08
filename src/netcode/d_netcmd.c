@@ -3517,6 +3517,7 @@ static void Command_Addfile(void)
 			else // file not found
 				continue;
 
+#ifndef LIFT_FILE_RESTRICTIONS
 			for (i = 0; i < numwadfiles; i++)
 			{
 				if (wadfiles[i]->type == RET_FOLDER)
@@ -3528,6 +3529,7 @@ static void Command_Addfile(void)
 					continue;
 				}
 			}
+#endif
 #endif
 			WRITEMEM(buf_p, md5sum, 16);
 		}
@@ -3641,6 +3643,7 @@ static void Command_Addfolder(void)
 			continue;
 		}
 
+#ifndef LIFT_FILE_RESTRICTIONS
 		// Check if the folder is already added.
 		for (i = 0; i < numwadfiles; i++)
 		{
@@ -3653,6 +3656,7 @@ static void Command_Addfolder(void)
 				continue;
 			}
 		}
+#endif
 
 		Z_Free(fullpath);
 

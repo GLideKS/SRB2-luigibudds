@@ -855,9 +855,6 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup)
 	wadfile_t *wadfile;
 	restype_t type;
 	UINT16 numlumps = 0;
-#ifndef NOMD5
-	size_t i;
-#endif
 	UINT8 md5sum[16];
 	int important;
 
@@ -906,7 +903,8 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup)
 	//
 	W_MakeFileMD5(filename, md5sum);
 
-	for (i = 0; i < numwadfiles; i++)
+#ifndef LIFT_FILE_RESTRICTIONS
+	for (size_t i = 0; i < numwadfiles; i++)
 	{
 		if (wadfiles[i]->type == RET_FOLDER)
 			continue;
@@ -919,6 +917,7 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup)
 			return W_InitFileError(filename, false);
 		}
 	}
+#endif
 #endif
 
 	switch(type = ResourceFileDetect(filename))
@@ -1112,6 +1111,7 @@ UINT16 W_InitFolder(const char *path, boolean mainfile, boolean startup)
 		return W_InitFileError(path, startup);
 	}
 
+#ifndef LIFT_FILE_RESTRICTIONS
 	// Check if the folder is already added.
 	for (i = 0; i < numwadfiles; i++)
 	{
@@ -1126,6 +1126,7 @@ UINT16 W_InitFolder(const char *path, boolean mainfile, boolean startup)
 			return W_InitFileError(path, false);
 		}
 	}
+#endif
 
 	lumpinfo = ResGetLumpsFolder(fullpath, &numlumps, &foldercount);
 
