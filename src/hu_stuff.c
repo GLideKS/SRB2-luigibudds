@@ -1765,7 +1765,7 @@ static void HU_DrawChat(void)
 
 	// romoney5: shift the pipe cursor slightly
 	if (cv_chatcursor.value == 2)
-		cursorx--, cursory--, cursorblink = cursorblink * 3 / 4;
+		cursorx--, cursory--;
 	else
 		cursorblink = (cursorblink << 1) % 16;
 
@@ -1896,7 +1896,7 @@ static void HU_DrawChat_Old(void)
 
 	// romoney5: shift the pipe cursor slightly
 	if (cv_chatcursor.value == 2)
-		cursorx--, cursory--, cursorblink = cursorblink * 3 / 4;
+		cursorx--, cursory--;
 	else
 		cursorblink = (cursorblink << 1) % 16;
 
