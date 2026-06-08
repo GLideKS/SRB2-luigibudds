@@ -1320,6 +1320,7 @@ boolean HU_Responder(event_t *ev)
 		}
 
 		// handler for arrow keys
+
 		if ((c == KEY_UPARROW || c == KEY_MOUSEWHEELUP) && chat_scroll > 0 && !OLDCHAT) // CHAT SCROLLING YAYS!
 		{
 			if (ctrldown)
@@ -1346,13 +1347,17 @@ boolean HU_Responder(event_t *ev)
 				chat_scrolltime = 4;
 			}
 		}
-		else if (c == KEY_LEFTARROW && c_input != 0) // i said go back
+		else if (c == KEY_LEFTARROW) // i said go back
 		{
 			hu_tick = 0;
-			if (ctrldown) // move back a word
-				c_selection = (c_input = M_JumpWordReverse(w_chat, c_input));
-			else if (shiftdown && c_selection != 0) // shift-select a character behind
-				c_selection--;
+			if (ctrldown) // move back a word (or ctrl+shift select)
+			{
+				c_input = M_JumpWordReverse(w_chat, c_input);
+				if (!shiftdown) // just regular ctrl-select
+					c_selection = c_input;
+			}
+			else if (shiftdown && c_input != 0) // shift-select a character behind
+				c_input--;
 			else if (!(shiftdown || ctrldown)) // regular movement
 			{
 				if (c_selection == c_input) // no selection, move the cursor
@@ -1367,18 +1372,22 @@ boolean HU_Responder(event_t *ev)
 				}
 			}
 		}
-		else if (c == KEY_RIGHTARROW && c_input < strlen(w_chat)) // don't need to check for admin or w/e here since the chat won't ever contain anything if it's muted.
+		else if (c == KEY_RIGHTARROW) // don't need to check for admin or w/e here since the chat won't ever contain anything if it's muted.
 		{
 			hu_tick = 0;
-			if (ctrldown) // move forward a word
-				c_selection = (c_input += M_JumpWord(&w_chat[c_input]));
-			else if (shiftdown && c_selection < strlen(w_chat)) // shift-select a character in front
-				c_selection++;
+			if (ctrldown) // move forward a word (or ctrl+shift select)
+			{
+				c_input += M_JumpWord(&w_chat[c_input]);
+				if (!shiftdown) // just regular ctrl-select
+					c_selection = c_input;
+			}
+			else if (shiftdown && c_input < strlen(w_chat)) // shift-select a character in front
+				c_input++;
 			else if (!(shiftdown || ctrldown)) // regular movement
 			{
 				if (c_selection == c_input) // no selection, move the cursor
 				{
-					c_input = min(c_input + 1, HU_MAXMSGLEN);
+					c_input = min(c_input + 1, strlen(w_chat));
 					c_selection = c_input;
 				}
 				else // was selecting, move the cursor to the end of the selection
