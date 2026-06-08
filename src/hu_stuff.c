@@ -1415,10 +1415,13 @@ boolean HU_Responder(event_t *ev)
 			if (ctrldown)
 				c_selection = M_JumpWordReverse(w_chat, c_input);
 
-			Chat_DeleteSelection();
-
-			memmove(&w_chat[c_input - 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
-			c_selection = (c_input -= 1);
+			if (c_selection == c_input)
+			{
+				memmove(&w_chat[c_input - 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
+				c_selection = (c_input -= 1);
+			}
+			else
+				Chat_DeleteSelection();
 		}
 		else if (c == KEY_DEL)
 		{
@@ -1430,9 +1433,10 @@ boolean HU_Responder(event_t *ev)
 			if (ctrldown)
 				c_selection = M_JumpWord(w_chat);
 
-			Chat_DeleteSelection();
-
-			memmove(&w_chat[c_input], &w_chat[c_input + 1], strlen(w_chat) - c_input);
+			if (c_selection == c_input)
+				memmove(&w_chat[c_input], &w_chat[c_input + 1], strlen(w_chat) - c_input);
+			else
+				Chat_DeleteSelection();
 		}
 
 		return true;
