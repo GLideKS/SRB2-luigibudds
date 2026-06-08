@@ -15,6 +15,7 @@
 #include "byteptr.h"
 #include "hu_stuff.h"
 
+#include "doomtype.h"
 #include "m_menu.h" // gametype_cons_t
 #include "m_cond.h" // emblems
 #include "m_misc.h" // word jumping
@@ -87,7 +88,7 @@ static size_t c_input = 0; // let's try to make the chat input less shitty.
 static size_t c_selection = 0; // whatevers inbetween this and c_input is selected, if c_input = c_selection, then there's no selection.
 static boolean headsupactive = false;
 boolean hu_showscores; // draw rankings
-static char hu_tick;
+static UINT16 hu_tick;
 
 patch_t *rflagico;
 patch_t *bflagico;
@@ -899,7 +900,7 @@ void HU_Ticker(void)
 		return;
 
 	hu_tick++;
-	hu_tick &= 7; // currently only to blink chat input cursor
+	hu_tick &= 15; // currently only to blink chat input cursor
 
 	if (PLAYER1INPUTDOWN(GC_SCORES))
 		hu_showscores = !chat_on;
@@ -1659,6 +1660,8 @@ static void HU_DrawChat(void)
 	INT32 t = 0, c = 0, y = cv_chaty.value - (typelines*charheight);
 	UINT32 i = 0, saylen = strlen(w_chat) /*You learn new things everyday!*/, typed_chars = 0; 
 	INT32 cflag = 0;
+	INT32 cursorx, cursory;
+	UINT16 cursorblink = hu_tick;
 	const char *ntalk = "Say: ", *ttalk = "Team: ";
 	const char *talk = ntalk;
 
@@ -1705,18 +1708,16 @@ static void HU_DrawChat(void)
 
 	typelines = 1;
 
-	if ((strlen(w_chat) == 0 || c_input == 0) && hu_tick < 4)
-		V_DrawChatCharacter(cv_chatx.value + 2 + c, y+1, '_' |HU_GetChatSnapping()|t, true, NULL);
+	cursorx = cv_chatx.value + 2 + c;
+	cursory = y;
 
 	for (i = 0; w_chat[i]; i++)
 	{
 		boolean skippedline = false;
 		if (c_input == (i+1))
 		{
-			INT32 cursorx = (c+charwidth < boxw-charwidth) ? (cv_chatx.value + 2 + c+charwidth) : (cv_chatx.value+1); // we may have to go down.
-			INT32 cursory = (cursorx != cv_chatx.value+1) ? (y) : (y+charheight);
-			if (hu_tick < 4)
-				V_DrawChatCharacter(cursorx, cursory+1, '_' |HU_GetChatSnapping()|t, true, NULL);
+			cursorx = (c+charwidth < boxw-charwidth) ? (cv_chatx.value + 2 + c+charwidth) : (cv_chatx.value+1); // we may have to go down.
+			cursory = (cursorx != cv_chatx.value+1) ? (y) : (y+charheight);
 
 			if (cursorx == cv_chatx.value+1 && saylen == i) // a weirdo hack
 			{
@@ -1742,6 +1743,16 @@ static void HU_DrawChat(void)
 		if (cv_showchatlimit.value)
 			typed_chars += 1;
 	}
+
+	// romoney5: shift the pipe cursor slightly
+	if (cv_chatcursor.value == 2)
+		cursorx--, cursory--, cursorblink = cursorblink * 3 / 4;
+	else
+		cursorblink = (cursorblink << 1) % 16;
+
+	// and draw the cursor
+	if (cursorblink < 8)
+		V_DrawChatCharacter(cursorx, cursory+1, cv_chatcursor.string[0]|HU_GetChatSnapping()|t, true, NULL);
 
 	if (cv_showchatlimit.value)
 	{

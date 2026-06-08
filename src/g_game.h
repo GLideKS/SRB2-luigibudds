@@ -53,7 +53,9 @@ extern consvar_t cv_instantretry;
 
 // used in game menu
 extern consvar_t cv_tutorialprompt;
-extern consvar_t cv_chatwidth, cv_chatnotifications, cv_chatheight, cv_chattime, cv_consolechat, cv_chatbacktint, cv_chatspamprotection, cv_chatspamspeed, cv_chatspamburst, cv_compactscoreboard;
+extern consvar_t cv_chatwidth, cv_chatnotifications, cv_chatheight, cv_chattime, cv_consolechat,
+	cv_chatbacktint, cv_chatspamprotection, cv_chatspamspeed, cv_chatspamburst, cv_compactscoreboard,
+	cv_chatcursor;
 //				 x-pos	   y-pos	 left/right up/down
 extern consvar_t cv_chatx, cv_chaty, cv_chats1, cv_chats2, cv_showchatlimit, cv_exitchatwipe;
 extern consvar_t cv_crosshair, cv_crosshair2;
