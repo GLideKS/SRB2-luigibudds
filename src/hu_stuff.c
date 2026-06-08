@@ -1843,6 +1843,8 @@ static void HU_DrawChat_Old(void)
 	const char *ntalk = "Say: ", *ttalk = "Say-Team: ";
 	const char *talk = ntalk;
 	INT32 charwidth = 8 * con_scalefactor, charheight = 8 * con_scalefactor;
+	INT32 cursorx, cursory;
+	UINT16 cursorblink = hu_tick;
 	if (teamtalk)
 		talk = ttalk;
 
@@ -1853,21 +1855,21 @@ static void HU_DrawChat_Old(void)
 		c += charwidth;
 	}
 
-	if ((strlen(w_chat) == 0 || c_input == 0) && hu_tick < 4)
-		V_DrawCharacter(HU_INPUTX+c, y+2*con_scalefactor, '_' |cv_constextsize.value | V_NOSCALESTART|t, true);
+	cursorx = HU_INPUTX + c;
+	cursory = y;
 
 	for (i = 0; w_chat[i]; i++)
 	{
-		if (c_input == (i+1) && hu_tick < 4)
+		if (c_input == (i+1))
 		{
-			INT32 cursorx = (HU_INPUTX+c+charwidth < vid.width) ? (HU_INPUTX + c + charwidth) : (HU_INPUTX); // we may have to go down.
-			INT32 cursory = (cursorx != HU_INPUTX) ? (y) : (y+charheight);
-			V_DrawCharacter(cursorx, cursory+2*con_scalefactor, '_' |cv_constextsize.value | V_NOSCALESTART|t, true);
+			cursorx = (HU_INPUTX+c+charwidth < vid.width) ? (HU_INPUTX + c + charwidth) : (HU_INPUTX); // we may have to go down.
+			cursory = (cursorx != HU_INPUTX) ? (y) : (y+charheight);
 		}
+
 		if (w_chat[i] >= FONTSTART)
 		{
 			if ((c_selection > i && c_input <= i) || (c_selection <= i && c_input > i))
-				V_DrawFill(HU_INPUTX+c-2, y+2, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|V_NOSCALESTART|t);
+				V_DrawFill(HU_INPUTX+c-2, y+1, charwidth, charheight, cv_menubgcolor.value|HU_GetChatSnapping()|V_NOSCALESTART|t);
 
 			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
 
@@ -1876,21 +1878,33 @@ static void HU_DrawChat_Old(void)
 		}
 
 		c += charwidth;
-		if (c >= vid.width)
+		if (c >= vid.width) // text wrapping
 		{
 			c = 0;
 			y += charheight;
 		}
 	}
 
+	// romoney5: shift the pipe cursor slightly
+	if (cv_chatcursor.value == 2)
+		cursorx--, cursory--, cursorblink = cursorblink * 3 / 4;
+	else
+		cursorblink = (cursorblink << 1) % 16;
+
+	// and draw the cursor
+	if (cursorblink < 8)
+		V_DrawCharacter(cursorx, cursory+2*con_scalefactor, cv_chatcursor.string[0]|cv_constextsize.value|V_NOSCALESTART|t, true);
+
 	// console chat users are FINALLY being fed!
-	if (cv_showchatlimit.value) {
+	if (cv_showchatlimit.value)
+	{
 		const char *lim = va(" (%i/%i)", charcount, HU_MAXMSGLEN);
 		for (i = 0; lim[i]; i++)
 		{
 			V_DrawCharacter(HU_INPUTX + c, y, lim[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
+
 			c += charwidth;
-			if (c >= vid.width)
+			if (c >= vid.width) // text wrapping
 			{
 				c = 0;
 				y += charheight;
