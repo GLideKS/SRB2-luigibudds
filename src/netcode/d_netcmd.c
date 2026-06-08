@@ -834,7 +834,7 @@ void D_RegisterClientCommands(void)
 	CV_RegisterVar(&cv_chat_showlimit);
 	CV_RegisterVar(&cv_chat_clearonexit);
 	CV_RegisterVar(&cv_chatcursor);
-	CV_RegisterVar(&cv_showcsays); // FIXME: this doesnt belong here but I do not actually know where to put it
+	CV_RegisterVar(&cv_showcsays);
 	CV_RegisterVar(&cv_crosshair);
 	CV_RegisterVar(&cv_crosshair2);
 	CV_RegisterVar(&cv_crosshair_invert);

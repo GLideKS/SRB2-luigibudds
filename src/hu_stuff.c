@@ -718,13 +718,12 @@ static void Got_Saycmd(UINT8 **p, INT32 playernum)
 	{
 		HU_SetCEchoDuration(5);
 		#define CSAYAUTHOR (playernum == serverplayer ? "SERVER" : player_names[playernum])
+
 		if (!cv_showcsays.value)
-		{
 			I_OutputMsg("Server message [from %s]: ", CSAYAUTHOR);
-		} else
-		{
+		else
 			CONS_Printf("CSAY [from %s]: %s\n", CSAYAUTHOR, msg);
-		}
+
 		#undef CSAYAUTHOR
 		HU_DoCEcho(msg);
 		return;
@@ -1170,7 +1169,7 @@ boolean HU_Responder(event_t *ev)
 			// we need to make sure that nothing is displayed once the chat
 			// opens, otherwise a 't' would be outputted.
 			chat_on_first_event = true;
-			if (!(c == KEY_ENTER && !cv_chat_clearonexit.value)) // Let me send!!!!
+			if (c != KEY_ENTER || cv_chat_clearonexit.value) // Let me send!!!!
 				return true;
 		}
 

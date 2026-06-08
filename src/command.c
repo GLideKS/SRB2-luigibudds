@@ -61,6 +61,7 @@ static void COM_Toggle_f(void);
 static void COM_Cycle_f(void);
 static void COM_Add_f(void);
 
+
 static void CV_EnforceExecVersion(void);
 static boolean CV_FilterVarByVersion(consvar_t *v, const char *valstr);
 static boolean CV_Command(void);
@@ -789,11 +790,10 @@ static void COM_CEcho_f(void)
 
 	cechotext[sizeof(cechotext) - 1] = '\0';
 
-	if (!cv_showcsays.value) {
+	if (!cv_showcsays.value)
 		I_OutputMsg("CECHO: ");
-	} else {
+	else
 		CONS_Printf(M_GetText("CECHO: %s\n"), cechotext);
-	}
 
 	HU_DoCEcho(cechotext);
 }
