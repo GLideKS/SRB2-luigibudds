@@ -1169,7 +1169,7 @@ boolean HU_Responder(event_t *ev)
 			// we need to make sure that nothing is displayed once the chat
 			// opens, otherwise a 't' would be outputted.
 			chat_on_first_event = true;
-			if (c != KEY_ENTER || cv_chat_clearonexit.value) // Let me send!!!!
+			if (c != KEY_ENTER && cv_chat_clearonexit.value) // Let me send!!!!
 				return true;
 		}
 
