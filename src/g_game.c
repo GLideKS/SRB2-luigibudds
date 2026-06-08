@@ -329,10 +329,8 @@ consvar_t cv_chats1 = CVAR_INIT ("chatleftrightsnapping", "Left", CV_SAVE|CV_CLI
 consvar_t cv_chats2 = CVAR_INIT ("chatupdownsnapping", "Bottom", CV_SAVE|CV_CLIENT, chats2_cons_t, NULL);
 
 // MORE chat stuff!!! YUM!!!!
-// (archiNiko: Should this REALLY be here ??? I'm-
-// - putting it here since [REDACTED] put chatx here...)
-consvar_t cv_showchatlimit = CVAR_INIT ("showchatlimit", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
-consvar_t cv_exitchatwipe = CVAR_INIT ("chatexit_clearinput", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL); // FIXME: name sucks
+consvar_t cv_chat_showlimit = CVAR_INIT ("chat_showlimit", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
+consvar_t cv_chat_clearonexit = CVAR_INIT ("chat_clearonexit", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
 
 // romoney5: make the chat cursor a pipe like every other text box made after the 2000s
 static CV_PossibleValue_t chatcursor_cons_t[] = {{1, "_"}, {2, "|"}, {0, NULL}};

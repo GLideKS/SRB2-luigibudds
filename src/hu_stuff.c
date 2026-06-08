@@ -1048,7 +1048,7 @@ void HU_clearChatChars(void)
 {
 	I_SetTextInputMode(false);
 	chat_on = false;
-	if (cv_exitchatwipe.value)
+	if (cv_chat_clearonexit.value)
 	{
 		memset(w_chat, '\0', sizeof(w_chat));
 		c_selection = c_input = 0;
@@ -1133,7 +1133,7 @@ boolean HU_Responder(event_t *ev)
 			I_SetTextInputMode(true);
 			chat_on = true;
 			chat_on_first_event = false;
-			if (cv_exitchatwipe.value)
+			if (cv_chat_clearonexit.value)
 			{
 				w_chat[0] = 0;
 				c_selection = c_input = 0;
@@ -1150,7 +1150,7 @@ boolean HU_Responder(event_t *ev)
 			I_SetTextInputMode(true);
 			chat_on = true;
 			chat_on_first_event = false;
-			if (cv_exitchatwipe.value)
+			if (cv_chat_clearonexit.value)
 			{
 				w_chat[0] = 0;
 				c_selection = c_input = 0;
@@ -1170,7 +1170,7 @@ boolean HU_Responder(event_t *ev)
 			// we need to make sure that nothing is displayed once the chat
 			// opens, otherwise a 't' would be outputted.
 			chat_on_first_event = true;
-			if (!(c == KEY_ENTER && !cv_exitchatwipe.value)) // Let me send!!!!
+			if (!(c == KEY_ENTER && !cv_chat_clearonexit.value)) // Let me send!!!!
 				return true;
 		}
 
@@ -1212,10 +1212,10 @@ boolean HU_Responder(event_t *ev)
 
 			I_SetTextInputMode(false);
 			chat_on = false;
-			if (cv_exitchatwipe.value)
-			{
+
+			if (cv_chat_clearonexit.value)
 				c_selection = c_input = 0; // reset cursor entirely
-			}
+
 			chat_scrollmedown = true; // you hit enter, so you might wanna autoscroll to see what you just sent. :)
 			I_UpdateMouseGrab();
 			return true; // Probably eat this...?
@@ -1227,8 +1227,10 @@ boolean HU_Responder(event_t *ev)
 		{
 			I_SetTextInputMode(false);
 			chat_on = false;
-			if (cv_exitchatwipe.value)
+
+			if (cv_chat_clearonexit.value)
 				c_selection = c_input = 0; // reset cursor entirely
+
 			I_UpdateMouseGrab();
 			return true;
 		}
@@ -1300,7 +1302,7 @@ boolean HU_Responder(event_t *ev)
 				case 'w':
 					// "Close current tab or open file". Here it's a very quick shortcut to wipe input
 					// (TL;DR: CTRL+A+BACKSPACE but instant, probably unnecessary, -
-					// - but it pairs very nicely with cv_exitchatwipe off imo)
+					// - but it pairs very nicely with cv_chat_clearonexit off imo)
 					memset(w_chat, '\0', sizeof(w_chat));
 					c_selection = c_input = 0;
 					return true;
@@ -1758,7 +1760,7 @@ static void HU_DrawChat(void)
 			y += charheight;
 			typelines += 1;
 		}
-		if (cv_showchatlimit.value)
+		if (cv_chat_showlimit.value)
 			typed_chars += 1;
 	}
 
@@ -1772,7 +1774,7 @@ static void HU_DrawChat(void)
 	if (cursorblink < 8)
 		V_DrawChatCharacter(cursorx, cursory+1, cv_chatcursor.string[0]|HU_GetChatSnapping()|t, true, NULL);
 
-	if (cv_showchatlimit.value)
+	if (cv_chat_showlimit.value)
 	{
 		// Limit
 			V_DrawSmallString(cv_chatx.value, cv_chaty.value,
@@ -1881,7 +1883,7 @@ static void HU_DrawChat_Old(void)
 
 			V_DrawCharacter(HU_INPUTX + c, y, w_chat[i] | cv_constextsize.value | V_NOSCALESTART | t, true);
 
-			if (cv_showchatlimit.value)
+			if (cv_chat_showlimit.value)
 				charcount++;
 		}
 
@@ -1904,7 +1906,7 @@ static void HU_DrawChat_Old(void)
 		V_DrawCharacter(cursorx, cursory+2*con_scalefactor, cv_chatcursor.string[0]|cv_constextsize.value|V_NOSCALESTART|t, true);
 
 	// console chat users are FINALLY being fed!
-	if (cv_showchatlimit.value)
+	if (cv_chat_showlimit.value)
 	{
 		const char *lim = va(" (%i/%i)", charcount, HU_MAXMSGLEN);
 		for (i = 0; lim[i]; i++)

@@ -83,8 +83,8 @@ It works without any additional assets, just copy the build to your existing SRB
 - - CTRL+Backspace to delete a whole word,
 - - CTRL+DEL to delete a whole word infront of the cursor,
 - - CTRL+R to clear the chat display *(This is exclusive to Windowed mode!)*
-- `cv_showchatlimit` to show character count and max allowed.
-- `chatexit_clearinput` can be turned off to only clear chat input once you send a message instead of also clearing it on exit.
+- `chat_showlimit` to show character count and max allowed.
+- `chat_clearonexit` can be turned off to only clear chat input once you send a message instead of also clearing it on exit.
 - `chatcursor` changes the appearance of the chat cursor. (_ or |)
 - Dedicated servers can no longer crash from sending a `say` command with a long message, as they won't send the packet if it would cause a crash and instead show a notice.
 - Whenever someone sends `csay`, the author is exposed in log. (If you have `showcsays` enabled, then it exposes the author in the console print. This will not duplicate.)
