@@ -1138,6 +1138,7 @@ boolean HU_Responder(event_t *ev)
 			teamtalk = false;
 			chat_scrollmedown = true;
 			typelines = 1;
+			hu_tick = 0;
 			return true;
 		}
 		if ((ev->key == gamecontrol[GC_TEAMKEY][0] || ev->key == gamecontrol[GC_TEAMKEY][1])
@@ -1154,6 +1155,7 @@ boolean HU_Responder(event_t *ev)
 			teamtalk = G_GametypeHasTeams(); // Don't teamtalk if we don't have teams.
 			chat_scrollmedown = true;
 			typelines = 1;
+			hu_tick = 0;
 			return true;
 		}
 	}
@@ -1179,6 +1181,8 @@ boolean HU_Responder(event_t *ev)
 
 			if (CHAT_MUTE || strlen(w_chat) >= HU_MAXMSGLEN)
 				return true;
+
+			hu_tick = 0; // romoney5: reset blinking
 
 			if (c_selection != c_input && (strlen(w_chat) > 0)) // tiny hack for text replacement: delete selection first
 				Chat_DeleteSelection();
@@ -1347,6 +1351,7 @@ boolean HU_Responder(event_t *ev)
 		}
 		else if (c == KEY_LEFTARROW && c_input != 0) // i said go back
 		{
+			hu_tick = 0;
 			if (ctrldown)
 			{
 				c_selection = (c_input = M_JumpWordReverse(w_chat, c_input));
@@ -1367,6 +1372,7 @@ boolean HU_Responder(event_t *ev)
 		}
 		else if (c == KEY_RIGHTARROW && c_input < strlen(w_chat)) // don't need to check for admin or w/e here since the chat won't ever contain anything if it's muted.
 		{
+			hu_tick = 0;
 			if (ctrldown)
 			{
 				c_selection = (c_input += M_JumpWord(&w_chat[c_input]));
@@ -1390,6 +1396,8 @@ boolean HU_Responder(event_t *ev)
 			if (CHAT_MUTE || c_input <= 0)
 				return true;
 
+			hu_tick = 0;
+
 			if (ctrldown)
 				c_selection = M_JumpWordReverse(w_chat, c_input);
 
@@ -1406,6 +1414,8 @@ boolean HU_Responder(event_t *ev)
 		{
 			if (CHAT_MUTE || c_input >= strlen(w_chat))
 				return true;
+
+			hu_tick = 0;
 
 			if (ctrldown)
 				c_selection = M_JumpWord(w_chat);
