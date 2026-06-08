@@ -1057,11 +1057,14 @@ void HU_clearChatChars(void)
 	I_UpdateMouseGrab();
 }
 
+// deletes currently selected chat characters
 // based on CON_InputDelSelection()
-// \note ONLY meant to be used while c_selection != c_input!
 static void Chat_DeleteSelection(void)
 {
 	size_t start, end, len, clen;
+
+	if (c_selection == c_input)
+		return; // no need to delete anything
 
 	clen = strlen(w_chat);
 
@@ -1184,12 +1187,13 @@ boolean HU_Responder(event_t *ev)
 
 			hu_tick = 0; // romoney5: reset blinking
 
-			if (c_selection != c_input)
-				Chat_DeleteSelection();
+			Chat_DeleteSelection();
 
 			memmove(&w_chat[c_input + 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
 			w_chat[c_input] = c;
-			c_selection = (c_input += 1);
+
+			c_input += 1;
+			c_selection = c_input;
 			return true;
 		}
 
@@ -1253,8 +1257,7 @@ boolean HU_Responder(event_t *ev)
 						return true; // we can't paste this!!
 					}
 
-					if (c_selection != c_input)
-						Chat_DeleteSelection(); // ctrl+v replaces selection
+					Chat_DeleteSelection(); // ctrl+v replaces selection
 
 					memmove(&w_chat[c_input + pastelen], &w_chat[c_input], (chatlen - c_input) + 1); // +1 for '\0'
 					memcpy(&w_chat[c_input], paste, pastelen); // copy all of that.
@@ -1412,13 +1415,10 @@ boolean HU_Responder(event_t *ev)
 			if (ctrldown)
 				c_selection = M_JumpWordReverse(w_chat, c_input);
 
-			if (c_selection == c_input)
-			{
-				memmove(&w_chat[c_input - 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
-				c_selection = (c_input -= 1);
-			}
-			else
-				Chat_DeleteSelection();
+			Chat_DeleteSelection();
+
+			memmove(&w_chat[c_input - 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
+			c_selection = (c_input -= 1);
 		}
 		else if (c == KEY_DEL)
 		{
@@ -1430,10 +1430,9 @@ boolean HU_Responder(event_t *ev)
 			if (ctrldown)
 				c_selection = M_JumpWord(w_chat);
 
-			if (c_selection == c_input)
-				memmove(&w_chat[c_input], &w_chat[c_input + 1], strlen(w_chat) - c_input);
-			else
-				Chat_DeleteSelection();
+			Chat_DeleteSelection();
+
+			memmove(&w_chat[c_input], &w_chat[c_input + 1], strlen(w_chat) - c_input);
 		}
 
 		return true;
