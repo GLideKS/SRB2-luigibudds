@@ -1371,7 +1371,7 @@ boolean HU_Responder(event_t *ev)
 			{
 				if (c_selection == c_input) // no selection, move the cursor
 				{
-					c_input = max(c_input - 1, 0);
+					c_input = max((INT32)c_input - 1, 0);
 					c_selection = c_input;
 				}
 				else // was selecting, move the cursor to the start of the selection
