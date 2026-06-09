@@ -848,7 +848,7 @@ static void W_LoadTrnslateLumps(UINT16 w)
 //
 // Can now load dehacked files (.soc)
 //
-UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup)
+UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup, boolean local)
 {
 	FILE *handle;
 	lumpinfo_t *lumpinfo = NULL;
@@ -894,6 +894,8 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup)
 	}
 
 	important = !important;
+	if (local)
+		important = 0;
 
 #ifndef NOMD5
 	//
@@ -944,7 +946,7 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup)
 		return W_InitFileError(filename, startup);
 	}
 
-	if (important && !mainfile)
+	if (important && !mainfile && !local)
 	{
 		//G_SetGameModified(true);
 		modifiedgame = true; // avoid savemoddata being set to false
@@ -1209,7 +1211,7 @@ void W_InitMultipleFiles(addfilelist_t *list)
 		if (pathsep == '\\' || pathsep == '/')
 			W_InitFolder(fn, mainfile, true);
 		else
-			W_InitFile(fn, mainfile, true);
+			W_InitFile(fn, mainfile, true, false);
 	}
 }
 
