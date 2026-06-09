@@ -18,6 +18,8 @@
 #include "hardware/hw_data.h"
 #endif
 
+#include "m_aatree.h"
+
 #ifdef __GNUG__
 #pragma interface
 #endif
@@ -130,6 +132,8 @@ typedef struct wadfile_s
 	lumpcache_t *patchcache;
 	UINT16 numlumps; // this wad's number of resources
 	UINT16 foldercount; // folder count
+	aatree_t *startfolders;
+	aatree_t *endfolders;
 	FILE *handle;
 	UINT32 filesize; // for network
 	UINT8 md5sum[16];
