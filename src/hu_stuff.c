@@ -1221,7 +1221,9 @@ boolean HU_Responder(event_t *ev)
 
 // 30/7/18: chaty is now the distance at which the lowest point of the chat will be drawn if that makes any sense.
 
-INT16 chatx = 13, chaty = 169; // let's use this as our coordinates
+#define chatsnap (cv_chatsnapx.value|cv_chatsnapy.value)
+#define chatx (cv_chatx.value)
+#define chaty (cv_chaty.value)
 
 // HU_DrawMiniChat
 
@@ -1239,7 +1241,7 @@ static void HU_drawMiniChat(void)
 
 	for (size_t i = chat_nummsg_min; i > 0; i--)
 	{
-		char *msg = V_ChatWordWrap(0, boxw-charwidth-2, V_SNAPTOBOTTOM|V_SNAPTOLEFT|V_ALLOWLOWERCASE|V_MONOSPACE, chat_mini[i-1]);
+		char *msg = V_ChatWordWrap(0, boxw-charwidth-2, chatsnap|V_ALLOWLOWERCASE|V_MONOSPACE, chat_mini[i-1]);
 		for(size_t j = 0; msg[j]; j++) // iterate through msg
 		{
 			if (msg[j] == '\n') // get back down.
@@ -1279,7 +1281,7 @@ static void HU_drawMiniChat(void)
 	{
 		INT32 timer = ((cv_chattime.value*TICRATE)-chat_timers[i]) - cv_chattime.value*TICRATE+9; // see below...
 		INT32 transflag = (timer >= 0 && timer <= 9) ? (timer*V_10TRANS) : 0; // you can make bad jokes out of this one.
-		char *msg = V_ChatWordWrap(0, boxw-charwidth-2, V_SNAPTOBOTTOM|V_SNAPTOLEFT|V_ALLOWLOWERCASE|V_MONOSPACE, chat_mini[i]); // get the current message, and word wrap it.
+		char *msg = V_ChatWordWrap(0, boxw-charwidth-2, chatsnap|V_ALLOWLOWERCASE|V_MONOSPACE, chat_mini[i]); // get the current message, and word wrap it.
 		UINT8 *colormap = NULL;
 
 		for(size_t j = 0; msg[j]; j++) // iterate through msg
@@ -1300,9 +1302,9 @@ static void HU_drawMiniChat(void)
 				prev_linereturn = false;
 
 				if (cv_chatbacktint.value) // on request of wolfy
-					V_DrawFillConsoleMap(x + dx + 2, y+dy, charwidth, charheight, 239|V_SNAPTOBOTTOM|V_SNAPTOLEFT);
+					V_DrawFillConsoleMap(x + dx + 2, y+dy, charwidth, charheight, 239|chatsnap);
 
-				V_DrawChatCharacter(x + dx + 2, y+dy, msg[j] |V_SNAPTOBOTTOM|V_SNAPTOLEFT|V_MONOSPACE|transflag, true, colormap);
+				V_DrawChatCharacter(x + dx + 2, y+dy, msg[j] |chatsnap|V_MONOSPACE|transflag, true, colormap);
 				dx += charwidth;
 
 				if (dx >= boxw-charwidth-2)
@@ -1363,11 +1365,11 @@ static void HU_drawChatLog(INT32 offset)
 	chat_topy = y + chat_scroll*charheight;
 	chat_bottomy = chat_topy + boxh*charheight;
 
-	V_DrawFillConsoleMap(chatx, chat_topy, boxw, boxh*charheight +2, 239|V_SNAPTOBOTTOM|V_SNAPTOLEFT); // log box
+	V_DrawFillConsoleMap(chatx, chat_topy, boxw, boxh*charheight +2, 239|chatsnap); // log box
 
 	for (i=0; i<chat_nummsg_log; i++) // iterate through our chatlog
 	{
-		char *msg = V_ChatWordWrap(0, boxw-charwidth-2, V_SNAPTOBOTTOM|V_SNAPTOLEFT|V_ALLOWLOWERCASE|V_MONOSPACE, chat_log[i]); // get the current message, and word wrap it.
+		char *msg = V_ChatWordWrap(0, boxw-charwidth-2, chatsnap|V_ALLOWLOWERCASE|V_MONOSPACE, chat_log[i]); // get the current message, and word wrap it.
 		UINT8 *colormap = NULL;
 		for(size_t j = 0; msg[j]; j++) // iterate through msg
 		{
@@ -1389,7 +1391,7 @@ static void HU_drawChatLog(INT32 offset)
 				if (msg[j] >= FONTSTART)
 				{
 					if ((y+dy+2 >= chat_topy) && (y+dy < (chat_bottomy)))
-						V_DrawChatCharacter(x + dx + 2, y+dy+2, msg[j] |V_SNAPTOBOTTOM|V_SNAPTOLEFT|V_MONOSPACE, true, colormap);
+						V_DrawChatCharacter(x + dx + 2, y+dy+2, msg[j] |chatsnap|V_MONOSPACE, true, colormap);
 
 					dx += charwidth;
 				}
@@ -1423,9 +1425,9 @@ static void HU_drawChatLog(INT32 offset)
 
 	// draw arrows to indicate that we can (or not) scroll, accounting for Y = -1 offset in tinyfont
 	if (chat_scroll > 0)
-		V_DrawThinString(chatx-8, ((justscrolledup) ? (chat_topy-1) : (chat_topy)) - 1, V_SNAPTOBOTTOM | V_SNAPTOLEFT | V_YELLOWMAP, "\x1A"); // up arrow
+		V_DrawThinString(chatx-8, ((justscrolledup) ? (chat_topy-1) : (chat_topy)) - 1, chatsnap | V_YELLOWMAP, "\x1A"); // up arrow
 	if (chat_scroll < chat_maxscroll)
-		V_DrawThinString(chatx-8, chat_bottomy-((justscrolleddown) ? 5 : 6) - 1, V_SNAPTOBOTTOM | V_SNAPTOLEFT | V_YELLOWMAP, "\x1B"); // down arrow
+		V_DrawThinString(chatx-8, chat_bottomy-((justscrolleddown) ? 5 : 6) - 1, chatsnap | V_YELLOWMAP, "\x1B"); // down arrow
 
 	justscrolleddown = justscrolledup = false;
 }
@@ -1471,12 +1473,12 @@ static void HU_DrawChat(void)
 		cflag = V_GRAYMAP; // set text in gray if chat is muted.
 	}
 
-	V_DrawFillConsoleMap(chatx, y-1, boxw, (typelines*charheight), 239 | V_SNAPTOBOTTOM | V_SNAPTOLEFT);
+	V_DrawFillConsoleMap(chatx, y-1, boxw, (typelines*charheight), 239 | chatsnap);
 
 	for (i = 0; talk[i]; i++)
 	{
 		if (talk[i] >= FONTSTART)
-			V_DrawChatCharacter(chatx + c + 2, y, talk[i] |V_SNAPTOBOTTOM|V_SNAPTOLEFT|cflag, true, V_GetStringColormap(talk[i]|cflag));
+			V_DrawChatCharacter(chatx + c + 2, y, talk[i] |chatsnap|cflag, true, V_GetStringColormap(talk[i]|cflag));
 		c += charwidth;
 	}
 
@@ -1490,7 +1492,7 @@ static void HU_DrawChat(void)
 	typelines = 1;
 
 	if ((strlen(w_chat) == 0 || c_input == 0) && hu_tick < 4)
-		V_DrawChatCharacter(chatx + 2 + c, y+1, '_' |V_SNAPTOBOTTOM|V_SNAPTOLEFT|t, true, NULL);
+		V_DrawChatCharacter(chatx + 2 + c, y+1, '_' |chatsnap|t, true, NULL);
 
 	for (i = 0; w_chat[i]; i++)
 	{
@@ -1500,7 +1502,7 @@ static void HU_DrawChat(void)
 			INT32 cursorx = (c+charwidth < boxw-charwidth) ? (chatx + 2 + c+charwidth) : (chatx+1); // we may have to go down.
 			INT32 cursory = (cursorx != chatx+1) ? (y) : (y+charheight);
 			if (hu_tick < 4)
-				V_DrawChatCharacter(cursorx, cursory+1, '_' |V_SNAPTOBOTTOM|V_SNAPTOLEFT|t, true, NULL);
+				V_DrawChatCharacter(cursorx, cursory+1, '_' |chatsnap|t, true, NULL);
 
 			if (cursorx == chatx+1 && saylen == i) // a weirdo hack
 			{
@@ -1510,7 +1512,7 @@ static void HU_DrawChat(void)
 		}
 
 		if (w_chat[i] >= FONTSTART)
-			V_DrawChatCharacter(chatx + c + 2, y, w_chat[i] | V_SNAPTOBOTTOM|V_SNAPTOLEFT | t, true, NULL);
+			V_DrawChatCharacter(chatx + c + 2, y, w_chat[i] | chatsnap | t, true, NULL);
 
 		c += charwidth;
 		if (c > boxw-charwidth && !skippedline)
@@ -1566,15 +1568,15 @@ static void HU_DrawChat(void)
 			{
 				char name[MAXPLAYERNAME+1];
 				strlcpy(name, player_names[i], 7); // shorten name to 7 characters.
-				V_DrawFillConsoleMap(chatx+ boxw + 2, p_dispy- (6*count), 48, 6, 239 | V_SNAPTOBOTTOM | V_SNAPTOLEFT); // fill it like the chat so the text doesn't become hard to read because of the hud.
-				V_DrawSmallString(chatx+ boxw + 4, p_dispy- (6*count), V_SNAPTOBOTTOM|V_SNAPTOLEFT|V_ALLOWLOWERCASE, va("\x82%d\x80 - %s", i, name));
+				V_DrawFillConsoleMap(chatx+ boxw + 2, p_dispy- (6*count), 48, 6, 239 | chatsnap); // fill it like the chat so the text doesn't become hard to read because of the hud.
+				V_DrawSmallString(chatx+ boxw + 4, p_dispy- (6*count), chatsnap|V_ALLOWLOWERCASE, va("\x82%d\x80 - %s", i, name));
 				count++;
 			}
 		}
 		if (count == 0) // no results.
 		{
-			V_DrawFillConsoleMap(chatx+boxw+2, p_dispy- (6*count), 48, 6, 239 | V_SNAPTOBOTTOM | V_SNAPTOLEFT); // fill it like the chat so the text doesn't become hard to read because of the hud.
-			V_DrawSmallString(chatx+boxw+4, p_dispy- (6*count), V_SNAPTOBOTTOM|V_SNAPTOLEFT|V_ALLOWLOWERCASE, "NO RESULT.");
+			V_DrawFillConsoleMap(chatx+boxw+2, p_dispy- (6*count), 48, 6, 239 | chatsnap); // fill it like the chat so the text doesn't become hard to read because of the hud.
+			V_DrawSmallString(chatx+boxw+4, p_dispy- (6*count), chatsnap|V_ALLOWLOWERCASE, "NO RESULT.");
 		}
 	}
 
