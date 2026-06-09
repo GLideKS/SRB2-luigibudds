@@ -1677,6 +1677,12 @@ void R_RegisterEngineStuff(void)
 	CV_RegisterVar(&cv_cam2_orbit);
 	CV_RegisterVar(&cv_cam2_adjust);
 
+	CV_RegisterVar(&cv_cam_clipping);
+	CV_RegisterVar(&cv_cam2_clipping);
+
+	CV_RegisterVar(&cv_cam_exact);
+	CV_RegisterVar(&cv_cam2_exact);
+
 	CV_RegisterVar(&cv_cam_savedist[0][0]);
 	CV_RegisterVar(&cv_cam_savedist[0][1]);
 	CV_RegisterVar(&cv_cam_savedist[1][0]);
