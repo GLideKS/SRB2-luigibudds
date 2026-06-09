@@ -599,6 +599,8 @@ static void D_Display(void)
 
 	CON_Drawer();
 
+	ST_MovieInfoDrawer();
+
 	PS_STOP_TIMING(ps_uitime);
 
 	//

@@ -726,6 +726,8 @@ void D_RegisterClientCommands(void)
 	CV_RegisterVar(&cv_gif_downscale);
 	CV_RegisterVar(&cv_gif_dynamicdelay);
 	CV_RegisterVar(&cv_gif_localcolortable);
+	CV_RegisterVar(&cv_gif_maxsize);
+	CV_RegisterVar(&cv_gif_rolling);
 
 	// register these so it is saved to config
 	CV_RegisterVar(&cv_playername);

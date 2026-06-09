@@ -14239,6 +14239,10 @@ void M_QuitResponse(INT32 ch)
 			I_FinishUpdate(); // Update the screen with the image Tails 06-19-2001
 			I_Sleep(cv_sleep.value);
 			I_UpdateTime(cv_timescale.value);
+			if (moviemode)
+				M_SaveFrame();
+			if (takescreenshot)
+				M_DoScreenShot();
 		}
 	}
 	I_Quit();

@@ -113,7 +113,7 @@ extern ps_metric_t ps_numpolyobjects;
 // REFRESH - the actual rendering functions.
 //
 
-extern consvar_t cv_showhud, cv_translucenthud;
+extern consvar_t cv_showhud, cv_translucenthud, cv_moviemodeinfo;
 extern consvar_t cv_homremoval;
 extern consvar_t cv_chasecam, cv_chasecam2;
 extern consvar_t cv_flipcam, cv_flipcam2;
