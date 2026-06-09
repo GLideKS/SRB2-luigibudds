@@ -97,7 +97,8 @@ static void CL_DrawConnectionStatus(void)
 	V_DrawFadeScreen(0xFF00, 16); // force default
 
 	if (cl_mode != CL_DOWNLOADFILES && cl_mode != CL_DOWNLOADHTTPFILES
-	&& cl_mode != CL_LOADFILES && cl_mode != CL_CHECKFILES && cl_mode != CL_ASKFULLFILELIST)
+	&& cl_mode != CL_LOADFILES && cl_mode != CL_CHECKFILES
+	&& cl_mode != CL_ASKFULLFILELIST && cl_mode != CL_VIEWSERVER)
 	{
 		INT32 animtime = ((ccstime / 4) & 15) + 16;
 		UINT8 palstart;
@@ -203,6 +204,10 @@ static void CL_DrawConnectionStatus(void)
 			V_DrawFill(BASEVIDWIDTH/2-128, BASEVIDHEIGHT-16, totalfileslength, 8, 96);
 			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16, V_20TRANS|V_MONOSPACE|MENUCAPS,
 				va(" %2u/%2u files",checkcompletednum,fileneedednum));
+		}
+		else if (cl_mode == CL_VIEWSERVER)
+		{
+			// ep
 		}
 		else if (filedownload.current != -1)
 		{
@@ -947,6 +952,7 @@ static boolean CL_ServerConnectionSearchTicker(tic_t *asksent)
 			if (i < 0)
 				return true;
 		}
+		joinnode = i;
 
 		if (client)
 		{
@@ -984,7 +990,7 @@ static boolean CL_ServerConnectionSearchTicker(tic_t *asksent)
 				return true;
 			}
 
-			cl_mode = CL_CHECKFILES;
+			cl_mode = CL_VIEWSERVER;
 		}
 		else
 		{
@@ -1064,7 +1070,7 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 
 		case CL_ASKFULLFILELIST:
 			if (cl_lastcheckedfilecount == UINT16_MAX) // All files retrieved
-				cl_mode = CL_CHECKFILES;
+				cl_mode = CL_VIEWSERVER;
 			else if (fileneedednum != cl_lastcheckedfilecount || I_GetTime() >= *asksent)
 			{
 				if (CL_AskFileList(fileneedednum))
@@ -1190,6 +1196,14 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 				if (!Snake_JoyGrabber(snake, &events[eventtail]))
 					G_MapEventsToControls(&events[eventtail]);
 			}
+		}
+
+		if (cl_mode == CL_VIEWSERVER)
+		{
+			if (gamekeydown[KEY_ENTER])
+				cl_mode = CL_CHECKFILES;
+			else if (gamekeydown[KEY_ESCAPE])
+				cl_mode = CL_ABORTED;
 		}
 
 		if (gamekeydown[KEY_ESCAPE] || gamekeydown[KEY_JOY1+1] || cl_mode == CL_ABORTED)
@@ -1336,6 +1350,15 @@ void PT_ServerInfo(SINT8 node)
 		[sizeof netbuffer->u.serverinfo.gametypename - 1] = '\0';
 
 	SL_InsertServer(&netbuffer->u.serverinfo, node);
+}
+
+void PT_PlayerInfo(SINT8 node)
+{
+	(void)node;
+	
+	INT32 i;
+	for (i = 0; i < MAXPLAYERS; i++)
+		playerinfo[i] = netbuffer->u.playerinfo[i];
 }
 
 // Helper function for packets that should only be sent by the server
