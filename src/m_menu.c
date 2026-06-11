@@ -1514,9 +1514,9 @@ static menuitem_t OP_BanpyuraOptionsMenu[] =
 {
 	{IT_HEADER, 				NULL, "Heads-Up Display", 			            NULL,		   0},
 	{IT_STRING | IT_CVAR,		NULL, "Wipes",       					   &cv_wipes,          10},
-	{IT_STRING | IT_CVAR,		NULL, "Menu Caps",       			    &cv_menucaps,          20},
-	{IT_STRING | IT_CVAR,		NULL, "Menu Text Color",       	       &cv_menucolor,          25},
-	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          30}
+	{IT_STRING | IT_CVAR,		NULL, "Menu Caps",       			    &cv_menucaps,          15},
+	{IT_STRING | IT_CVAR,		NULL, "Menu Text Color",       	       &cv_menucolor,          20},
+	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          25}
 };
 
 static menuitem_t OP_P1BanpyuraOptionsMenu[] =
