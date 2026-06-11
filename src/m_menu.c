@@ -345,6 +345,9 @@ static void M_ScreenshotOptions(INT32 choice);
 static void M_SetupScreenshotMenu(void);
 static void M_EraseData(INT32 choice);
 
+//Banpyura Options
+menu_t OP_BanpyuraOptionsDef, OP_P1BanpyuraOptionsDef, OP_P2BanpyuraOptionsDef;
+
 static void M_Addons(INT32 choice);
 static void M_AddonsOptions(INT32 choice);
 static patch_t *addonsp[NUM_EXT+5];
@@ -1035,6 +1038,8 @@ static menuitem_t OP_MainMenu[] =
 	{IT_CALL    | IT_STRING, NULL, "Server Options...",    M_ServerOptions,     80},
 
 	{IT_SUBMENU | IT_STRING, NULL, "Data Options...",      &OP_DataOptionsDef, 100},
+
+	{IT_SUBMENU | IT_STRING, NULL, "\x81""Banpyura Options...",   &OP_BanpyuraOptionsDef,120}
 };
 
 static menuitem_t OP_P1ControlsMenu[] =
@@ -1047,6 +1052,8 @@ static menuitem_t OP_P1ControlsMenu[] =
 
 	{IT_STRING  | IT_CVAR, NULL, "Automatic braking", &cv_autobrake,  70},
 	{IT_CALL    | IT_STRING, NULL, "Play Style...", M_Setup1PPlaystyleMenu, 80},
+
+	{IT_SUBMENU | IT_STRING, NULL, "\x81""Banpyura Options...", &OP_P1BanpyuraOptionsDef,	90},
 };
 
 static menuitem_t OP_P2ControlsMenu[] =
@@ -1059,6 +1066,8 @@ static menuitem_t OP_P2ControlsMenu[] =
 
 	{IT_STRING  | IT_CVAR, NULL, "Automatic braking", &cv_autobrake2,  70},
 	{IT_CALL    | IT_STRING, NULL, "Play Style...", M_Setup2PPlaystyleMenu, 80},
+
+	{IT_SUBMENU | IT_STRING, NULL, "\x81""Banpyura Options...", &OP_P2BanpyuraOptionsDef,	90},
 };
 
 static menuitem_t OP_ChangeControlsMenu[] =
@@ -1498,6 +1507,39 @@ static menuitem_t OP_DataOptionsMenu[] =
 
 	{IT_STRING | IT_SUBMENU, NULL, "\x85" "Erase Data...",  &OP_EraseDataDef,    40},
 };
+
+//Banpyura Options
+
+static menuitem_t OP_BanpyuraOptionsMenu[] =
+{
+	{IT_HEADER, 				NULL, "Heads-Up Display", 			            NULL,		   0},
+	{IT_STRING | IT_CVAR,		NULL, "Wipes",       					   &cv_wipes,          10},
+	{IT_STRING | IT_CVAR,		NULL, "Menu Caps",       			    &cv_menucaps,          20},
+	{IT_STRING | IT_CVAR,		NULL, "Menu Text Color",       	       &cv_menucolor,          25},
+	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          30}
+};
+
+static menuitem_t OP_P1BanpyuraOptionsMenu[] =
+{
+	{IT_HEADER, 				NULL, "Heads-Up Display", 			            NULL,		   0},
+	{IT_STRING | IT_CVAR,		NULL, "Inverted Crosshairs",    &cv_crosshair_invert,          10},
+
+	{IT_HEADER, 				NULL, "Camera", 								NULL,		   20},
+	{IT_STRING | IT_CVAR, 		NULL, "Exact Looking", 				   &cv_cam_exact,		   30},
+	{IT_STRING | IT_CVAR, 		NULL, "Camera Clipping", 			&cv_cam_clipping,		   35},
+};
+
+static menuitem_t OP_P2BanpyuraOptionsMenu[] =
+{
+	{IT_HEADER, 				NULL, "Heads-Up Display", 			            NULL,		   0},
+	{IT_STRING | IT_CVAR,		NULL, "Inverted Crosshairs",    &cv_crosshair2_invert,          10},
+
+	{IT_HEADER, 				NULL, "Camera", 								NULL,		   20},
+	{IT_STRING | IT_CVAR, 		NULL, "Exact Looking", 				   &cv_cam2_exact,		   30},
+	{IT_STRING | IT_CVAR, 		NULL, "Camera Clipping", 			&cv_cam2_clipping,		   35},
+};
+
+//End of Banpyura Options
 
 static menuitem_t OP_ScreenshotOptionsMenu[] =
 {
@@ -2203,6 +2245,19 @@ menu_t OP_OpenGLLightingDef = DEFAULTMENUSTYLE(
 menu_t OP_DataOptionsDef = DEFAULTMENUSTYLE(
 	MTREE2(MN_OP_MAIN, MN_OP_DATA),
 	"M_DATA", OP_DataOptionsMenu, &OP_MainDef, 60, 30);
+
+//Banpyura Options
+menu_t OP_BanpyuraOptionsDef = DEFAULTSCROLLMENUSTYLE(
+	MTREE2(MN_OP_MAIN, MN_OP_BPYURA),
+	"M_OPTTTL", OP_BanpyuraOptionsMenu, &OP_MainDef, 30, 30);
+
+menu_t OP_P1BanpyuraOptionsDef = DEFAULTSCROLLMENUSTYLE( //Player 1
+	MTREE3(MN_OP_MAIN, MN_OP_P1CONTROLS, MN_OP_P1BPYURA),
+	"M_CONTRO", OP_P1BanpyuraOptionsMenu, &OP_P1ControlsDef, 30, 30);
+
+menu_t OP_P2BanpyuraOptionsDef = DEFAULTSCROLLMENUSTYLE( //Player 2
+	MTREE3(MN_OP_MAIN, MN_OP_P2CONTROLS, MN_OP_P2BPYURA),
+	"M_CONTRO", OP_P2BanpyuraOptionsMenu, &OP_P2ControlsDef, 30, 30);
 
 menu_t OP_ScreenshotOptionsDef =
 {

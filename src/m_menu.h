@@ -119,6 +119,11 @@ typedef enum
 	MN_SR_PLAYER,
 	MN_SR_SOUNDTEST,
 
+	//Banpyura
+	MN_OP_BPYURA,
+	MN_OP_P1BPYURA,
+	MN_OP_P2BPYURA,
+
 	// Addons (Part of MISC, but let's make it our own)
 	MN_AD_MAIN,
 
