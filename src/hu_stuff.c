@@ -1641,11 +1641,11 @@ static inline void HU_DrawCrosshairs(void)
 
 	stplyr = ((stplyr == &players[displayplayer]) ? &players[secondarydisplayplayer] : &players[displayplayer]);
 	if (!players[displayplayer].spectator && (!camera.chase || ticcmd_ztargetfocus[0]) && cross1)
-		V_DrawStretchyFixedPatch((BASEVIDWIDTH/2)<<FRACBITS, (BASEVIDHEIGHT/2)<<FRACBITS, FRACUNIT, splitscreen ? 2*FRACUNIT : FRACUNIT, V_TRANSLUCENT|V_PERPLAYER, crosshair[cross1 - 1], NULL);
+		V_DrawStretchyFixedPatch((BASEVIDWIDTH/2)<<FRACBITS, (BASEVIDHEIGHT/2)<<FRACBITS, FRACUNIT, splitscreen ? 2*FRACUNIT : FRACUNIT, V_PERPLAYER|(cv_crosshair_invert.value ? V_SUBTRACT : V_TRANSLUCENT), crosshair[cross1 - 1], cv_crosshair_invert.value ? R_GetTranslationColormap(TC_ALLWHITE, SKINCOLOR_WHITE, GTC_CACHE) : NULL);
 
 	stplyr = ((stplyr == &players[displayplayer]) ? &players[secondarydisplayplayer] : &players[displayplayer]);
 	if (!players[secondarydisplayplayer].spectator && (!camera2.chase || ticcmd_ztargetfocus[1]) && cross2 && splitscreen)
-		V_DrawStretchyFixedPatch((BASEVIDWIDTH/2)<<FRACBITS, (BASEVIDHEIGHT/2)<<FRACBITS, FRACUNIT, 2*FRACUNIT, V_TRANSLUCENT|V_PERPLAYER, crosshair[cross2 - 1], NULL);
+		V_DrawStretchyFixedPatch((BASEVIDWIDTH/2)<<FRACBITS, (BASEVIDHEIGHT/2)<<FRACBITS, FRACUNIT, 2*FRACUNIT, V_PERPLAYER|(cv_crosshair2_invert.value ? V_SUBTRACT : V_TRANSLUCENT), crosshair[cross2 - 1], cv_crosshair_invert.value ? R_GetTranslationColormap(TC_ALLWHITE, SKINCOLOR_WHITE, GTC_CACHE) : NULL);
 }
 
 static void HU_DrawCEcho(void)
