@@ -1520,7 +1520,11 @@ static menuitem_t OP_BanpyuraOptionsMenu[] =
 	{IT_STRING | IT_CVAR,		NULL, "Wipes",       					   &cv_wipes,          10},
 	{IT_STRING | IT_CVAR,		NULL, "Menu Caps",       			    &cv_menucaps,          15},
 	{IT_STRING | IT_CVAR,		NULL, "Menu Text Color",       	       &cv_menucolor,          20},
-	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          25}
+	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          25},
+
+	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   35},
+	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          45},
+	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's delay",       	  &cv_gentlemens,          50},
 };
 
 static menuitem_t OP_P1BanpyuraOptionsMenu[] =
