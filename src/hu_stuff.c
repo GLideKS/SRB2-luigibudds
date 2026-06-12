@@ -1299,6 +1299,11 @@ boolean HU_Responder(event_t *ev)
 						HU_removeChatText_Mini();
 
 					return true;
+				case 't':
+					// every cpu past like the '90s (iirc) does one instruction for xor
+					// and itll be optimized to this anyways so... :lazy:
+					teamtalk ^= 1;
+					return true;
 				default:
 					break; // Might be some KEY_* constant and not a character.
 			}
