@@ -134,8 +134,6 @@ typedef struct wadfile_s
 	aatree_t *endfolders;
 	UINT16 numlumps; // this wad's number of resources
 	UINT16 foldercount; // folder count
-	aatree_t *startfolders;
-	aatree_t *endfolders;
 	FILE *handle;
 	UINT32 filesize; // for network
 	UINT8 md5sum[16];
