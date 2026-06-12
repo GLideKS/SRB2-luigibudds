@@ -1525,6 +1525,9 @@ static menuitem_t OP_BanpyuraOptionsMenu[] =
 	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   35},
 	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          45},
 	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's delay",       	  &cv_gentlemens,          50},
+
+	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			            		NULL,		   60},
+	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,         70},
 };
 
 static menuitem_t OP_P1BanpyuraOptionsMenu[] =
