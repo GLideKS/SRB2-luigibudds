@@ -84,7 +84,7 @@ It works without any additional assets, just copy the build to your existing SRB
 - - CTRL+DEL to delete a whole word infront of the cursor,
 - - CTRL+R to clear the chat display *(This is exclusive to Windowed mode!)*,
 - - CTRL+T to quickswitch between sayteam and normal say,
-- - CTRL+Left arrow key to skip a whole word infront of the cursor, CTRL+Right for behind the cursor,
+- - CTRL+Left arrow key to skip a whole word behind the cursor, CTRL+Right to skip a whole word infront the cursor,
 - - - You can also highlight while doing this by holding shift.
 - the Home and End keys now works in chat (including their shift modifiers).
 - `chat_showlimit` to show character count and max allowed.
