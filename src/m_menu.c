@@ -6571,7 +6571,7 @@ static void M_DrawAddons(void)
 
 	m = (BASEVIDHEIGHT - currentMenu->y + 2) - (y - 1);
 	// addons menu back color
-	V_DrawFill(x-21, y - 1, boxwidth, m, cv_menubgcolor.value|V_TRANSLUCENT);
+	V_DrawFill(x-21, y - 1, boxwidth, m, (cv_menubgcolor.value - (addons_localmode ? 2 : 0))|V_TRANSLUCENT);
 
 	// The directory is too small for a scrollbar, so just draw a tall white line
 	if (sizedirmenu <= addonmenusize)
