@@ -1120,14 +1120,16 @@ boolean HU_Responder(event_t *ev)
 
 	c = (INT32)ev->key;
 
+	boolean talkkey = (ev->key == gamecontrol[GC_TALKKEY][0] || ev->key == gamecontrol[GC_TALKKEY][1]);
+	boolean teamkey = (ev->key == gamecontrol[GC_TEAMKEY][0] || ev->key == gamecontrol[GC_TEAMKEY][1]);
+
 	if (!chat_on)
 	{
 		if (ev->type == ev_text)
 			return false;
 
 		// enter chat mode
-		if ((ev->key == gamecontrol[GC_TALKKEY][0] || ev->key == gamecontrol[GC_TALKKEY][1])
-			&& netgame && !OLD_MUTE) // check for old chat mute, still let the players open the chat incase they want to scroll otherwise.
+		if ((talkkey || teamkey) && netgame && !OLD_MUTE) // check for old chat mute, still let the players open the chat incase they want to scroll otherwise.
 		{
 			I_SetTextInputMode(true);
 			chat_on = true;
@@ -1137,24 +1139,7 @@ boolean HU_Responder(event_t *ev)
 				w_chat[0] = 0;
 				c_selection = c_input = 0;
 			}
-			teamtalk = false;
-			chat_scrollmedown = true;
-			typelines = 1;
-			hu_tick = 0;
-			return true;
-		}
-		if ((ev->key == gamecontrol[GC_TEAMKEY][0] || ev->key == gamecontrol[GC_TEAMKEY][1])
-			&& netgame && !OLD_MUTE)
-		{
-			I_SetTextInputMode(true);
-			chat_on = true;
-			chat_on_first_event = false;
-			if (cv_chat_clearonexit.value)
-			{
-				w_chat[0] = 0;
-				c_selection = c_input = 0;
-			}
-			teamtalk = G_GametypeHasTeams(); // Don't teamtalk if we don't have teams.
+			teamtalk = (teamkey ? G_GametypeHasTeams() : false);
 			chat_scrollmedown = true;
 			typelines = 1;
 			hu_tick = 0;
@@ -1191,8 +1176,7 @@ boolean HU_Responder(event_t *ev)
 			memmove(&w_chat[c_input + 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
 			w_chat[c_input] = c;
 
-			c_input += 1;
-			c_selection = c_input;
+			c_selection = (c_input += 1);
 			return true;
 		}
 
@@ -1219,10 +1203,7 @@ boolean HU_Responder(event_t *ev)
 			I_UpdateMouseGrab();
 			return true; // Probably eat this...?
 		}
-		else if (c == KEY_ESCAPE
-			|| ((c == gamecontrol[GC_TALKKEY][0] || c == gamecontrol[GC_TALKKEY][1]
-			|| c == gamecontrol[GC_TEAMKEY][0] || c == gamecontrol[GC_TEAMKEY][1])
-			&& c >= KEY_MOUSE1)) // If it's not a keyboard key, then the chat button is used as a toggle.
+		else if (c == KEY_ESCAPE || ((talkkey || teamkey) && c >= KEY_MOUSE1)) // If it's not a keyboard key, then the chat button is used as a toggle.
 		{
 			I_SetTextInputMode(false);
 			chat_on = false;
@@ -1234,7 +1215,7 @@ boolean HU_Responder(event_t *ev)
 			return true;
 		}
 
-		// CTRL modifiers (CTRL+[V/C/X/A])!
+		// CTRL modifiers!
 		if (ctrldown)
 		{
 			size_t chatlen = strlen(w_chat);
@@ -1263,8 +1244,7 @@ boolean HU_Responder(event_t *ev)
 					memmove(&w_chat[c_input + pastelen], &w_chat[c_input], (chatlen - c_input) + 1); // +1 for '\0'
 					memcpy(&w_chat[c_input], paste, pastelen); // copy all of that.
 
-					c_input += pastelen;
-					c_selection = c_input;
+					c_selection = (c_input += pastelen);
 					return true;
 				case 'c':
 					if (CHAT_MUTE || chatlen <= 0) // check length anyway for safetys sake
@@ -1306,17 +1286,13 @@ boolean HU_Responder(event_t *ev)
 					c_selection = c_input = 0;
 					return true;
 				case 'r':
-					// If you want this in old chat, you'll have to use the clearscreen
-					// command instead, as HU_AddChatText() is a CONS_Printf() wrapper
-					// if you have Console chat enabled.
 					if ((chat_nummsg_log < 1) || OLDCHAT)
 						return true;
 
-					// Clear the log.
 					for (size_t i=0; chat_nummsg_log; i++)
 						HU_removeChatText_Log();
 
-					if (chat_nummsg_min == 0) // Nothing to clear! Stop!
+					if (chat_nummsg_min == 0)
 						return true;
 
 					for (size_t i=0; chat_nummsg_min; i++)
@@ -1329,115 +1305,124 @@ boolean HU_Responder(event_t *ev)
 		}
 
 		// handler for arrow keys
+		switch(c)
+		{
+			case KEY_PGUP:
+			case KEY_MOUSEWHEELUP:
+			case KEY_UPARROW:
+				if (!(chat_scroll > 0) || OLDCHAT)
+					return true;
 
-		if ((c == KEY_UPARROW || c == KEY_MOUSEWHEELUP) && chat_scroll > 0 && !OLDCHAT) // CHAT SCROLLING YAYS!
-		{
-			if (ctrldown)
-			{
-				chat_scroll = 0;
-				justscrolledup = true;
-				chat_scrolltime = 2; // half of normal
-			}
-			else
-			{
-				chat_scroll--;
-				justscrolledup = true;
-				chat_scrolltime = 4;
-			}
-		}
-		else if ((c == KEY_DOWNARROW || c == KEY_MOUSEWHEELDOWN) && chat_scroll < chat_maxscroll && chat_maxscroll > 0 && !OLDCHAT)
-		{
-			if (ctrldown)
-				chat_scrollmedown = true;
-			else
-			{
-				chat_scroll++;
-				justscrolleddown = true;
-				chat_scrolltime = 4;
-			}
-		}
-		else if (c == KEY_LEFTARROW) // i said go back
-		{
-			hu_tick = 0;
-			if (ctrldown) // move back a word (or ctrl+shift select)
-			{
-				c_input = M_JumpWordReverse(w_chat, c_input);
-				if (!shiftdown) // just regular ctrl-select
-					c_selection = c_input;
-			}
-			else if (shiftdown && c_input != 0) // shift-select a character behind
-				c_input--;
-			else if (!(shiftdown || ctrldown)) // regular movement
-			{
-				if (c_selection == c_input) // no selection, move the cursor
+				if (ctrldown || c == KEY_PGUP)
 				{
-					c_input = max((INT32)c_input - 1, 0);
-					c_selection = c_input;
+					chat_scroll = 0;
 				}
-				else // was selecting, move the cursor to the start of the selection
+				else
 				{
-					c_input = min(c_input, c_selection);
-					c_selection = c_input;
+					chat_scroll--;
+					justscrolledup = true;
+					chat_scrolltime = 4;
 				}
-			}
-		}
-		else if (c == KEY_RIGHTARROW) // don't need to check for admin or w/e here since the chat won't ever contain anything if it's muted.
-		{
-			hu_tick = 0;
-			if (ctrldown) // move forward a word (or ctrl+shift select)
-			{
-				c_input += M_JumpWord(&w_chat[c_input]);
-				if (!shiftdown) // just regular ctrl-select
-					c_selection = c_input;
-			}
-			else if (shiftdown && c_input < strlen(w_chat)) // shift-select a character in front
-				c_input++;
-			else if (!(shiftdown || ctrldown)) // regular movement
-			{
-				if (c_selection == c_input) // no selection, move the cursor
-				{
-					c_input = min(c_input + 1, strlen(w_chat));
-					c_selection = c_input;
-				}
-				else // was selecting, move the cursor to the end of the selection
-				{
-					c_input = max(c_input, c_selection);
-					c_selection = c_input;
-				}
-			}
-		}
-		else if (c == KEY_BACKSPACE)
-		{
-			if (CHAT_MUTE || c_input <= 0)
+
 				return true;
+			case KEY_PGDN:
+			case KEY_MOUSEWHEELDOWN:
+			case KEY_DOWNARROW:
+				if (OLDCHAT || !(chat_scroll < chat_maxscroll && chat_maxscroll > 0))
+					return true;
 
-			hu_tick = 0;
+				if (ctrldown || c == KEY_PGDN)
+					chat_scrollmedown = true;
+				else
+				{
+					chat_scroll++;
+					justscrolleddown = true;
+					chat_scrolltime = 4;
+				}
 
-			if (ctrldown)
-				c_selection = M_JumpWordReverse(w_chat, c_input);
-
-			if (c_selection == c_input)
-			{
-				memmove(&w_chat[c_input - 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
-				c_selection = (c_input -= 1);
-			}
-			else
-				Chat_DeleteSelection();
-		}
-		else if (c == KEY_DEL)
-		{
-			if (CHAT_MUTE)
 				return true;
+			case KEY_LEFTARROW:
+				hu_tick = 0;
+				if (ctrldown) // move back a word (or ctrl+shift select)
+				{
+					c_input = M_JumpWordReverse(w_chat, c_input);
+					if (!shiftdown) // just regular ctrl-select
+						c_selection = c_input;
+				}
+				else if (shiftdown && c_input != 0) // shift-select a character behind
+					c_input--;
+				else if (!(shiftdown || ctrldown)) // regular movement
+				{
+					if (c_selection == c_input) // no selection, move the cursor
+					{
+						c_selection = (c_input = max((INT32)c_input - 1, 0));
+					}
+					else // was selecting, move the cursor to the start of the selection
+					{
+						c_selection = (c_input = min(c_input, c_selection));
+					}
+				}
 
-			hu_tick = 0;
+				return true;
+			case KEY_RIGHTARROW:
+				hu_tick = 0;
+				if (ctrldown) // move forward a word (or ctrl+shift select)
+				{
+					c_input += M_JumpWord(&w_chat[c_input]);
+					if (!shiftdown) // just regular ctrl-select
+						c_selection = c_input;
+				}
+				else if (shiftdown && c_input < strlen(w_chat)) // shift-select a character in front
+					c_input++;
+				else if (!(shiftdown || ctrldown)) // regular movement
+				{
+					if (c_selection == c_input) // no selection, move the cursor
+					{
+						c_selection = (c_input = min(c_input + 1, strlen(w_chat)));
+					}
+					else // was selecting, move the cursor to the end of the selection
+					{
+						c_selection = (c_input = max(c_input, c_selection));
+					}
+				}
 
-			if (ctrldown)
-				c_input += M_JumpWord(&w_chat[c_input]);
+				return true;
+			case KEY_BACKSPACE:
+				if (CHAT_MUTE || c_input <= 0)
+					return true;
 
-			if (c_selection == c_input)
-				memmove(&w_chat[c_input], &w_chat[c_input + 1], strlen(w_chat) - c_input);
-			else
-				Chat_DeleteSelection();
+				hu_tick = 0;
+
+				if (ctrldown)
+					c_selection = M_JumpWordReverse(w_chat, c_input);
+
+				if (c_selection == c_input)
+				{
+					memmove(&w_chat[c_input - 1], &w_chat[c_input], strlen(w_chat) - c_input + 1);
+					c_selection = (c_input -= 1);
+				}
+				else
+					Chat_DeleteSelection();
+
+				return true;
+			case KEY_DEL:
+				if (CHAT_MUTE || c_input >= strlen(w_chat))
+					return true;
+
+				hu_tick = 0;
+
+				if (ctrldown)
+					c_input += M_JumpWord(&w_chat[c_input]);
+
+				if (c_selection == c_input)
+					memmove(&w_chat[c_input], &w_chat[c_input + 1], strlen(w_chat) - c_input);
+				else
+					Chat_DeleteSelection();
+
+				return true;
+			default:
+				break;
+
 		}
 
 		return true;
