@@ -185,6 +185,11 @@ static tic_t keydown = 0;
 // Lua
 static huddrawlist_h luahuddrawlist_playersetup;
 
+//Addons Menu: Local mode
+static void M_LocalAddons(INT32 choice);
+const INT32 LOCALMODE_KEY = KEY_RALT;
+static boolean addons_localmode = false;
+
 //
 // PROTOTYPES
 //
@@ -548,6 +553,7 @@ typedef enum
 // ---------------------
 static menuitem_t MPauseMenu[] =
 {
+	{IT_STRING | IT_CALL,    NULL, "Local Add-ons...",          M_LocalAddons,          8},
 	{IT_STRING | IT_CALL,    NULL, "Add-ons...",                M_Addons,               8},
 	{IT_STRING | IT_SUBMENU, NULL, "Scramble Teams...",         &MISC_ScrambleTeamDef, 16},
 	{IT_STRING | IT_CALL,    NULL, "Emblem Hints...",           M_EmblemHints,         24},
@@ -571,6 +577,7 @@ static menuitem_t MPauseMenu[] =
 
 typedef enum
 {
+	mpause_localaddons,
 	mpause_addons = 0,
 	mpause_scramble,
 	mpause_hints,
@@ -3280,6 +3287,21 @@ boolean M_Responder(event_t *ev)
 					case KEY_HAT1 + 3:
 						ch = KEY_RIGHTARROW;
 						break;
+					//Local Addon Mode
+					case LOCALMODE_KEY:
+						if (!(server || IsPlayerAdmin(consoleplayer)))
+							break;
+
+						if (!addons_localmode) {
+							S_StartSound(NULL, sfx_ding);
+							addons_localmode = true;
+						}
+						else {
+							S_StartSound(NULL, sfx_jshard);
+							addons_localmode = false;
+						}
+
+						break;
 				}
 			}
 		}
@@ -3785,11 +3807,13 @@ void M_StartControlPanel(void)
 		MPauseMenu[mpause_entergame].status = IT_DISABLED;
 		MPauseMenu[mpause_switchteam].status = IT_DISABLED;
 		MPauseMenu[mpause_psetup].status = IT_DISABLED;
+		MPauseMenu[mpause_localaddons].status = IT_STRING | IT_CALL;
 
 		if ((server || IsPlayerAdmin(consoleplayer)))
 		{
 			MPauseMenu[mpause_switchmap].status = IT_STRING | IT_CALL;
 			MPauseMenu[mpause_addons].status = IT_STRING | IT_CALL;
+			MPauseMenu[mpause_localaddons].status = IT_DISABLED;
 			if (G_GametypeHasTeams())
 				MPauseMenu[mpause_scramble].status = IT_STRING | IT_SUBMENU;
 		}
@@ -6369,6 +6393,12 @@ static void M_Addons(INT32 choice)
 	M_SetupNextMenu(&MISC_AddonsDef);
 }
 
+static void M_LocalAddons(INT32 choice)
+{
+    addons_localmode = true;
+    M_Addons(choice);
+}
+
 #ifdef ENFORCE_WAD_LIMIT
 #define width 4
 #define vpadding 27
@@ -6649,6 +6679,9 @@ static void M_DrawAddons(void)
 
 	if (modifiedgame)
 		V_DrawSmallScaledPatch(x, y + 4, 0, addonsp[NUM_EXT+2]);
+
+	if (addons_localmode) //Draw notice that you're adding locally
+		V_DrawCenteredString(x - 135, y + 19, MENUCAPS|MENUCOLOR, "Loading locally...");
 }
 
 static void M_AddonExec(INT32 ch)
@@ -6814,7 +6847,7 @@ static void M_HandleAddons(INT32 choice)
 						case EXT_KART:
 #endif
 						case EXT_PK3:
-							COM_BufAddText(va("addfile \"%s%s\"", menupath, dirmenu[dir_on[menudepthleft]]+DIR_STRING));
+							COM_BufAddText(va(addons_localmode ? "addfilelocal \"%s%s\"" : "addfile \"%s%s\"", menupath, dirmenu[dir_on[menudepthleft]]+DIR_STRING));
 							break;
 						default:
 							S_StartSound(NULL, sfx_lose);
@@ -6843,6 +6876,8 @@ static void M_HandleAddons(INT32 choice)
 			M_SetupNextMenu(currentMenu->prevMenu);
 		else
 			M_ClearMenus(true);
+
+		addons_localmode = false; //Exiting this menu, disable addons_localmode already.
 	}
 }
 
