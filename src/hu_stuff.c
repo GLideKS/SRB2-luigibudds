@@ -1420,6 +1420,30 @@ boolean HU_Responder(event_t *ev)
 					Chat_DeleteSelection();
 
 				return true;
+			case KEY_HOME:
+				if (CHAT_MUTE)
+					return true;
+
+				hu_tick = 0;
+
+				if (shiftdown)
+					c_selection = 0;
+				else
+					c_selection = c_input = 0;
+
+				return true;
+			case KEY_END:
+				if (CHAT_MUTE)
+					return true;
+
+				hu_tick = 0;
+
+				if (shiftdown)
+					c_selection = strlen(w_chat);
+				else
+					c_selection = c_input = strlen(w_chat);
+
+				return true;
 			default:
 				break;
 
