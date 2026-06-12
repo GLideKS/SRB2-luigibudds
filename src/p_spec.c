@@ -135,22 +135,24 @@ void P_ParseAnimationDefintion(SINT8 istexture);
 
 static boolean P_FindTextureForAnimation(anim_t *anim, animdef_t *animdef)
 {
-	if (R_CheckTextureNumForName(animdef->startname) == -1)
+	INT32 start = R_CheckTextureNumForName(animdef->startname, TEXTURETYPE_TEXTURE);
+	if (start == -1)
 		return false;
 
-	anim->picnum = R_TextureNumForName(animdef->endname);
-	anim->basepic = R_TextureNumForName(animdef->startname);
+	anim->basepic = start;
+	anim->picnum = R_CheckTextureNumForName(animdef->endname, TEXTURETYPE_TEXTURE);
 
 	return true;
 }
 
 static boolean P_FindFlatForAnimation(anim_t *anim, animdef_t *animdef)
 {
-	if (R_CheckFlatNumForName(animdef->startname) == -1)
+	INT32 start = R_CheckTextureNumForName(animdef->startname, TEXTURETYPE_FLAT);
+	if (start == -1)
 		return false;
 
-	anim->picnum = R_CheckFlatNumForName(animdef->endname);
-	anim->basepic = R_CheckFlatNumForName(animdef->startname);
+	anim->basepic = start;
+	anim->picnum = R_CheckTextureNumForName(animdef->endname, TEXTURETYPE_FLAT);
 
 	return true;
 }
@@ -1115,7 +1117,7 @@ static boolean PolyFlag(line_t *line)
 static boolean PolyDisplace(line_t *line)
 {
 	polydisplacedata_t pdd;
-	fixed_t length = R_PointToDist2(line->v2->x, line->v2->y, line->v1->x, line->v1->y);
+	fixed_t length = GetDistance2D(line->v2->x, line->v2->y, line->v1->x, line->v1->y);
 	fixed_t speed = line->args[1] << FRACBITS;
 
 	pdd.polyObjNum = line->args[0];
@@ -1364,7 +1366,7 @@ static boolean P_CheckNightsTriggerLine(line_t *triggerline, mobj_t *actor)
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
 			UINT8 lap;
-			if (!playeringame[i] || players[i].spectator)
+			if (!players[i].ingame || players[i].spectator)
 				continue;
 
 			// denightserize: run only if all players are not nights
@@ -1488,7 +1490,7 @@ static boolean P_CheckPlayerRings(line_t *triggerline, mobj_t *actor)
 	{
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
-			if (!playeringame[i] || players[i].spectator)
+			if (!players[i].ingame || players[i].spectator)
 				continue;
 
 			if (!players[i].mo || ((maptol & TOL_NIGHTS) ? players[i].spheres : players[i].rings) <= 0)
@@ -1970,23 +1972,23 @@ static void P_PlaySFX(INT32 sfxnum, mobj_t *mo, sector_t *callsec, INT16 tag, te
 	{
 		case TMSS_TRIGGERMOBJ: // play the sound from mobj that triggered it
 			if (mo)
-				S_StartSound(mo, sfxnum);
+				S_StartSoundFromMobj(mo, sfxnum);
 			break;
 		case TMSS_TRIGGERSECTOR: // play the sound from calling sector's soundorg
 			if (callsec)
-				S_StartSound(&callsec->soundorg, sfxnum);
+				S_StartSoundFromSector(callsec, sfxnum);
 			else if (mo)
-				S_StartSound(&mo->subsector->sector->soundorg, sfxnum);
+				S_StartSoundFromSector(mo->subsector->sector, sfxnum);
 			break;
 		case TMSS_NOWHERE: // play the sound from nowhere
-			S_StartSound(NULL, sfxnum);
+			S_StartSoundFromEverywhere(sfxnum);
 			break;
 		case TMSS_TAGGEDSECTOR: // play the sound from tagged sectors' soundorgs
 		{
 			INT32 secnum;
 
 			TAG_ITER_SECTORS(tag, secnum)
-				S_StartSound(&sectors[secnum].soundorg, sfxnum);
+				S_StartSoundFromSector(&sectors[secnum], sfxnum);
 			break;
 		}
 		default:
@@ -2446,7 +2448,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 						P_Teleport(bot, dest->x, dest->y, dest->z, angle, !silent, keepmomentum);
 					P_Teleport(mo, dest->x, dest->y, dest->z, angle, !silent, keepmomentum);
 					if (!silent)
-						S_StartSound(dest, sfx_mixup); // Play the 'bowrwoosh!' sound
+						S_StartSoundFromMobj(dest, sfx_mixup); // Play the 'bowrwoosh!' sound
 				}
 			}
 			break;
@@ -2455,7 +2457,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 			// console player only unless TMM_ALLPLAYERS is set
 			if ((line->args[0] & TMM_ALLPLAYERS) || (mo && mo->player && P_IsLocalPlayer(mo->player)) || titlemapinaction)
 			{
-				boolean musicsame = (!line->stringargs[0] || !line->stringargs[0][0] || !strnicmp(line->stringargs[0], S_MusicName(), 7));
+				boolean musicsame = (!line->stringargs[0] || !line->stringargs[0][0] || !strnicmp(line->stringargs[0], S_MusicName(), MAX_MUSIC_NAME));
 				UINT16 tracknum = (UINT16)max(line->args[6], 0);
 				INT32 position = (INT32)max(line->args[1], 0);
 				UINT32 prefadems = (UINT32)max(line->args[2], 0);
@@ -2498,8 +2500,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 						strcpy(mapmusname, "");
 					else
 					{
-						strncpy(mapmusname, line->stringargs[0], 7);
-						mapmusname[6] = 0;
+						strlcpy(mapmusname, line->stringargs[0], MAX_MUSIC_NAME+1);
 					}
 
 					mapmusflags = tracknum & MUSIC_TRACKMASK;
@@ -2752,7 +2753,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 				scroll_t *scroller;
 				thinker_t *th;
 
-				fixed_t length = R_PointToDist2(line->v2->x, line->v2->y, line->v1->x, line->v1->y);
+				fixed_t length = GetDistance2D(line->v2->x, line->v2->y, line->v1->x, line->v1->y);
 				fixed_t speed = line->args[1] << FRACBITS;
 				fixed_t dx = FixedMul(FixedMul(FixedDiv(line->dx, length), speed) >> SCROLL_SHIFT, CARRYFACTOR);
 				fixed_t dy = FixedMul(FixedMul(FixedDiv(line->dy, length), speed) >> SCROLL_SHIFT, CARRYFACTOR);
@@ -2891,7 +2892,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 
 					if (M_UpdateUnlockablesAndExtraEmblems(clientGamedata))
 					{
-						S_StartSound(NULL, sfx_s3k68);
+						S_StartSoundFromEverywhere(sfx_s3k68);
 						G_SaveGameData(clientGamedata); // only save if unlocked something
 					}
 				}
@@ -3601,7 +3602,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 					UINT8 i;
 					for (i = 0; i < MAXPLAYERS; i++)
 					{
-						if (!playeringame[i])
+						if (!players[i].ingame)
 							continue;
 						P_DoPlayerExit(&players[i], true);
 					}
@@ -3655,7 +3656,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 					// Mark all players with the time to exit thingy!
 					for (i = 0; i < MAXPLAYERS; i++)
 					{
-						if (!playeringame[i])
+						if (!players[i].ingame)
 							continue;
 						P_DoPlayerExit(&players[i], true);
 					}
@@ -3842,7 +3843,7 @@ void P_SetupSignExit(player_t *player)
 		P_SetObjectMomZ(thing, 12*FRACUNIT, false);
 		P_SetMobjState(thing, S_SIGNSPIN1);
 		if (thing->info->seesound)
-			S_StartSound(thing, thing->info->seesound);
+			S_StartSoundFromMobj(thing, thing->info->seesound);
 
 		++numfound;
 	}
@@ -3873,7 +3874,7 @@ void P_SetupSignExit(player_t *player)
 		P_SetObjectMomZ(thing, 12*FRACUNIT, false);
 		P_SetMobjState(thing, S_SIGNSPIN1);
 		if (thing->info->seesound)
-			S_StartSound(thing, thing->info->seesound);
+			S_StartSoundFromMobj(thing, thing->info->seesound);
 
 		++numfound;
 	}
@@ -4343,7 +4344,7 @@ sector_t *P_FindPlayerTrigger(player_t *player, line_t *sourceline)
 
 boolean P_IsPlayerValid(size_t playernum)
 {
-	if (!playeringame[playernum])
+	if (!players[playernum].ingame)
 		return false;
 
 	if (!players[playernum].mo)
@@ -4417,7 +4418,7 @@ static void P_ProcessEggCapsule(player_t *player, sector_t *sector)
 	// Mark all players with the time to exit thingy!
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (!playeringame[i])
+		if (!players[i].ingame)
 			continue;
 		P_DoPlayerExit(&players[i], true);
 	}
@@ -4509,7 +4510,7 @@ static void P_ProcessSpeedPad(player_t *player, sector_t *sector, sector_t *rove
 	if (!sfxnum)
 		sfxnum = sfx_spdpad;
 
-	S_StartSound(player->mo, sfxnum);
+	S_StartSoundFromMobj(player->mo, sfxnum);
 }
 
 static void P_ProcessSpecialStagePit(player_t* player)
@@ -4565,14 +4566,68 @@ static void P_ProcessExitSector(player_t *player, mtag_t sectag)
 		return;
 	}
 
+	// stringarg[0]: Next map string
+	// stringarg[1]: Next map string (if emerald check is enabled and the player has all emeralds)
+
+	// TODO: 2.3: Remove UDMF nextmap arg[0] and arg[2], and move arg[1] to arg[0].
+
 	// Special goodies depending on emeralds collected
 	if ((lines[lineindex].args[1] & TMEF_EMERALDCHECK) && ALL7EMERALDS(emeralds))
-		nextmapoverride = (INT16)(udmf ? lines[lineindex].args[2] : lines[lineindex].frontsector->ceilingheight>>FRACBITS);
-	else
-		nextmapoverride = (INT16)(udmf ? lines[lineindex].args[0] : lines[lineindex].frontsector->floorheight>>FRACBITS);
-
+	{
+		if (udmf) 
+		{
+			if (lines[lineindex].stringargs[1])
+			{
+				nextmapoverride = (INT16)(G_GetMapNumber(lines[lineindex].stringargs[1]));
+			}
+			else
+			{
+				nextmapoverride = (INT16)(lines[lineindex].args[2]);
+			}
+		}
+		else
+		{
+			nextmapoverride = (INT16)(lines[lineindex].frontsector->ceilingheight>>FRACBITS);
+		}
+	}
+	else // No emeralds
+	{
+		if (udmf) 
+		{
+			if (lines[lineindex].stringargs[0])
+			{
+				nextmapoverride = (INT16)(G_GetMapNumber(lines[lineindex].stringargs[0]));
+			}
+			else
+			{
+				nextmapoverride = (INT16)(lines[lineindex].args[0]);
+			}
+		}
+		else
+		{
+			nextmapoverride = (INT16)(lines[lineindex].frontsector->floorheight>>FRACBITS);
+		}
+	}
+	
 	if (lines[lineindex].args[1] & TMEF_SKIPTALLY)
-		skipstats = 1;
+		mapexitflags |= EXITMAP_SKIPSTATS;
+
+	//skip stats actually skips post-level cutscenes.
+	if (lines[lineindex].args[1] & TMEF_SKIPCUTSCENE)
+		mapexitflags |= EXITMAP_SKIPCUTSCENE;
+
+	//skip special stage checks
+	if (lines[lineindex].args[1] & TMEF_SKIPSPECIAL)
+		mapexitflags |= EXITMAP_SKIPSPECIAL;
+
+	//skips recording of emblems and visited maps entirely
+	if (lines[lineindex].args[1] & TMEF_SKIPRECORDS)
+		mapexitflags |= EXITMAP_SKIPRECORDS;
+
+	//removes time attack rewards
+	if (lines[lineindex].args[1] & TMEF_NOTIMEATTACK)
+		mapexitflags |= EXITMAP_NOTIMEATTACK;
+
 }
 
 static void P_ProcessTeamBase(player_t *player, boolean redteam)
@@ -4601,9 +4656,9 @@ static void P_ProcessTeamBase(player_t *player, boolean redteam)
 	HU_DoCEcho(va(M_GetText("%s%s\200\\CAPTURED THE %s%s FLAG\200.\\\\\\\\"), redteam ? "\205" : "\204", player_names[player-players], redteam ? "\204" : "\205", redteam ? "BLUE" : "RED"));
 
 	if (splitscreen || players[consoleplayer].ctfteam == (redteam ? 1 : 2))
-		S_StartSound(NULL, sfx_flgcap);
+		S_StartSoundFromEverywhere(sfx_flgcap);
 	else if (players[consoleplayer].ctfteam == (redteam ? 2 : 1))
-		S_StartSound(NULL, sfx_lose);
+		S_StartSoundFromEverywhere(sfx_lose);
 
 	mo = P_SpawnMobj(player->mo->x,player->mo->y,player->mo->z, redteam ? MT_BLUEFLAG : MT_REDFLAG);
 	player->gotflag &= ~(redteam ? GF_BLUEFLAG : GF_REDFLAG);
@@ -4675,10 +4730,10 @@ static void P_ProcessZoomTube(player_t *player, mtag_t sectag, boolean end)
 	player->pflags &= ~(PF_JUMPED|PF_NOJUMPDAMAGE|PF_GLIDING|PF_BOUNCING|PF_SLIDING|PF_CANCARRY);
 	player->climbing = 0;
 
-	if (player->mo->state-states != S_PLAY_ROLL)
+	if (!P_IsPlayerInState(player, S_PLAY_ROLL))
 	{
 		P_SetMobjState(player->mo, S_PLAY_ROLL);
-		S_StartSound(player->mo, sfx_spin);
+		S_StartSoundFromMobj(player->mo, sfx_spin);
 	}
 }
 
@@ -4710,13 +4765,13 @@ static void P_ProcessFinishLine(player_t *player)
 		P_ResetStarposts();
 
 		// Play the starpost sound for 'consistency'
-		S_StartSound(player->mo, sfx_strpst);
+		S_StartSoundFromMobj(player->mo, sfx_strpst);
 	}
 	else if (player->starpostnum)
 	{
 		// blatant reuse of a variable that's normally unused in circuit
 		if (!player->tossdelay)
-			S_StartSound(player->mo, sfx_lose);
+			S_StartSoundFromMobj(player->mo, sfx_lose);
 		player->tossdelay = 3;
 	}
 
@@ -4756,7 +4811,7 @@ static void P_ProcessRopeHang(player_t *player, mtag_t sectag)
 	if (player->cmd.buttons & BT_SPIN)
 		return;
 
-	if (!(player->pflags & PF_SLIDING) && player->mo->state == &states[player->mo->info->painstate])
+	if (!(player->pflags & PF_SLIDING) && P_IsPlayerInState(player, S_PLAY_PAIN))
 		return;
 
 	if (player->exiting)
@@ -4862,9 +4917,8 @@ static void P_ProcessRopeHang(player_t *player, mtag_t sectag)
 	}
 	else
 	{
-		if (P_AproxDistance(P_AproxDistance(player->mo->x-resultlow.x, player->mo->y-resultlow.y),
-				player->mo->z-resultlow.z) < P_AproxDistance(P_AproxDistance(player->mo->x-resulthigh.x,
-					player->mo->y-resulthigh.y), player->mo->z-resulthigh.z))
+		if (GetDistance3D(player->mo->x, player->mo->y, player->mo->z, resultlow.x, resultlow.y, resultlow.z) <
+			GetDistance3D(player->mo->x, player->mo->y, player->mo->z, resulthigh.x, resulthigh.y, resulthigh.z))
 		{
 			// Line between Mid and Low is closer
 			closest = waypointmid;
@@ -4886,7 +4940,7 @@ static void P_ProcessRopeHang(player_t *player, mtag_t sectag)
 	player->powers[pw_carry] = CR_ROPEHANG;
 	player->speed = speed;
 
-	S_StartSound(player->mo, sfx_s3k4a);
+	S_StartSoundFromMobj(player->mo, sfx_s3k4a);
 
 	player->pflags &= ~(PF_JUMPED|PF_NOJUMPDAMAGE|PF_GLIDING|PF_BOUNCING|PF_SLIDING|PF_CANCARRY);
 	player->climbing = 0;
@@ -5071,7 +5125,7 @@ static void P_EvaluateOldSectorSpecial(player_t *player, sector_t *sector, secto
 			if (leveltime % (TICRATE/2) == 0 && player->rings > 0)
 			{
 				player->rings--;
-				S_StartSound(player->mo, sfx_antiri);
+				S_StartSoundFromMobj(player->mo, sfx_antiri);
 			}
 			break;
 	}
@@ -5938,7 +5992,7 @@ void T_LaserFlash(laserthink_t *flash)
 			top    = P_GetFFloorTopZAt   (fflr, sector->soundorg.x, sector->soundorg.y);
 			bottom = P_GetFFloorBottomZAt(fflr, sector->soundorg.x, sector->soundorg.y);
 			sector->soundorg.z = (top + bottom)/2;
-			S_StartSound(&sector->soundorg, sfx_laser);
+			S_StartSoundFromSector(sector, sfx_laser);
 
 			// Seek out objects to DESTROY! MUAHAHHAHAHAA!!!*cough*
 			for (node = sector->touching_thinglist; node && node->m_thing; node = node->m_thinglist_next)
@@ -7848,7 +7902,7 @@ static void P_SpawnScrollers(void)
 
 			case 510: // plane scroller
 			{
-				fixed_t length = R_PointToDist2(l->v2->x, l->v2->y, l->v1->x, l->v1->y);
+				fixed_t length = GetDistance2D(l->v2->x, l->v2->y, l->v1->x, l->v1->y);
 				fixed_t speed = l->args[3] << FRACBITS;
 				fixed_t dx = FixedMul(FixedDiv(l->dx, length), speed) >> SCROLL_SHIFT;
 				fixed_t dy = FixedMul(FixedDiv(l->dy, length), speed) >> SCROLL_SHIFT;
@@ -7950,7 +8004,7 @@ void T_Disappear(disappear_t *d)
 					if (!(lines[d->sourceline].args[5]))
 					{
 						sectors[s].soundorg.z = P_GetFFloorTopZAt(rover, sectors[s].soundorg.x, sectors[s].soundorg.y);
-						S_StartSound(&sectors[s].soundorg, sfx_appear);
+						S_StartSoundFromSector(&sectors[s], sfx_appear);
 					}
 				}
 			}
@@ -8803,7 +8857,7 @@ void T_Pusher(pusher_t *p)
 		if (thing->player && thing->player->powers[pw_carry] == CR_ROPEHANG)
 			continue;
 
-		if (thing->player && (thing->state == &states[thing->info->painstate]) && (thing->player->powers[pw_flashing] > (flashingtics/4)*3 && thing->player->powers[pw_flashing] <= flashingtics))
+		if (thing->player && P_IsPlayerInState(thing->player, S_PLAY_PAIN) && (thing->player->powers[pw_flashing] > (flashingtics/4)*3 && thing->player->powers[pw_flashing] <= flashingtics))
 			continue;
 
 		inFOF = touching = moved = false;
@@ -8881,7 +8935,7 @@ void T_Pusher(pusher_t *p)
 
 		// Tumbleweeds bounce a bit...
 		if (thing->type == MT_LITTLETUMBLEWEED || thing->type == MT_BIGTUMBLEWEED)
-			thing->momz += P_AproxDistance(xspeed, yspeed) >> 2;
+			thing->momz += GetDistance2D(0, 0, xspeed, yspeed) / 4;
 
 		if (moved)
 		{
@@ -8929,7 +8983,7 @@ static void P_SpawnPushers(void)
 		if (l->special != 541)
 			continue;
 
-		length = R_PointToDist2(l->v2->x, l->v2->y, l->v1->x, l->v1->y);
+		length = GetDistance2D(l->v2->x, l->v2->y, l->v1->x, l->v1->y);
 		hspeed = l->args[1] << FRACBITS;
 		dx = FixedMul(FixedDiv(l->dx, length), hspeed);
 		dy = FixedMul(FixedDiv(l->dy, length), hspeed);

@@ -28,6 +28,7 @@
 #include "../snake.h"
 #include "../s_sound.h"
 #include "../v_video.h"
+#include "../r_main.h"
 #include "../y_inter.h"
 #include "../z_zone.h"
 #include "../doomtype.h"
@@ -54,6 +55,8 @@ static boolean IsDownloadingFile(void)
 static void DrawConnectionStatusBox(void)
 {
 	M_DrawTextBox(BASEVIDWIDTH/2-128-8, BASEVIDHEIGHT-16-8, 32, 1);
+	if (cl_mode != CL_DOWNLOADSAVEGAME && filedownload.current != -1)
+		M_DrawTextBox(BASEVIDWIDTH/2-128-8, BASEVIDHEIGHT-46-8, 32, 1);
 
 	if (cl_mode == CL_CONFIRMCONNECT || IsDownloadingFile())
 		return;
@@ -84,6 +87,33 @@ static void DrawFileProgress(fileneeded_t *file, int y)
 	V_DrawRightAlignedString(BASEVIDWIDTH/2+128, y, V_20TRANS|V_MONOSPACE|MENUCAPS, va("%3.1fK/s ", ((double)getbps)/1024));
 }
 
+static void DrawOverallProgress(int y)
+{
+	UINT32 totalsize = filedownload.totalsize;
+	INT32 downloadedfiles = filedownload.completednum;
+	INT32 totalfiles = filedownload.remaining + filedownload.completednum;
+	INT32 downloaded = filedownload.completedsize;
+	if (fileneeded[filedownload.current].currentsize != fileneeded[filedownload.current].totalsize)
+		downloaded = filedownload.completedsize + fileneeded[filedownload.current].currentsize;
+
+	INT32 dldlength = (INT32)((downloaded/(double)totalsize) * 256);
+	if (dldlength > 256)
+		dldlength = 256;
+	V_DrawFill(BASEVIDWIDTH/2-128, y, 256, 8, 111);
+	V_DrawFill(BASEVIDWIDTH/2-128, y, dldlength, 8, 96);
+
+	const char *progress_str;
+	if (totalsize >= 1024*1024)
+		progress_str = va(" %.2fMiB/%.2fMiB", (double)downloaded / (1024*1024), (double)totalsize / (1024*1024));
+	else if (totalsize < 1024)
+		progress_str = va(" %4uB/%4uB", downloaded, totalsize);
+	else
+		progress_str = va(" %.2fKiB/%.2fKiB", (double)downloaded / 1024, (double)totalsize / 1024);
+
+	V_DrawString(BASEVIDWIDTH/2-128, y, V_20TRANS|V_ALLOWLOWERCASE, progress_str);
+	V_DrawRightAlignedString(BASEVIDWIDTH/2+128, y, V_20TRANS|V_ALLOWLOWERCASE, va("%2u/%2u Files ", downloadedfiles+1, totalfiles));
+}
+
 //
 // CL_DrawConnectionStatus
 //
@@ -96,8 +126,7 @@ static void CL_DrawConnectionStatus(void)
 	// Draw background fade
 	V_DrawFadeScreen(0xFF00, 16); // force default
 
-	if (cl_mode != CL_DOWNLOADFILES && cl_mode != CL_DOWNLOADHTTPFILES
-	&& cl_mode != CL_LOADFILES && cl_mode != CL_CHECKFILES && cl_mode != CL_ASKFULLFILELIST)
+	if (cl_mode != CL_DOWNLOADFILES && cl_mode != CL_DOWNLOADHTTPFILES && cl_mode != CL_LOADFILES && cl_mode != CL_CHECKFILES && cl_mode != CL_ASKFULLFILELIST && cl_mode != CL_VIEWSERVER)
 	{
 		INT32 animtime = ((ccstime / 4) & 15) + 16;
 		UINT8 palstart;
@@ -184,13 +213,14 @@ static void CL_DrawConnectionStatus(void)
 		{
 			INT32 totalfileslength;
 			INT32 checkcompletednum = 0;
+			INT32 i;
 
 			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, MENUCOLOR|MENUCAPS, "Press ESC to abort");
 
-			// ima just count files here
+			//ima just count files here
 			if (fileneeded)
 			{
-				for (INT32 i = 0; i < fileneedednum; i++)
+				for (i = 0; i < fileneedednum; i++)
 					if (fileneeded[i].status != FS_NOTCHECKED)
 						checkcompletednum++;
 			}
@@ -202,7 +232,79 @@ static void CL_DrawConnectionStatus(void)
 			V_DrawFill(BASEVIDWIDTH/2-128, BASEVIDHEIGHT-16, 256, 8, 111);
 			V_DrawFill(BASEVIDWIDTH/2-128, BASEVIDHEIGHT-16, totalfileslength, 8, 96);
 			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16, V_20TRANS|V_MONOSPACE|MENUCAPS,
-				va(" %2u/%2u files",checkcompletednum,fileneedednum));
+				va(" %2u/%2u Files",checkcompletednum,fileneedednum));
+		}
+		else if (cl_mode == CL_VIEWSERVER)
+		{
+			V_DrawFill(8, 16, BASEVIDWIDTH - 16, 54, cv_menubgcolor.value);
+
+			V_DrawThinString(12 + 80, 18, V_ALLOWLOWERCASE, va("%s", serverlist[joinnode].info.servername));
+
+			const char *map = va("%sP", serverlist[joinnode].info.mapname);
+			patch_t *current_map = W_LumpExists(map) ? W_CachePatchName(map, PU_CACHE) : W_CachePatchName("BLANKLVL", PU_CACHE);
+			V_DrawSmallScaledPatch(10, 18, 0, current_map);
+
+			V_DrawThinString(12 + 80, 38, V_ALLOWLOWERCASE, va("%s", serverlist[joinnode].info.maptitle));
+			V_DrawThinString(12 + 80, 48, V_ALLOWLOWERCASE, va("%s", serverlist[joinnode].info.gametypename));
+
+			if (fileneedednum > 0)
+			{
+				V_DrawThinString(12 + 80, 58, V_ALLOWLOWERCASE|V_ORANGEMAP, va("%i Addons", fileneedednum));
+			}
+			else
+			{
+				V_DrawThinString(12 + 80, 58, V_ALLOWLOWERCASE|MENUCOLOR, "Vanilla");
+			}
+
+			if (serverlist[joinnode].info.cheatsenabled)
+			{
+				V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, 58, V_ALLOWLOWERCASE|V_GREENMAP, "Cheats");
+			}
+
+			V_DrawFill(8, 72, BASEVIDWIDTH - 16, 112, cv_menubgcolor.value);
+
+			V_DrawString(12, 74, V_ALLOWLOWERCASE|MENUCOLOR, "Players");
+			V_DrawRightAlignedString(BASEVIDWIDTH - 12, 74, V_ALLOWLOWERCASE|MENUCOLOR, va("%i / %i", serverlist[joinnode].info.numberofplayer, serverlist[joinnode].info.maxplayer));
+
+			INT32 i;
+			INT32 count = 0;
+			INT32 x = 14;
+			INT32 y = 84;
+			INT32 statuscolor = 1;
+			char player_name[MAXPLAYERNAME+1];
+			if (serverlist[joinnode].info.numberofplayer > 0)
+			{
+				for (i = 0; i < MAXPLAYERS; i++)
+				{
+					if (playerinfo[i].num < 255)
+					{
+						strncpy(player_name, playerinfo[i].name, MAXPLAYERNAME);
+						V_DrawThinString(x + 10, y, V_ALLOWLOWERCASE|V_6WIDTHSPACE, player_name);
+
+						if (playerinfo[i].team == 0) { statuscolor = 112; } // playing
+						if (playerinfo[i].data & 0x20) { statuscolor = 54; } // tag IT
+						if (playerinfo[i].team == 1) { statuscolor = 35; } // ctf red team
+						if (playerinfo[i].team == 2) { statuscolor = 152; } // ctf blue team
+						if (playerinfo[i].team == 255) { statuscolor = 16; } // spectator or non-team
+
+						V_DrawFill(x, y, 7, 7, 31);
+						V_DrawFill(x, y, 6, 6, statuscolor);
+
+						y += 9;
+						count++;
+						if ((count == 11) || (count == 22))
+						{
+							x += 104;
+							y = 84;
+						}
+					}
+				}
+			}
+
+			// Buttons
+			V_DrawFill(8, BASEVIDHEIGHT - 14, BASEVIDWIDTH - 16, 12, cv_menubgcolor.value);
+			V_DrawThinString(16, BASEVIDHEIGHT - 12, V_ALLOWLOWERCASE, va("[%sESC%s] = Abort", "\x82", "\x80"));
+			V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, BASEVIDHEIGHT - 12, V_ALLOWLOWERCASE, va("[%sENTER%s] = Join", "\x82", "\x80"));
 		}
 		else if (filedownload.current != -1)
 		{
@@ -249,7 +351,7 @@ static void CL_DrawConnectionStatus(void)
 			const char *download_str = M_GetText("Downloading \"%s\"");
 #endif
 
-			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, V_ALLOWLOWERCASE|MENUCOLOR|MENUCAPS,
+			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-46-24, V_ALLOWLOWERCASE|MENUCOLOR,
 				va(download_str, tempname));
 
 			// Rusty: actually lets do this instead
@@ -269,16 +371,18 @@ static void CL_DrawConnectionStatus(void)
 					strlcpy(tempname, http_source, sizeof(tempname));
 				}
 
-				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, V_ALLOWLOWERCASE|MENUCOLOR|MENUCAPS,
+				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-46-16, V_ALLOWLOWERCASE|MENUCOLOR,
 					va(M_GetText("from %s"), tempname));
 			}
 			else
 			{
-				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, V_ALLOWLOWERCASE|MENUCOLOR|MENUCAPS,
+				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-46-16, V_ALLOWLOWERCASE|MENUCOLOR,
 					M_GetText("from the server"));
 			}
+			DrawFileProgress(file, BASEVIDHEIGHT-46);
 
-			DrawFileProgress(file, BASEVIDHEIGHT-16);
+			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-14, V_ALLOWLOWERCASE|MENUCOLOR, "Total Progress");
+			DrawOverallProgress(BASEVIDHEIGHT-16);
 		}
 		else
 		{
@@ -294,10 +398,11 @@ static void CL_DrawConnectionStatus(void)
 
 static boolean CL_AskFileList(INT32 firstfile)
 {
-	netbuffer->packettype = PT_TELLFILESNEEDED;
+	doomcom_t *doomcom = D_NewPacket(PT_TELLFILESNEEDED, servernode, sizeof(INT32));
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	netbuffer->u.filesneedednum = firstfile;
 
-	return HSendPacket(servernode, false, 0, sizeof (INT32));
+	return HSendPacket(doomcom, false, 0);
 }
 
 /** Sends a PT_CLIENTJOIN packet to the server
@@ -309,9 +414,10 @@ boolean CL_SendJoin(void)
 {
 	UINT8 localplayers = 1;
 	char const *player2name;
+	doomcom_t *doomcom = D_NewPacket(PT_CLIENTJOIN, servernode, sizeof(clientconfig_pak));
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	if (netgame)
 		CONS_Printf(M_GetText("Sending join request...\n"));
-	netbuffer->packettype = PT_CLIENTJOIN;
 
 	netbuffer->u.clientcfg.modversion = MODVERSION;
 	strncpy(netbuffer->u.clientcfg.application,
@@ -335,26 +441,25 @@ boolean CL_SendJoin(void)
 	strncpy(netbuffer->u.clientcfg.names[0], cv_playername.zstring, sizeof(netbuffer->u.clientcfg.names[0])-1);
 	strncpy(netbuffer->u.clientcfg.names[1], player2name, MAXPLAYERNAME);
 
-	return HSendPacket(servernode, true, 0, sizeof (clientconfig_pak));
+	return HSendPacket(doomcom, true, 0);
 }
 
 static void SendAskInfo(INT32 node)
 {
 	const tic_t asktime = I_GetTime();
-	netbuffer->packettype = PT_ASKINFO;
+	doomcom_t *doomcom = D_NewPacket(PT_ASKINFO, node, sizeof(askinfo_pak));
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	netbuffer->u.askinfo.version = VERSION;
 	netbuffer->u.askinfo.time = (tic_t)LONG(asktime);
 
 	// Even if this never arrives due to the host being firewalled, we've
 	// now allowed traffic from the host to us in, so once the MS relays
 	// our address to the host, it'll be able to speak to us.
-	HSendPacket(node, false, 0, sizeof (askinfo_pak));
+	HSendPacket(doomcom, false, 0);
 }
 
 serverelem_t serverlist[MAXSERVERLIST];
 UINT32 serverlistcount = 0;
-
-#define FORCECLOSE 0x8000
 
 static void SL_ClearServerList(INT32 connectedserver)
 {
@@ -564,7 +669,7 @@ static boolean IsFileDownloadable(fileneeded_t *file)
 
 static boolean UseDirectDownloader(void)
 {
-	return filedownload.http_source[0] == '\0' || filedownload.http_failed;
+	return !cv_http_enable.value || filedownload.http_source[0] == '\0' || filedownload.http_failed;
 }
 
 static void DoLoadFiles(void)
@@ -613,7 +718,9 @@ static void BeginDownload(boolean direct)
 	if (!direct)
 	{
 		cl_mode = CL_DOWNLOADHTTPFILES;
-		Snake_Allocate(&snake);
+		// don't alloc snake if already alloced
+		if (!snake)
+			Snake_Allocate(&snake);
 
 		// Discard any paused downloads
 		CL_AbortDownloadResume();
@@ -689,6 +796,7 @@ static void ShowDownloadConsentMessage(void)
 		if (IsFileDownloadable(&fileneeded[i]))
 			totalsize += fileneeded[i].totalsize;
 	}
+	filedownload.totalsize = totalsize;
 
 	const char *downloadsize = GetPrintableFileSize(totalsize);
 
@@ -947,6 +1055,7 @@ static boolean CL_ServerConnectionSearchTicker(tic_t *asksent)
 			if (i < 0)
 				return true;
 		}
+		joinnode = i;
 
 		if (client)
 		{
@@ -984,7 +1093,7 @@ static boolean CL_ServerConnectionSearchTicker(tic_t *asksent)
 				return true;
 			}
 
-			cl_mode = CL_CHECKFILES;
+			cl_mode = CL_VIEWSERVER;
 		}
 		else
 		{
@@ -1064,7 +1173,7 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 
 		case CL_ASKFULLFILELIST:
 			if (cl_lastcheckedfilecount == UINT16_MAX) // All files retrieved
-				cl_mode = CL_CHECKFILES;
+				cl_mode = CL_VIEWSERVER;
 			else if (fileneedednum != cl_lastcheckedfilecount || I_GetTime() >= *asksent)
 			{
 				if (CL_AskFileList(fileneedednum))
@@ -1192,6 +1301,14 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 			}
 		}
 
+		if (cl_mode == CL_VIEWSERVER)
+		{
+			if (gamekeydown[KEY_ENTER])
+				cl_mode = CL_CHECKFILES;
+			else if (gamekeydown[KEY_ESCAPE])
+				cl_mode = CL_ABORTED;
+		}
+
 		if (gamekeydown[KEY_ESCAPE] || gamekeydown[KEY_JOY1+1] || cl_mode == CL_ABORTED)
 		{
 			CONS_Printf(M_GetText("Network game synchronization aborted.\n"));
@@ -1242,7 +1359,7 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 
 void CL_ConnectToServer(void)
 {
-	INT32 pnumnodes, nodewaited = doomcom->numnodes, i;
+	INT32 pnumnodes, nodewaited = numnetnodes, i;
 	tic_t oldtic;
 	tic_t asksent;
 	char tmpsave[256];
@@ -1265,10 +1382,12 @@ void CL_ConnectToServer(void)
 			CONS_Printf(M_GetText("Contacting the server...\n"));
 	}
 
+	if (gamestate == GS_TITLESCREEN)
+		menuactive = false; // close the menu if we are connecting from the title screen
 	if (gamestate == GS_INTERMISSION)
 		Y_EndIntermission(); // clean up intermission graphics etc
 
-	DEBFILE(va("waiting %d nodes\n", doomcom->numnodes));
+	DEBFILE(va("waiting %d nodes\n", numnetnodes));
 	G_SetGamestate(GS_WAITINGPLAYERS);
 	wipegamestate = GS_WAITINGPLAYERS;
 
@@ -1322,9 +1441,11 @@ void CL_ConnectToServer(void)
   * \note What happens if the packet comes from a client or something like that?
   *
   */
-void PT_ServerInfo(SINT8 node)
+void PT_ServerInfo(doomcom_t *doomcom)
 {
+	UINT8 node = doomcom->remotenode;
 	// compute ping in ms
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	const tic_t ticnow = I_GetTime();
 	const tic_t ticthen = (tic_t)LONG(netbuffer->u.serverinfo.time);
 	const tic_t ticdiff = (ticnow - ticthen)*1000/NEWTICRATE;
@@ -1338,6 +1459,17 @@ void PT_ServerInfo(SINT8 node)
 	SL_InsertServer(&netbuffer->u.serverinfo, node);
 }
 
+void PT_PlayerInfo(doomcom_t *doomcom)
+{
+	UINT8 node = doomcom->remotenode;
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
+	(void)node;
+
+	INT32 i;
+	for (i = 0; i < MAXPLAYERS; i++)
+		playerinfo[i] = netbuffer->u.playerinfo[i];
+}
+
 // Helper function for packets that should only be sent by the server
 // If it is NOT from the server, bail out and close the connection!
 static boolean ServerOnly(SINT8 node)
@@ -1349,8 +1481,10 @@ static boolean ServerOnly(SINT8 node)
 	return true;
 }
 
-void PT_MoreFilesNeeded(SINT8 node)
+void PT_MoreFilesNeeded(doomcom_t *doomcom)
 {
+	UINT8 node = doomcom->remotenode;
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	if (server && serverrunning)
 	{ // But wait I thought I'm the server?
 		Net_CloseConnection(node);
@@ -1367,8 +1501,10 @@ void PT_MoreFilesNeeded(SINT8 node)
 }
 
 // Negative response of client join request
-void PT_ServerRefuse(SINT8 node)
+void PT_ServerRefuse(doomcom_t *doomcom)
 {
+	UINT8 node = doomcom->remotenode;
+	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	if (server && serverrunning)
 	{ // But wait I thought I'm the server?
 		Net_CloseConnection(node);
@@ -1404,8 +1540,11 @@ void PT_ServerRefuse(SINT8 node)
 }
 
 // Positive response of client join request
-void PT_ServerCFG(SINT8 node)
+void PT_ServerCFG(doomcom_t *doomcom)
 {
+	UINT8 node = doomcom->remotenode;
+	save_t data = DOOMCOM_DATABUF(doomcom);
+	UINT8 gs;
 	if (server && serverrunning && node != servernode)
 	{ // but wait I thought I'm the server?
 		Net_CloseConnection(node);
@@ -1417,22 +1556,29 @@ void PT_ServerCFG(SINT8 node)
 	if (cl_mode != CL_WAITJOINRESPONSE)
 		return;
 
+	serverplayer = P_ReadUINT8(&data);
+	if (serverplayer >= 0)
+		playernode[(UINT8)serverplayer] = servernode;
+
+	// NOTE: no longer used, we now rely on number of slots via servertics
+	numslots = P_ReadUINT8(&data);
+	if (client)
+		maketic = gametic = neededtic = P_ReadUINT32(&data);
+	else
+		P_ReadUINT32(&data);
+
+	mynode = P_ReadUINT8(&data);
+	gs = P_ReadUINT8(&data);
 	if (client)
 	{
-		maketic = gametic = neededtic = (tic_t)LONG(netbuffer->u.servercfg.gametic);
-		G_SetGametype(netbuffer->u.servercfg.gametype);
-		modifiedgame = netbuffer->u.servercfg.modifiedgame;
-		if (netbuffer->u.servercfg.usedCheats)
+		G_SetGametype(P_ReadUINT8(&data));
+		modifiedgame = P_ReadUINT8(&data);
+		if (P_ReadUINT8(&data))
 			G_SetUsedCheats(true);
-		memcpy(server_context, netbuffer->u.servercfg.server_context, 8);
+		P_ReadMem(&data, server_context, 8);
 	}
 
 	netnodes[(UINT8)servernode].ingame = true;
-	serverplayer = netbuffer->u.servercfg.serverplayer;
-	doomcom->numslots = SHORT(netbuffer->u.servercfg.totalslotnum);
-	mynode = netbuffer->u.servercfg.clientnode;
-	if (serverplayer >= 0)
-		playernode[(UINT8)serverplayer] = servernode;
 
 	if (netgame)
 		CONS_Printf(M_GetText("Join accepted, waiting for complete game state...\n"));
@@ -1441,8 +1587,7 @@ void PT_ServerCFG(SINT8 node)
 	/// \note Wait. What if a Lua script uses some global custom variables synched with the NetVars hook?
 	///       Shouldn't they be downloaded even at intermission time?
 	///       Also, according to PT_ClientJoin, the server will send the savegame even during intermission...
-	if (netbuffer->u.servercfg.gamestate == GS_LEVEL/* ||
-		netbuffer->u.servercfg.gamestate == GS_INTERMISSION*/)
+	if (gs == GS_LEVEL/* || gs == GS_INTERMISSION*/)
 		cl_mode = CL_DOWNLOADSAVEGAME;
 	else
 		cl_mode = CL_CONNECTED;

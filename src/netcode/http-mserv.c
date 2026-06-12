@@ -72,9 +72,9 @@ static boolean hms_allow_ipv4;
 static char *hms_api;
 static I_mutex hms_api_mutex;
 
-static char *hms_server_token;
+static boolean hms_registered_ipv4;
 #ifndef NO_IPV6
-static char *hms_server_token_ipv6;
+static boolean hms_registered_ipv6;
 #endif
 
 static char hms_useragent[512];
@@ -122,13 +122,21 @@ HMS_on_read (char *s, size_t _1, size_t n, void *userdata)
 
 	buffer = userdata;
 
-	if (n >= (size_t)( buffer->end - buffer->needle ))
+	while (n >= (size_t)( buffer->end - buffer->needle ))
 	{
 		/* resize to next multiple of buffer size */
 		blocks = ( n / DEFAULT_BUFFER_SIZE + 1 );
 		buffer->end += ( blocks * DEFAULT_BUFFER_SIZE );
 
-		buffer->buffer = realloc(buffer->buffer, buffer->end);
+		void *tmp = realloc(buffer->buffer, buffer->end);
+		if (tmp == NULL)
+		{
+			// not enough memory to read it, bail
+			free(buffer->buffer);
+			buffer->buffer = NULL;
+			return 0;
+		}
+		buffer->buffer = tmp;
 	}
 
 	memcpy(&buffer->buffer[buffer->needle], s, n);
@@ -492,12 +500,7 @@ HMS_register (void)
 
 		curl_easy_setopt(hms->curl, CURLOPT_POSTFIELDS, post);
 
-		ok = HMS_do(hms);
-
-		if (ok)
-		{
-			hms_server_token = strdup(strtok(hms->buffer, "\n"));
-		}
+		ok = hms_registered_ipv4 = HMS_do(hms);
 
 		HMS_end(hms);
 	}
@@ -513,12 +516,8 @@ HMS_register (void)
 
 	curl_easy_setopt(hms->curl, CURLOPT_POSTFIELDS, post);
 
-	ok = HMS_do(hms);
-
-	if (ok)
-	{
-		hms_server_token_ipv6 = strdup(strtok(hms->buffer, "\n"));
-	}
+	hms_registered_ipv6 = HMS_do(hms);
+	ok = ok || hms_registered_ipv6;
 
 	HMS_end(hms);
 #endif
@@ -534,9 +533,9 @@ HMS_unlist (void)
 
 	HMS_check_args_once();
 
-	if (hms_server_token && hms_allow_ipv4)
+	if (hms_registered_ipv4 && hms_allow_ipv4)
 	{
-		hms = HMS_connect(PROTO_V4, "servers/%s/unlist", hms_server_token);
+		hms = HMS_connect(PROTO_V4, "servers/%d/unlist", current_port);
 
 		if (! hms)
 			return 0;
@@ -547,13 +546,13 @@ HMS_unlist (void)
 		ok = HMS_do(hms);
 		HMS_end(hms);
 
-		free(hms_server_token);
+		hms_registered_ipv4 = false;
 	}
 
 #ifndef NO_IPV6
-	if (hms_server_token_ipv6 && hms_allow_ipv6)
+	if (hms_registered_ipv6 && hms_allow_ipv6)
 	{
-		hms = HMS_connect(PROTO_V6, "servers/%s/unlist", hms_server_token_ipv6);
+		hms = HMS_connect(PROTO_V6, "servers/%d/unlist", current_port);
 
 		if (! hms)
 			return 0;
@@ -564,58 +563,7 @@ HMS_unlist (void)
 		ok = HMS_do(hms);
 		HMS_end(hms);
 
-		free(hms_server_token_ipv6);
-	}
-#endif
-
-	return ok;
-}
-
-int
-HMS_update (void)
-{
-	struct HMS_buffer *hms;
-	int ok = 0;
-
-	char post[256];
-
-	char *title;
-
-	HMS_check_args_once();
-	title = curl_easy_escape(NULL, cv_servername.string, 0);
-
-	snprintf(post, sizeof post,
-			"title=%s",
-			title
-	);
-
-	curl_free(title);
-
-	if (hms_server_token && hms_allow_ipv4)
-	{
-		hms = HMS_connect(PROTO_V4, "servers/%s/update", hms_server_token);
-
-		if (! hms)
-			return 0;
-
-		curl_easy_setopt(hms->curl, CURLOPT_POSTFIELDS, post);
-
-		ok = HMS_do(hms);
-		HMS_end(hms);
-	}
-
-#ifndef NO_IPV6
-	if (hms_server_token_ipv6 && hms_allow_ipv6)
-	{
-		hms = HMS_connect(PROTO_V6, "servers/%s/update", hms_server_token_ipv6);
-
-		if (! hms)
-			return ok;
-
-		curl_easy_setopt(hms->curl, CURLOPT_POSTFIELDS, post);
-
-		ok = HMS_do(hms);
-		HMS_end(hms);
+		hms_registered_ipv6 = false;
 	}
 #endif
 

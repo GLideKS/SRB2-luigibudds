@@ -228,7 +228,7 @@ void T_MoveFloor(floormove_t *movefloor)
 					movefloor->direction = -1;
 					movefloor->speed = lines[movefloor->sourceline].args[3] << (FRACBITS - 2);
 					movefloor->sector->soundorg.z = movefloor->sector->floorheight;
-					S_StartSound(&movefloor->sector->soundorg, sfx_pstop);
+					S_StartSoundFromSector(movefloor->sector, sfx_pstop);
 					remove = false;
 				}
 				else
@@ -408,7 +408,7 @@ void T_MoveElevator(elevator_t *elevator)
 /*
 	// make floor move sound
 	if (!(leveltime&7))
-		S_StartSound(&elevator->sector->soundorg, sfx_stnmov);
+		S_StartSoundFromMobj(&elevator->sector->soundorg, sfx_stnmov);
 */
 	if (res == pastdest || res == crushed)            // if destination height acheived
 	{
@@ -486,7 +486,7 @@ void T_MoveElevator(elevator_t *elevator)
 			dontupdate = true;
 		}
 		// make floor stop sound
-		// S_StartSound(&elevator->sector->soundorg, sfx_pstop);
+		// S_StartSoundFromMobj(&elevator->sector->soundorg, sfx_pstop);
 	}
 	if (!dontupdate)
 	{
@@ -677,9 +677,8 @@ void T_BounceCheese(bouncecheese_t *bouncer)
 			bouncer->low = !bouncer->low;
 			if (abs(bouncer->speed) > 6*FRACUNIT)
 			{
-				mobj_t *mp = (void *)&actionsector->soundorg;
 				actionsector->soundorg.z = bouncer->sector->floorheight;
-				S_StartSound(mp, sfx_splash);
+				S_StartSoundFromSector(actionsector, sfx_splash);
 			}
 		}
 
@@ -1096,7 +1095,7 @@ void T_ThwompSector(thwomp_t *thwomp)
 				if (players[i].mo->z > thwomp->sector->ceilingheight)
 					continue;
 
-				if (P_AproxDistance(thwompx - players[i].mo->x, thwompy - players[i].mo->y) > 96*FRACUNIT)
+				if (ArePointsFar2D(thwompx, thwompy, players[i].mo->x, players[i].mo->y, 96*FRACUNIT))
 					continue;
 
 				thwomp->direction = -1;
@@ -1178,7 +1177,7 @@ void T_ThwompSector(thwomp_t *thwomp)
 			if (res == pastdest)
 			{
 				if (rover->fofflags & FOF_EXISTS)
-					S_StartSound((void *)&actionsector->soundorg, thwomp->sound);
+					S_StartSoundFromSector(actionsector, thwomp->sound);
 
 				thwomp->direction = 1; // start heading back up
 				thwomp->delay = TICRATE; // but only after a small delay
@@ -1884,7 +1883,7 @@ void EV_CrumbleChain(sector_t *sec, ffloor_t *rover)
 	}
 
 	sec->soundorg.z = (controlsec->floorheight + controlsec->ceilingheight)/2;
-	S_StartSound(&sec->soundorg, mobjinfo[type].activesound);
+	S_StartSoundFromSector(sec, mobjinfo[type].activesound);
 
 #undef controlsec
 
@@ -1941,7 +1940,7 @@ void EV_CrumbleChain(sector_t *sec, ffloor_t *rover)
 
 					if (fromcenter)
 					{
-						P_InstaThrust(spawned, R_PointToAngle2(sec->soundorg.x, sec->soundorg.y, a, b), FixedDiv(P_AproxDistance(a - sec->soundorg.x, b - sec->soundorg.y), widthfactor));
+						P_InstaThrust(spawned, R_PointToAngle2(sec->soundorg.x, sec->soundorg.y, a, b), FixedDiv(GetDistance2D(a, b, sec->soundorg.x, sec->soundorg.y), widthfactor));
 						P_SetObjectMomZ(spawned, FixedDiv((c - bottomz), heightfactor), false);
 					}
 
@@ -2098,7 +2097,7 @@ void EV_MarioBlock(ffloor_t *rover, sector_t *sector, mobj_t *puncher)
 	thing = SearchMarioNode(roversec->touching_thinglist);
 
 	if (!thing)
-		S_StartSound(puncher, sfx_mario1); // "Thunk!" sound - puncher is "close enough".
+		S_StartSoundFromMobj(puncher, sfx_mario1); // "Thunk!" sound - puncher is "close enough".
 	else // Found something!
 	{
 		const boolean itsamonitor = (thing->flags & MF_MONITOR) == MF_MONITOR;
@@ -2142,12 +2141,12 @@ void EV_MarioBlock(ffloor_t *rover, sector_t *sector, mobj_t *puncher)
 			thing->momz = FixedMul(3*FRACUNIT, thing->scale);
 			P_TouchSpecialThing(thing, puncher, false);
 			// "Thunk!" sound
-			S_StartSound(puncher, sfx_mario1); // Puncher is "close enough"
+			S_StartSoundFromMobj(puncher, sfx_mario1); // Puncher is "close enough"
 		}
 		else
 		{
 			// "Powerup rise" sound
-			S_StartSound(puncher, sfx_mario9); // Puncher is "close enough"
+			S_StartSoundFromMobj(puncher, sfx_mario9); // Puncher is "close enough"
 		}
 
 		if (itsamonitor && thing)

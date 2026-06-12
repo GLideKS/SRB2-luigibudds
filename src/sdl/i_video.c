@@ -1900,6 +1900,9 @@ void I_StartupGraphics(void)
 	if (mousegrabok && !disable_mouse)
 		SDLdoGrabMouse();
 
+	// disable text input right off the bat, since we don't need it at the start.
+	I_SetTextInputMode(textinputmodeenabledbylua);
+
 	graphics_started = true;
 }
 

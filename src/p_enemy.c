@@ -68,15 +68,13 @@ static dirtype_t diags[] =
 boolean P_CheckMeleeRange(mobj_t *actor)
 {
 	mobj_t *pl;
-	fixed_t dist;
 
 	if (!actor->target)
 		return false;
 
 	pl = actor->target;
-	dist = P_AproxDistance(pl->x-actor->x, pl->y-actor->y);
 
-	if (dist >= FixedMul(MELEERANGE - 20*FRACUNIT, actor->scale) + pl->radius)
+	if (P_AreMobjsFar2D(actor, pl, FixedMul(MELEERANGE - 20*FRACUNIT, actor->scale) + pl->radius))
 		return false;
 
 	// check height now, so that damn crawlas cant attack
@@ -94,15 +92,13 @@ boolean P_CheckMeleeRange(mobj_t *actor)
 boolean P_JetbCheckMeleeRange(mobj_t *actor)
 {
 	mobj_t *pl;
-	fixed_t dist;
 
 	if (!actor->target)
 		return false;
 
 	pl = actor->target;
-	dist = P_AproxDistance(pl->x-actor->x, pl->y-actor->y);
 
-	if (dist >= (actor->radius + pl->radius)*2)
+	if (P_AreMobjsFar2D(actor, pl, (actor->radius + pl->radius) * 2))
 		return false;
 
 	if (actor->eflags & MFE_VERTICALFLIP)
@@ -123,15 +119,13 @@ boolean P_JetbCheckMeleeRange(mobj_t *actor)
 boolean P_FaceStabCheckMeleeRange(mobj_t *actor)
 {
 	mobj_t *pl;
-	fixed_t dist;
 
 	if (!actor->target)
 		return false;
 
 	pl = actor->target;
-	dist = P_AproxDistance(pl->x-actor->x, pl->y-actor->y);
 
-	if (dist >= (actor->radius + pl->radius)*4)
+	if (P_AreMobjsFar2D(actor, pl, (actor->radius + pl->radius) * 4))
 		return false;
 
 	if ((pl->z > actor->z + actor->height) || (actor->z > pl->z + pl->height))
@@ -147,15 +141,13 @@ boolean P_FaceStabCheckMeleeRange(mobj_t *actor)
 boolean P_SkimCheckMeleeRange(mobj_t *actor)
 {
 	mobj_t *pl;
-	fixed_t dist;
 
 	if (!actor->target)
 		return false;
 
 	pl = actor->target;
-	dist = P_AproxDistance(pl->x-actor->x, pl->y-actor->y);
 
-	if (dist >= FixedMul(MELEERANGE - 20*FRACUNIT, actor->scale) + pl->radius)
+	if (P_AreMobjsFar2D(actor, pl, FixedMul(MELEERANGE - 20*FRACUNIT, actor->scale) + pl->radius))
 		return false;
 
 	if (actor->eflags & MFE_VERTICALFLIP)
@@ -189,7 +181,7 @@ boolean P_CheckMissileRange(mobj_t *actor)
 		return false;
 
 	// OPTIMIZE: get this from a global checksight
-	dist = P_AproxDistance(actor->x-actor->target->x, actor->y-actor->target->y) - FixedMul(64*FRACUNIT, actor->scale);
+	dist = P_GetMobjDistance2D(actor, actor->target) - FixedMul(64*FRACUNIT, actor->scale);
 
 	if (!actor->info->meleestate)
 		dist -= FixedMul(128*FRACUNIT, actor->scale); // no melee attack, so fire more
@@ -464,7 +456,7 @@ boolean P_LookForPlayers(mobj_t *actor, boolean allaround, boolean tracer, fixed
 		if (actor->lastlook == stop)
 			return false;
 
-		if (!playeringame[actor->lastlook])
+		if (!players[actor->lastlook].ingame)
 			continue;
 
 		if (c++ == 2)
@@ -490,8 +482,7 @@ boolean P_LookForPlayers(mobj_t *actor, boolean allaround, boolean tracer, fixed
 		if (player->quittime)
 			continue; // Ignore uncontrolled bodies
 
-		if (dist > 0
-			&& P_AproxDistance(P_AproxDistance(player->mo->x - actor->x, player->mo->y - actor->y), player->mo->z - actor->z) > dist)
+		if (dist > 0 && P_AreMobjsFar3D(actor, player->mo, dist))
 			continue; // Too far away
 
 		if (!allaround)
@@ -499,9 +490,8 @@ boolean P_LookForPlayers(mobj_t *actor, boolean allaround, boolean tracer, fixed
 			an = R_PointToAngle2(actor->x, actor->y, player->mo->x, player->mo->y) - actor->angle;
 			if (an > ANGLE_90 && an < ANGLE_270)
 			{
-				dist = P_AproxDistance(player->mo->x - actor->x, player->mo->y - actor->y);
 				// if real close, react anyway
-				if (dist > FixedMul(MELEERANGE, actor->scale))
+				if (P_AreMobjsFar2D(actor, player->mo, FixedMul(MELEERANGE, actor->scale)))
 					continue; // behind back
 			}
 		}
@@ -545,7 +535,7 @@ static boolean P_LookForShield(mobj_t *actor)
 		if (actor->lastlook == stop)
 			return false;
 
-		if (!playeringame[actor->lastlook])
+		if (!players[actor->lastlook].ingame)
 			continue;
 
 		if (c++ == 2)
@@ -562,7 +552,7 @@ static boolean P_LookForShield(mobj_t *actor)
 			continue;
 
 		if ((player->powers[pw_shield] & SH_PROTECTELECTRIC)
-			&& (R_PointToDist2(0, 0, R_PointToDist2(0, 0, actor->x-player->mo->x, actor->y-player->mo->y), actor->z-player->mo->z) < FixedMul(RING_DIST, player->mo->scale)))
+			&& (P_AreMobjsClose3D(player->mo, actor, FixedMul(RING_DIST, player->mo->scale))))
 		{
 			P_SetTarget(&actor->tracer, player->mo);
 
@@ -989,13 +979,13 @@ void A_FaceStabRev(void *data)
 	if (!actor->reactiontime)
 	{
 		actor->reactiontime = locvar1;
-		S_StartSound(actor, actor->info->activesound);
+		S_StartSoundFromMobj(actor, actor->info->activesound);
 	}
 	else
 	{
 		if ((--actor->reactiontime) == 0)
 		{
-			S_StartSound(actor, actor->info->attacksound);
+			S_StartSoundFromMobj(actor, actor->info->attacksound);
 			P_SetMobjState(actor, locvar2);
 		}
 		else
@@ -1138,7 +1128,7 @@ void A_FaceStabMiss(void *data)
 	{
 		actor->extravalue2 -= 2;
 		actor->extravalue1 = 0;
-		S_StartSound(actor, sfx_s3k47);
+		S_StartSoundFromMobj(actor, sfx_s3k47);
 		P_SharpDust(actor, MT_SPINDUST, actor->angle);
 	}
 
@@ -1184,9 +1174,9 @@ void A_StatueBurst(void *data)
 		P_SetMobjState(new, (statenum_t)locvar2);
 	if (P_MobjWasRemoved(new))
 		return;
-	S_StartSound(new, new->info->attacksound);
+	S_StartSoundFromMobj(new, new->info->attacksound);
 	S_StopSound(actor);
-	S_StartSound(actor, sfx_s3k96);
+	S_StartSoundFromMobj(actor, sfx_s3k96);
 
 	{
 		fixed_t a, b;
@@ -1298,7 +1288,7 @@ void A_PointyThink(void *data)
 	INT32 i;
 	player_t *player = NULL;
 	mobj_t *ball;
-	matrix_t m;
+	oldmatrix_t m;
 	vector4_t v;
 	vector4_t res;
 	angle_t fa;
@@ -1314,7 +1304,7 @@ void A_PointyThink(void *data)
 	// Find nearest player
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (!playeringame[i] || players[i].spectator)
+		if (!players[i].ingame || players[i].spectator)
 			continue;
 
 		if (!players[i].mo)
@@ -1331,11 +1321,9 @@ void A_PointyThink(void *data)
 			firsttime = false;
 			player = &players[i];
 		}
-		else
+		else if (P_AreMobjsClose2D(players[i].mo, actor, P_GetMobjDistance2D(player->mo, actor)))
 		{
-			if (P_AproxDistance(players[i].mo->x - actor->x, players[i].mo->y - actor->y) <
-				P_AproxDistance(player->mo->x - actor->x, player->mo->y - actor->y))
-				player = &players[i];
+			player = &players[i];
 		}
 	}
 
@@ -1348,7 +1336,7 @@ void A_PointyThink(void *data)
 	if (P_MobjWasRemoved(actor))
 		return;
 
-	if (P_AproxDistance(player->mo->x - actor->x, player->mo->y - actor->y) < P_AproxDistance(player->mo->x + player->mo->momx - actor->x, player->mo->y + player->mo->momy - actor->y))
+	if (P_AreMobjsClose2D(player->mo, actor, GetDistance2D(actor->x, actor->y, player->mo->x + player->mo->momx, player->mo->y + player->mo->momy)))
 		sign = -1; // Player is moving away
 	else
 		sign = 1; // Player is moving closer
@@ -1431,7 +1419,7 @@ static void P_ParabolicMove(mobj_t *actor, fixed_t x, fixed_t y, fixed_t z, fixe
 	y -= actor->y;
 	z -= actor->z;
 
-	dh = P_AproxDistance(x, y);
+	dh = GetDistance2D(0, 0, x, y);
 
 	actor->momx = FixedMul(FixedDiv(x, dh), speed);
 	actor->momy = FixedMul(FixedDiv(y, dh), speed);
@@ -1503,11 +1491,11 @@ void A_HoodThink(void *data)
 	}
 
 	dx = (actor->target->x - actor->x), dy = (actor->target->y - actor->y), dz = (actor->target->z - actor->z);
-	dm = P_AproxDistance(dx, dy);
+	dm = GetDistance2D(0, 0, dx, dy);
 	// Target dangerously close to robohood, retreat then.
 	if ((dm < 256<<FRACBITS) && (abs(dz) < 128<<FRACBITS) && !(actor->flags2 & MF2_AMBUSH))
 	{
-		S_StartSound(actor, actor->info->attacksound);
+		S_StartSoundFromMobj(actor, actor->info->attacksound);
 		P_SetMobjState(actor, actor->info->raisestate);
 		return;
 	}
@@ -1545,6 +1533,10 @@ void A_HoodThink(void *data)
 		{
 			P_SetMobjState(actor, actor->info->missilestate);
 			return;
+		}
+		else
+		{
+			P_SetTarget(&actor->target, NULL);
 		}
 	}
 }
@@ -1634,7 +1626,7 @@ void A_SnailerThink(void *data)
 			fixed_t dist;
 			fixed_t dx, dy;
 
-			dist = P_AproxDistance(actor->x - actor->target->x, actor->y - actor->target->y);
+			dist = P_GetMobjDistance2D(actor, actor->target);
 
 			if (an > ANGLE_45 && an <= ANGLE_90) // fire at 45 degrees to the left
 			{
@@ -1718,7 +1710,7 @@ void A_SharpChase(void *data)
 		actor->threshold = actor->info->painchance;
 		P_SetMobjState(actor, actor->info->missilestate);
 		if (!P_MobjWasRemoved(actor))
-			S_StartSound(actor, actor->info->attacksound);
+			S_StartSoundFromMobj(actor, actor->info->attacksound);
 	}
 }
 
@@ -1749,7 +1741,7 @@ void A_SharpSpin(void *data)
 			actor->angle = ang;
 		actor->threshold--;
 		if (leveltime & 1)
-			S_StartSound(actor, actor->info->painsound);
+			S_StartSoundFromMobj(actor, actor->info->painsound);
 	}
 	else
 	{
@@ -1843,7 +1835,7 @@ void A_CrushstaceanPunch(void *data)
 	actor->tracer->angle = R_PointToAngle2(actor->x, actor->y, actor->target->x, actor->target->y);
 	P_SetMobjState(actor->tracer, actor->tracer->info->missilestate);
 	actor->tracer->extravalue1 = actor->tracer->extravalue2 = 0;
-	S_StartSound(actor, actor->info->attacksound);
+	S_StartSoundFromMobj(actor, actor->info->attacksound);
 }
 
 // Function: A_CrushclawAim
@@ -1903,7 +1895,7 @@ void A_CrushclawAim(void *data)
 	if (!crab->target || !crab->info->missilestate || (statenum_t)(crab->state-states) == crab->info->missilestate)
 		return;
 
-	if (((ang + ANG1) < ANG2) || P_AproxDistance(crab->x - crab->target->x, crab->y - crab->target->y) < 333*crab->scale)
+	if (((ang + ANG1) < ANG2) || P_AreMobjsClose2D(crab, crab->target, 333*crab->scale))
 		P_SetMobjState(crab, crab->info->missilestate);
 }
 
@@ -1940,7 +1932,7 @@ void A_CrushclawLaunch(void *data)
 
 	if (!actor->extravalue1)
 	{
-		S_StartSound(actor, actor->info->activesound);
+		S_StartSoundFromMobj(actor, actor->info->activesound);
 		actor->extravalue1 = ((locvar1) ? -1 : 32);
 	}
 	else if (actor->extravalue1 != 1)
@@ -1996,10 +1988,10 @@ void A_CrushclawLaunch(void *data)
 		if (P_MobjWasRemoved(actor))
 			return;
 		actor->extravalue1 = 0;
-		actor->extravalue2 = FixedHypot(actor->x - actor->target->x, actor->y - actor->target->y)>>FRACBITS;
+		actor->extravalue2 = P_GetMobjDistance2D(actor, actor->target)>>FRACBITS;
 		P_SetMobjState(actor, locvar2);
 		S_StopSound(actor);
-		S_StartSound(actor, sfx_s3k49);
+		S_StartSoundFromMobj(actor, sfx_s3k49);
 	}
 	else
 	{
@@ -2027,7 +2019,7 @@ void A_CrushclawLaunch(void *data)
 			P_SetMobjState(actor, locvar2);
 			S_StopSound(actor);
 			if (!locvar1)
-				S_StartSound(actor, sfx_s3k64);
+				S_StartSoundFromMobj(actor, sfx_s3k64);
 		}
 	}
 
@@ -2085,7 +2077,7 @@ void A_VultureVtol(void *data)
 		// Attack!
 		actor->momz = 0;
 		P_SetMobjState(actor, actor->info->missilestate);
-		S_StartSound(actor, actor->info->activesound);
+		S_StartSoundFromMobj(actor, actor->info->activesound);
 	}
 }
 
@@ -2228,7 +2220,7 @@ void A_VultureBlast(void *data)
 	if (LUA_CallAction(A_VULTUREBLAST, actor))
 		return;
 
-	S_StartSound(actor, actor->info->attacksound);
+	S_StartSoundFromMobj(actor, actor->info->attacksound);
 
 	faa = (actor->angle >> ANGLETOFINESHIFT) & FINEMASK;
 	faacos = FINECOSINE(faa);
@@ -2280,10 +2272,10 @@ void A_VultureFly(void *data)
 	dx = actor->target->x - actor->x;
 	dy = actor->target->y - actor->y;
 	dz = actor->target->z - actor->z;
-	dxy = FixedHypot(dx, dy);
+	dxy = GetDistance2D(0, 0, dx, dy);
 
 	if (leveltime % 4 == 0)
-		S_StartSound(actor, actor->info->activesound);
+		S_StartSoundFromMobj(actor, actor->info->activesound);
 
 	if (angledif > ANGLE_180)
 		angledif = InvAngle(angledif);
@@ -2305,7 +2297,7 @@ void A_VultureFly(void *data)
 			dz = max(P_FloorzAtPos(actor->target->x, actor->target->y, actor->target->z, 0) - actor->z + 232*FRACUNIT, dz);
 	}
 
-	dm = FixedHypot(dz, dxy);
+	dm = GetDistance2D(0, 0, dz, dxy);
 
 	P_VultureHoverParticle(actor);
 
@@ -2322,7 +2314,7 @@ void A_VultureFly(void *data)
 	actor->momy += FixedDiv(dy, dm)*2;
 	actor->momz += FixedDiv(dz, dm)*2;
 
-	momm = FixedHypot(actor->momz, FixedHypot(actor->momx, actor->momy));
+	momm = GetDistance3D(0, 0, 0, actor->momx, actor->momy, actor->momz);
 
 	if (momm > speedmax/2 && actor->reactiontime == 0)
 	{
@@ -2336,7 +2328,7 @@ void A_VultureFly(void *data)
 		actor->flags &= ~MF_NOGRAVITY;
 		P_SetMobjState(actor, actor->info->painstate);
 		S_StopSound(actor);
-		S_StartSound(actor, actor->info->painsound);
+		S_StartSoundFromMobj(actor, actor->info->painsound);
 		return;
 	}
 	actor->extravalue1 = momm;
@@ -2534,7 +2526,7 @@ void A_LobShot(void *data)
 	shot->angle = an = actor->angle;
 	an >>= ANGLETOFINESHIFT;
 
-	dist = P_AproxDistance(actor->target->x - shot->x, actor->target->y - shot->y);
+	dist = P_GetMobjDistance2D(actor->target, shot);
 
 	horizontal = dist / airtime;
 	vertical = FixedMul((gravity*airtime)/2, shot->scale);
@@ -2552,7 +2544,7 @@ void A_LobShot(void *data)
 
 		diff = actor->z - actor->target->z;
 		{
-			launchhyp = P_AproxDistance(horizontal, vertical);
+			launchhyp = GetDistance2D(0, 0, horizontal, vertical);
 
 			orig = FixedMul(FixedDiv(vertical, horizontal), diff);
 
@@ -2568,7 +2560,7 @@ void A_LobShot(void *data)
 */
 
 	if (shot->info->seesound)
-		S_StartSound(shot, shot->info->seesound);
+		S_StartSoundFromMobj(shot, shot->info->seesound);
 
 	if (!(actor->flags & MF_BOSS))
 	{
@@ -2784,7 +2776,7 @@ void A_Boss7FireMissiles(void *data)
 	if (P_MobjWasRemoved(actor))
 		return;
 
-	S_StartSound(NULL, locvar2);
+	S_StartSoundFromEverywhere(locvar2);
 
 	// set dummymo's coordinates
 	dummymo.x = actor->target->x;
@@ -2908,7 +2900,7 @@ void A_Boss1Laser(void *data)
 	{
 		actor->angle = R_PointToAngle2(x, y, actor->target->x, actor->target->y);
 		if (mobjinfo[locvar1].seesound)
-			S_StartSound(actor, mobjinfo[locvar1].seesound);
+			S_StartSoundFromMobj(actor, mobjinfo[locvar1].seesound);
 
 		point = P_SpawnMobj(x + P_ReturnThrustX(actor, actor->angle, actor->radius), y + P_ReturnThrustY(actor, actor->angle, actor->radius), actor->z - actor->height / 2, MT_EGGMOBILE_TARGET);
 		if (!P_MobjWasRemoved(point))
@@ -2920,7 +2912,7 @@ void A_Boss1Laser(void *data)
 		}
 	}
 
-	angle = R_PointToAngle2(z + (mobjinfo[locvar1].height>>1), 0, actor->target->z, R_PointToDist2(x, y, actor->target->x, actor->target->y));
+	angle = R_PointToAngle2(z + (mobjinfo[locvar1].height>>1), 0, actor->target->z, GetDistance2D(x, y, actor->target->x, actor->target->y));
 
 	point = P_SpawnMobj(x, y, z, locvar1);
 	if (P_MobjWasRemoved(point))
@@ -2993,7 +2985,7 @@ void A_Boss1Laser(void *data)
 					P_SetObjectMomZ(steam, FRACUNIT + 2*P_RandomFixed(), true);
 					P_InstaThrust(steam, FixedAngle(P_RandomKey(360)*FRACUNIT), 2*P_RandomFixed());
 					if (point->info->painsound)
-						S_StartSound(steam, point->info->painsound);
+						S_StartSoundFromMobj(steam, point->info->painsound);
 				}
 			}
 			else
@@ -3005,7 +2997,7 @@ void A_Boss1Laser(void *data)
 					&& P_TryMove(point, point->x + distx, point->y + disty, false))
 				{
 					if (point->info->seesound)
-						S_StartSound(point, point->info->seesound);
+						S_StartSoundFromMobj(point, point->info->seesound);
 				}
 				else
 					P_RemoveMobj(point);
@@ -3044,7 +3036,7 @@ void A_FocusTarget(void *data)
 	if (actor->target)
 	{
 		fixed_t speed = FixedMul(actor->info->speed, actor->scale);
-		fixed_t dist = (locvar2 ? R_PointToDist2(actor->x, actor->y, actor->target->x, actor->target->y) : speed+1);
+		fixed_t dist = (locvar2 ? GetDistance2D(actor->x, actor->y, actor->target->x, actor->target->y) : speed+1);
 		angle_t hangle = ((locvar2 & 1) ? R_PointToAngle2(actor->x, actor->y, actor->target->x, actor->target->y) : actor->angle);
 		angle_t vangle = ((locvar2 & 2) ? R_PointToAngle2(actor->z , 0, actor->target->z + (actor->target->height>>1), dist) : ANGLE_90);
 		switch(locvar1)
@@ -3096,7 +3088,7 @@ void A_Boss4Reverse(void *data)
 	actor->reactiontime = 0;
 	if (actor->movedir < 3)
 	{
-		S_StartSound(NULL, locvar1);
+		S_StartSoundFromEverywhere(locvar1);
 		if (actor->movedir == 1)
 			actor->movedir = 2;
 		else
@@ -3104,7 +3096,7 @@ void A_Boss4Reverse(void *data)
 	}
 	else
 	{
-		S_StartSound(NULL, locvar2);
+		S_StartSoundFromEverywhere(locvar2);
 		if (actor->movedir == 4)
 			actor->movedir = 5;
 		else
@@ -3129,7 +3121,7 @@ void A_Boss4SpeedUp(void *data)
 	if (LUA_CallAction(A_BOSS4SPEEDUP, actor))
 		return;
 
-	S_StartSound(NULL, locvar1);
+	S_StartSoundFromEverywhere(locvar1);
 	actor->reactiontime = 2;
 }
 
@@ -3148,7 +3140,7 @@ void A_Boss4Raise(void *data)
 	if (LUA_CallAction(A_BOSS4RAISE, actor))
 		return;
 
-	S_StartSound(NULL, locvar1);
+	S_StartSoundFromEverywhere(locvar1);
 	actor->reactiontime = 1;
 }
 
@@ -3188,12 +3180,12 @@ void A_SkullAttack(void *data)
 	dest = actor->target;
 	actor->flags2 |= MF2_SKULLFLY;
 	if (actor->info->activesound)
-		S_StartSound(actor, actor->info->activesound);
+		S_StartSoundFromMobj(actor, actor->info->activesound);
 	A_FaceTarget(actor);
 	if (P_MobjWasRemoved(actor))
 		return;
 
-	dist = P_AproxDistance(dest->x - actor->x, dest->y - actor->y);
+	dist = P_GetMobjDistance2D(dest, actor);
 
 	if (locvar1 == 1)
 		actor->angle += ANGLE_180;
@@ -3310,7 +3302,7 @@ void A_BossZoom(void *data)
 	an = actor->angle >> ANGLETOFINESHIFT;
 	actor->momx = FixedMul(FixedMul(actor->info->speed*5*FRACUNIT, actor->scale), FINECOSINE(an));
 	actor->momy = FixedMul(FixedMul(actor->info->speed*5*FRACUNIT, actor->scale), FINESINE(an));
-	dist = P_AproxDistance(dest->x - actor->x, dest->y - actor->y);
+	dist = P_GetMobjDistance2D(dest, actor);
 	dist = dist / FixedMul(actor->info->speed*5*FRACUNIT, actor->scale);
 
 	if (dist < 1)
@@ -3371,7 +3363,7 @@ void A_BossScream(void *data)
 		mo->flags2 |= MF2_OBJECTFLIP;
 	P_SetScale(mo, actor->scale, true);
 	if (actor->info->deathsound)
-		S_StartSound(mo, actor->info->deathsound);
+		S_StartSoundFromMobj(mo, actor->info->deathsound);
 }
 
 // Function: A_Scream
@@ -3405,7 +3397,7 @@ void A_Pain(void *data)
 		return;
 
 	if (actor->info->painsound)
-		S_StartSound(actor, actor->info->painsound);
+		S_StartSoundFromMobj(actor, actor->info->painsound);
 
 	actor->flags2 &= ~MF2_FIRING;
 	actor->flags2 &= ~MF2_SUPERFIRE;
@@ -3452,8 +3444,8 @@ void A_1upThinker(void *data)
 {
 	mobj_t *actor = data;
 	INT32 i;
-	fixed_t dist = INT32_MAX;
-	fixed_t temp;
+	INT32 closestdist = INT32_MAX;
+	INT32 dist;
 	INT32 closestplayer = -1;
 
 	if (LUA_CallAction(A_1UPTHINKER, actor))
@@ -3461,7 +3453,7 @@ void A_1upThinker(void *data)
 
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (!playeringame[i] || players[i].bot == BOT_2PAI || players[i].bot == BOT_2PHUMAN || players[i].spectator)
+		if (!players[i].ingame || players[i].bot == BOT_2PAI || players[i].bot == BOT_2PHUMAN || players[i].spectator)
 			continue;
 
 		if (!players[i].mo)
@@ -3470,12 +3462,12 @@ void A_1upThinker(void *data)
 		if ((netgame || multiplayer) && players[i].playerstate != PST_LIVE)
 			continue;
 
-		temp = P_AproxDistance(players[i].mo->x-actor->x, players[i].mo->y-actor->y);
+		dist = P_GetMobjLargeDistance2D(actor, players[i].mo);
 
-		if (temp < dist)
+		if (dist < closestdist)
 		{
 			closestplayer = i;
-			dist = temp;
+			closestdist = dist;
 		}
 	}
 
@@ -3531,7 +3523,7 @@ void A_MonitorPop(void *data)
 
 	// Spawn the "pop" explosion.
 	if (actor->info->deathsound)
-		S_StartSound(actor, actor->info->deathsound);
+		S_StartSoundFromMobj(actor, actor->info->deathsound);
 	P_SpawnMobjFromMobj(actor, 0, 0, actor->height/4, MT_EXPLODE);
 
 	// We're dead now. De-solidify.
@@ -3623,7 +3615,7 @@ void A_GoldMonitorPop(void *data)
 
 	// Don't spawn the "pop" explosion, because the monitor isn't broken.
 	if (actor->info->deathsound)
-		S_StartSound(actor, actor->info->deathsound);
+		S_StartSoundFromMobj(actor, actor->info->deathsound);
 	//P_SpawnMobjFromMobj(actor, 0, 0, actor.height/4, MT_EXPLODE);
 
 	// Remove our flags for a bit.
@@ -3777,9 +3769,7 @@ static mobj_t *P_FindBossFlyPoint(mobj_t *mo, INT32 tag)
 			continue;
 
 		// If this one's further than the last one, don't go for it.
-		if (closest &&
-			P_AproxDistance(P_AproxDistance(mo->x - mo2->x, mo->y - mo2->y), mo->z - mo2->z) >
-			P_AproxDistance(P_AproxDistance(mo->x - closest->x, mo->y - closest->y), mo->z - closest->z))
+		if (closest && P_AreMobjsFar3D(mo2, mo, P_GetMobjDistance3D(closest, mo)))
 			continue;
 
 		closest = mo2;
@@ -3820,7 +3810,7 @@ static void P_DoBossVictory(mobj_t *mo)
 	{
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
-			if (!playeringame[i])
+			if (!players[i].ingame)
 				continue;
 			P_DoPlayerExit(&players[i], true);
 		}
@@ -3842,11 +3832,10 @@ static void P_DoBossVictory(mobj_t *mo)
 			// Touching the egg trap button calls P_DoPlayerExit, which calls P_RestoreMusic.
 			// So just park ourselves in the mapmus variables.
 			// But don't change the mapmus variables if they were modified from their level header values (e.g., TUNES).
-			boolean changed = strnicmp(mapheaderinfo[gamemap-1]->musname, S_MusicName(), 7);
-			if (!strnicmp(mapheaderinfo[gamemap-1]->musname, mapmusname, 7))
+			boolean changed = strnicmp(mapheaderinfo[gamemap-1]->musname, S_MusicName(), MAX_MUSIC_NAME);
+			if (!strnicmp(mapheaderinfo[gamemap-1]->musname, mapmusname, MAX_MUSIC_NAME))
 			{
-				strncpy(mapmusname, mapheaderinfo[gamemap-1]->muspostbossname, 7);
-				mapmusname[6] = 0;
+				strlcpy(mapmusname, mapheaderinfo[gamemap-1]->muspostbossname, MAX_MUSIC_NAME+1);
 				mapmusflags = (mapheaderinfo[gamemap-1]->muspostbosstrack & MUSIC_TRACKMASK) | MUSIC_RELOADRESET;
 				mapmusposition = mapheaderinfo[gamemap-1]->muspostbosspos;
 			}
@@ -3939,11 +3928,11 @@ static void P_DoCybrakdemonDeath(mobj_t *mo)
 	mo->flags |= MF_NOCLIP;
 	mo->flags &= ~(MF_SPECIAL|MF_NOGRAVITY|MF_NOCLIPHEIGHT);
 
-	S_StartSound(NULL, sfx_bedie2);
+	S_StartSoundFromEverywhere(sfx_bedie2);
 	P_SpawnMobjFromMobj(mo, 0, 0, 0, MT_CYBRAKDEMON_VILE_EXPLOSION);
 	mo->z += P_MobjFlip(mo);
 	P_SetObjectMomZ(mo, 12*FRACUNIT, false);
-	S_StartSound(mo, sfx_bgxpld);
+	S_StartSoundFromMobj(mo, sfx_bgxpld);
 	if (mo->spawnpoint && !(mo->spawnpoint->args[6] & TMB_NODEATHFLING))
 		P_InstaThrust(mo, R_PointToAngle2(0, 0, mo->x, mo->y), 14*FRACUNIT);
 }
@@ -3962,7 +3951,7 @@ static void P_DoBoss5Death(mobj_t *mo)
 		mo->momx = ((16 - 1)*mo->momx)/16;
 		mo->momy = ((16 - 1)*mo->momy)/16;
 		{
-			const fixed_t time = FixedHypot(mo->tracer->x - mo->x, mo->tracer->y - mo->y)/FixedHypot(mo->momx, mo->momy);
+			const fixed_t time = P_GetMobjDistance2D(mo->tracer, mo)/P_GetMobjMomentum2D(mo);
 			const fixed_t speed = 64*FRACUNIT;
 			mobj_t *pole = P_SpawnMobj(
 				mo->tracer->x - P_ReturnThrustX(mo->tracer, mo->tracer->angle, speed*time),
@@ -4069,7 +4058,7 @@ void A_BossDeath(void *data)
 
 	// make sure there is a player alive for victory
 	for (i = 0; i < MAXPLAYERS; i++)
-		if (playeringame[i] && ((players[i].mo && players[i].mo->health)
+		if (players[i].ingame && ((players[i].mo && players[i].mo->health)
 			|| ((netgame || multiplayer) && (players[i].lives || players[i].continues))))
 			break;
 
@@ -4106,7 +4095,7 @@ void A_BossDeath(void *data)
 			actor->flags |= MF_NOCLIP;
 			actor->flags &= ~MF_SPECIAL;
 
-			S_StartSound(NULL, sfx_befall);
+			S_StartSoundFromEverywhere(sfx_befall);
 			break;
 		case MT_CYBRAKDEMON:
 			P_DoCybrakdemonDeath(actor);
@@ -4191,7 +4180,7 @@ void A_CustomPower(void *data)
 	P_SetPower(player, locvar1, locvar2);
 
 	if (actor->info->seesound)
-		S_StartSound(player->mo, actor->info->seesound);
+		S_StartSoundFromMobj(player->mo, actor->info->seesound);
 }
 
 // Function: A_GiveWeapon
@@ -4226,7 +4215,7 @@ void A_GiveWeapon(void *data)
 
 	player->ringweapons |= locvar1;
 	if (actor->info->seesound)
-		S_StartSound(player->mo, actor->info->seesound);
+		S_StartSoundFromMobj(player->mo, actor->info->seesound);
 }
 
 // Function: A_RingBox
@@ -4254,7 +4243,7 @@ void A_RingBox(void *data)
 
 	P_GivePlayerRings(player, actor->info->reactiontime);
 	if (actor->info->seesound)
-		S_StartSound(player->mo, actor->info->seesound);
+		S_StartSoundFromMobj(player->mo, actor->info->seesound);
 }
 
 // Function: A_Invincibility
@@ -4352,7 +4341,7 @@ void A_AwardScore(void *data)
 
 	P_AddPlayerScore(player, actor->info->reactiontime);
 	if (actor->info->seesound)
-		S_StartSound(player->mo, actor->info->seesound);
+		S_StartSoundFromMobj(player->mo, actor->info->seesound);
 }
 
 // Function: A_ExtraLife
@@ -4386,7 +4375,7 @@ void A_ExtraLife(void *data)
 
 	if (ultimatemode) //I don't THINK so!
 	{
-		S_StartSound(player->mo, sfx_lose);
+		S_StartSoundFromMobj(player->mo, sfx_lose);
 		return;
 	}
 
@@ -4418,7 +4407,7 @@ void A_GiveShield(void *data)
 	player = actor->target->player;
 
 	P_SwitchShield(player, locvar1);
-	S_StartSound(player->mo, actor->info->seesound);
+	S_StartSoundFromMobj(player->mo, actor->info->seesound);
 }
 
 // Function: A_GravityBox
@@ -4444,7 +4433,7 @@ void A_GravityBox(void *data)
 
 	player = actor->target->player;
 
-	S_StartSound(player, actor->info->activesound);
+	S_StartSoundFromMobj(player->mo, actor->info->activesound);
 
 	player->powers[pw_gravityboots] = (UINT16)(actor->info->reactiontime + 1);
 }
@@ -4520,8 +4509,8 @@ void A_BubbleSpawn(void *data)
 		// Quick! Look through players!
 		// Don't spawn bubbles unless a player is relatively close by (var1).
 		for (i = 0; i < MAXPLAYERS; ++i)
-			if (playeringame[i] && players[i].mo
-			 && P_AproxDistance(actor->x - players[i].mo->x, actor->y - players[i].mo->y) < (locvar1<<FRACBITS))
+			if (players[i].ingame && players[i].mo
+			 && P_AreMobjsClose2D(actor, players[i].mo, locvar1<<FRACBITS))
 				break; // Stop looking.
 		if (i == MAXPLAYERS)
 			return; // don't make bubble!
@@ -4566,8 +4555,8 @@ void A_FanBubbleSpawn(void *data)
 	// Quick! Look through players!
 	// Don't spawn bubbles unless a player is relatively close by (var2).
 		for (i = 0; i < MAXPLAYERS; ++i)
-			if (playeringame[i] && players[i].mo
-			 && P_AproxDistance(actor->x - players[i].mo->x, actor->y - players[i].mo->y) < (locvar1<<FRACBITS))
+			if (players[i].ingame && players[i].mo
+			 && P_AreMobjsClose2D(actor, players[i].mo, locvar1<<FRACBITS))
 				break; // Stop looking.
 		if (i == MAXPLAYERS)
 			return; // don't make bubble!
@@ -4736,7 +4725,6 @@ void A_DropMine(void *data)
 
 	if (locvar2 & 65535)
 	{
-		fixed_t dist;
 		mobj_t *target;
 
 		if (locvar2 >> 16)
@@ -4747,9 +4735,7 @@ void A_DropMine(void *data)
 		if (!target)
 			return;
 
-		dist = P_AproxDistance(actor->x-target->x, actor->y-target->y)>>FRACBITS;
-
-		if (dist > FixedMul((locvar2 & 65535), actor->scale))
+		if (P_AreMobjsFar2D(actor, target, FixedMul((locvar2 & 65535), actor->scale) << FRACBITS))
 			return;
 	}
 
@@ -4767,7 +4753,7 @@ void A_DropMine(void *data)
 		mine->momz = actor->momz + actor->pmomz;
 	}
 
-	S_StartSound(actor, actor->info->attacksound);
+	S_StartSoundFromMobj(actor, actor->info->attacksound);
 }
 
 // Function: A_FishJump
@@ -4791,8 +4777,8 @@ void A_FishJump(void *data)
 		UINT8 i;
 		// Don't spawn trail unless a player is nearby.
 		for (i = 0; i < MAXPLAYERS; ++i)
-			if (playeringame[i] && players[i].mo
-				&& P_AproxDistance(actor->x - players[i].mo->x, actor->y - players[i].mo->y) < (actor->info->speed))
+			if (players[i].ingame && players[i].mo
+				&& P_AreMobjsClose2D(actor, players[i].mo, actor->info->speed))
 				break; // Stop looking.
 		if (i < MAXPLAYERS)
 		{
@@ -4871,7 +4857,7 @@ void A_ThrownRing(void *data)
 
 	// A_GrenadeRing beeping lives once moooooore -SH
 	if (actor->type == MT_THROWNGRENADE && actor->fuse % TICRATE == 0)
-		S_StartSound(actor, actor->info->attacksound);
+		S_StartSoundFromMobj(actor, actor->info->attacksound);
 
 	// decrement bounce ring time
 	if (actor->flags2 & MF2_BOUNCERING)
@@ -4903,8 +4889,7 @@ void A_ThrownRing(void *data)
 		// magnetic player. If he gets too far away, make
 		// sure to stop the attraction!
 		if ((!actor->tracer->health) || (actor->tracer->player && (actor->tracer->player->powers[pw_shield] & SH_PROTECTELECTRIC)
-		    && P_AproxDistance(P_AproxDistance(actor->tracer->x-actor->x,
-		    actor->tracer->y-actor->y), actor->tracer->z-actor->z) > FixedMul(RING_DIST/4, actor->tracer->scale)))
+		    && P_AreMobjsFar3D(actor, actor->tracer, FixedMul(RING_DIST/4, actor->tracer->scale))))
 		{
 			P_SetTarget(&actor->tracer, NULL);
 		}
@@ -4934,7 +4919,7 @@ void A_ThrownRing(void *data)
 		if (actor->lastlook == stop)
 			return;
 
-		if (!playeringame[actor->lastlook])
+		if (!players[actor->lastlook].ingame)
 			continue;
 
 		if (c++ == 2)
@@ -4962,8 +4947,7 @@ void A_ThrownRing(void *data)
 				continue;
 		}
 
-		dist = P_AproxDistance(P_AproxDistance(player->mo->x-actor->x,
-			player->mo->y-actor->y), player->mo->z-actor->z);
+		dist = P_GetMobjDistance3D(player->mo, actor);
 
 		// check distance
 		if (actor->flags2 & MF2_RAILRING)
@@ -5007,12 +4991,12 @@ void A_SetSolidSteam(void *data)
 		if (P_RandomChance(FRACUNIT/8))
 		{
 			if (actor->info->deathsound)
-				S_StartSound(actor, actor->info->deathsound); // Hiss!
+				S_StartSoundFromMobj(actor, actor->info->deathsound); // Hiss!
 		}
 		else
 		{
 			if (actor->info->painsound)
-				S_StartSound(actor, actor->info->painsound);
+				S_StartSoundFromMobj(actor, actor->info->painsound);
 		}
 	}
 
@@ -5057,7 +5041,7 @@ void A_SignSpin(void *data)
 	{
 		if (actor->flags2 & MF2_BOSSFLEE)
 		{
-			S_StartSound(actor, actor->info->deathsound);
+			S_StartSoundFromMobj(actor, actor->info->deathsound);
 			actor->flags2 &= ~MF2_BOSSFLEE;
 		}
 		if (actor->spawnpoint)
@@ -5084,7 +5068,7 @@ void A_SignSpin(void *data)
 	{
 		if (!(actor->flags2 & MF2_BOSSFLEE))
 		{
-			S_StartSound(actor, actor->info->painsound);
+			S_StartSoundFromMobj(actor, actor->info->painsound);
 			actor->flags2 |= MF2_BOSSFLEE;
 		}
 		actor->movedir = rotateangle;
@@ -5382,8 +5366,7 @@ void A_JetChase(void *data)
 			return; // got a new target
 
 	// If the player is over 3072 fracunits away, then look for another player
-	if (P_AproxDistance(P_AproxDistance(actor->target->x - actor->x, actor->target->y - actor->y),
-		actor->target->z - actor->z) > FixedMul(3072*FRACUNIT, actor->scale) && P_LookForPlayers(actor, true, false, FixedMul(3072*FRACUNIT, actor->scale)))
+	if (P_AreMobjsFar3D(actor->target, actor, FixedMul(3072*FRACUNIT, actor->scale)) && P_LookForPlayers(actor, true, false, FixedMul(3072*FRACUNIT, actor->scale)))
 	{
 		return; // got a new target
 	}
@@ -5453,7 +5436,7 @@ void A_JetbThink(void *data)
 				P_SetTarget(&bomb->target, actor);
 				P_SetScale(bomb, actor->scale, true);
 				actor->reactiontime = TICRATE; // one second
-				S_StartSound(actor, actor->info->attacksound);
+				S_StartSoundFromMobj(actor, actor->info->attacksound);
 			}
 		}
 	}
@@ -5500,7 +5483,7 @@ void A_JetgShoot(void *data)
 	if (actor->reactiontime)
 		return;
 
-	dist = P_AproxDistance(actor->target->x - actor->x, actor->target->y - actor->y);
+	dist = P_GetMobjDistance2D(actor->target, actor);
 
 	if (dist > FixedMul(actor->info->painchance*FRACUNIT, actor->scale))
 		return;
@@ -5520,7 +5503,7 @@ void A_JetgShoot(void *data)
 		actor->reactiontime = actor->info->reactiontime*TICRATE*2;
 
 	if (actor->info->attacksound)
-		S_StartSound(actor, actor->info->attacksound);
+		S_StartSoundFromMobj(actor, actor->info->attacksound);
 }
 
 // Function: A_ShootBullet
@@ -5541,7 +5524,7 @@ void A_ShootBullet(void *data)
 	if (!actor->target)
 		return;
 
-	dist = P_AproxDistance(P_AproxDistance(actor->target->x - actor->x, actor->target->y - actor->y), actor->target->z - actor->z);
+	dist = P_GetMobjDistance3D(actor->target, actor);
 
 	if (dist > FixedMul(actor->info->painchance*FRACUNIT, actor->scale))
 		return;
@@ -5553,7 +5536,7 @@ void A_ShootBullet(void *data)
 	P_SpawnMissile(actor, actor->target, (mobjtype_t)actor->info->raisestate);
 
 	if (actor->info->attacksound)
-		S_StartSound(actor, actor->info->attacksound);
+		S_StartSoundFromMobj(actor, actor->info->attacksound);
 }
 
 static mobj_t *minus;
@@ -5569,7 +5552,7 @@ static boolean PIT_MinusCarry(mobj_t *thing)
 	if (!(thing->flags & (MF_PUSHABLE|MF_ENEMY)))
 		return true;
 
-	if (P_AproxDistance(minus->x - thing->x, minus->y - thing->y) >= minus->radius*3)
+	if (P_AreMobjsFar2D(minus, thing, minus->radius*3))
 		return true;
 
 	if (abs(thing->z - minus->z) > minus->height)
@@ -5617,7 +5600,7 @@ void A_MinusDigging(void *data)
 	}
 
 	// If close enough, prepare to attack
-	if (P_AproxDistance(actor->x - actor->target->x, actor->y - actor->target->y) < actor->radius*2)
+	if (P_AreMobjsClose2D(actor, actor->target, actor->radius*2))
 	{
 		P_SetMobjState(actor, actor->info->meleestate);
 		if (P_MobjWasRemoved(actor))
@@ -5625,7 +5608,7 @@ void A_MinusDigging(void *data)
 		P_TryMove(actor, actor->target->x, actor->target->y, false);
 		if (P_MobjWasRemoved(actor))
 			return;
-		S_StartSound(actor, actor->info->attacksound);
+		S_StartSoundFromMobj(actor, actor->info->attacksound);
 
 		// Spawn growing dirt pile.
 		par = P_SpawnMobj(actor->x, actor->y, mz, MT_MINUSDIRT);
@@ -5667,7 +5650,7 @@ void A_MinusDigging(void *data)
 
 		minus = actor;
 
-		P_DoBlockThingsIterate(xl, yl, xh, yh, PIT_MinusCarry);
+		P_DoBlockThingsIterate(xl, yl, xh, yh, PIT_MinusCarry, minus);
 	}
 	else
 	{
@@ -5700,7 +5683,7 @@ void A_MinusPopup(void *data)
 	else
 		actor->momz = 10*FRACUNIT;
 
-	S_StartSound(actor, sfx_s3k82);
+	S_StartSoundFromMobj(actor, sfx_s3k82);
 	for (i = 1; i <= num; i++)
 	{
 		mobj_t *rock = P_SpawnMobjFromMobj(actor, 0, 0, actor->height/4, MT_ROCKCRUMBLE1);
@@ -5885,7 +5868,7 @@ void A_DetonChase(void *data)
 {
 	mobj_t *actor = data;
 	angle_t exact;
-	fixed_t xydist, dist;
+	fixed_t xydist;
 
 	if (LUA_CallAction(A_DETONCHASE, actor))
 		return;
@@ -5929,7 +5912,7 @@ void A_DetonChase(void *data)
 		}
 	}*/
 	// movedir is up/down angle: how much it has to go up as it goes over to the player
-	xydist = P_AproxDistance(actor->tracer->x - actor->x, actor->tracer->y - actor->y);
+	xydist = P_GetMobjDistance2D(actor->tracer, actor);
 	exact = R_PointToAngle2(0, 0, xydist, actor->tracer->z - actor->z);
 	actor->movedir = exact;
 	/*if (exact != actor->movedir)
@@ -5951,7 +5934,7 @@ void A_DetonChase(void *data)
 	// check for melee attack
 	if (actor->tracer)
 	{
-		if (P_AproxDistance(actor->tracer->x-actor->x, actor->tracer->y-actor->y) < actor->radius+actor->tracer->radius)
+		if (P_AreMobjsClose2D(actor->tracer, actor, actor->radius + actor->tracer->radius))
 		{
 			if (!((actor->tracer->z > actor->z + actor->height) || (actor->z > actor->tracer->z + actor->tracer->height)))
 			{
@@ -5962,8 +5945,7 @@ void A_DetonChase(void *data)
 	}
 
 	// chase towards player
-	if ((dist = P_AproxDistance(xydist, actor->tracer->z-actor->z))
-		> FixedMul((actor->info->painchance << FRACBITS), actor->scale))
+	if (P_AreMobjsFar3D(actor->tracer, actor, FixedMul((actor->info->painchance << FRACBITS), actor->scale)))
 	{
 		P_SetTarget(&actor->tracer, NULL); // Too far away
 		return;
@@ -6009,13 +5991,13 @@ void A_DetonChase(void *data)
 		actor->momy = FixedMul(xyspeed, FINESINE(exact));
 
 		// Variable re-use
-		xyspeed = (P_AproxDistance(actor->tracer->x - actor->x, P_AproxDistance(actor->tracer->y - actor->y, actor->tracer->z - actor->z))>>(FRACBITS+6));
+		xyspeed = P_GetMobjDistance3D(actor->tracer, actor)>>(FRACBITS+6);
 
 		if (xyspeed < 1)
 			xyspeed = 1;
 
 		if (leveltime % xyspeed == 0)
-			S_StartSound(actor, sfx_deton);
+			S_StartSoundFromMobj(actor, sfx_deton);
 	}
 }
 
@@ -6160,7 +6142,7 @@ void A_UnidusBall(void *data)
 
 	if (actor->movecount)
 	{
-		if (P_AproxDistance(actor->momx, actor->momy) < FixedMul(actor->info->damage/2, actor->scale))
+		if (P_GetMobjMomentum2D(actor) < FixedMul(actor->info->damage/2, actor->scale))
 			P_ExplodeMissile(actor);
 		return;
 	}
@@ -6192,7 +6174,7 @@ void A_UnidusBall(void *data)
 
 	if (locvar1 == 1 && canthrow)
 	{
-		if (P_AproxDistance(actor->target->target->x - actor->target->x, actor->target->target->y - actor->target->y) > FixedMul(MISSILERANGE>>1, actor->scale)
+		if (P_AreMobjsFar2D(actor->target->target, actor->target, FixedMul(MISSILERANGE>>1, actor->scale))
 		|| !P_CheckSight(actor, actor->target->target))
 			return;
 
@@ -6203,7 +6185,7 @@ void A_UnidusBall(void *data)
 	else if (locvar1 == 2)
 	{
 		boolean skull = (actor->target->flags2 & MF2_SKULLFLY) == MF2_SKULLFLY;
-		if (actor->target->state == &states[actor->target->info->painstate])
+		if (P_IsMobjInPainState(actor->target))
 		{
 			P_KillMobj(actor, NULL, NULL, 0);
 			return;
@@ -6391,7 +6373,7 @@ void A_CrawlaCommanderThink(void *data)
 	if (!actor->fuse && actor->flags2 & MF2_FRET)
 	{
 		if (actor->info->painsound)
-			S_StartSound(actor, actor->info->painsound);
+			S_StartSoundFromMobj(actor, actor->info->painsound);
 
 		actor->fuse = TICRATE/2;
 		actor->momz = 0;
@@ -6430,7 +6412,7 @@ void A_CrawlaCommanderThink(void *data)
 		return;
 	}
 
-	dist = P_AproxDistance(actor->x - actor->target->x, actor->y - actor->target->y);
+	dist = P_GetMobjDistance2D(actor, actor->target);
 
 	if (actor->target->player && (!hovermode || actor->reactiontime <= 2*TICRATE))
 	{
@@ -6467,7 +6449,7 @@ void A_CrawlaCommanderThink(void *data)
 		{
 			fixed_t mom;
 			P_Thrust(actor, actor->angle, 2*actor->scale);
-			mom = P_AproxDistance(actor->momx, actor->momy);
+			mom = P_GetMobjMomentum2D(actor);
 			if (mom > 20*actor->scale)
 			{
 				mom += 20*actor->scale;
@@ -6486,7 +6468,7 @@ void A_CrawlaCommanderThink(void *data)
 				P_InstaThrust(actor, actor->angle, FixedMul(40*FRACUNIT, actor->scale));
 				actor->threshold = 1;
 				if (actor->info->attacksound)
-					S_StartSound(actor, actor->info->attacksound);
+					S_StartSoundFromMobj(actor, actor->info->attacksound);
 			}
 		}
 		actor->reactiontime = 3*TICRATE + (P_RandomByte()>>2);
@@ -6499,7 +6481,7 @@ void A_CrawlaCommanderThink(void *data)
 	if (!hovermode && actor->z <= actor->floorz)
 	{
 		if (actor->info->activesound)
-			S_StartSound(actor, actor->info->activesound);
+			S_StartSoundFromMobj(actor, actor->info->activesound);
 
 		if (dist < FixedMul(256*FRACUNIT, actor->scale))
 		{
@@ -6544,7 +6526,7 @@ void A_RingExplode(void *data)
 	for (d = 0; d < 16; d++)
 		P_SpawnParaloop(actor->x, actor->y, actor->z + actor->height, FixedMul(actor->info->painchance, actor->scale), 16, MT_NIGHTSPARKLE, S_NULL, d*(ANGLE_22h), true);
 
-	S_StartSound(actor, sfx_prloop);
+	S_StartSoundFromMobj(actor, sfx_prloop);
 
 	for (th = thlist[THINK_MOBJ].next; th != &thlist[THINK_MOBJ]; th = th->next)
 	{
@@ -6556,7 +6538,7 @@ void A_RingExplode(void *data)
 		if (mo2 == actor) // Don't explode yourself! Endless loop!
 			continue;
 
-		if (P_AproxDistance(P_AproxDistance(mo2->x - actor->x, mo2->y - actor->y), mo2->z - actor->z) > FixedMul(actor->info->painchance, actor->scale))
+		if (P_AreMobjsFar3D(actor, mo2, FixedMul(actor->info->painchance, actor->scale)))
 			continue;
 
 		if (mo2->flags & MF_SHOOTABLE)
@@ -6678,7 +6660,7 @@ void A_MixUp(void *data)
 	// The random factor is okay for other game modes, but in these, it is cripplingly unfair.
 	if (gametype == GT_HIDEANDSEEK || gametype == GT_RACE)
 	{
-		S_StartSound(actor, sfx_lose);
+		S_StartSoundFromMobj(actor, sfx_lose);
 		return;
 	}
 
@@ -6688,7 +6670,7 @@ void A_MixUp(void *data)
 	// Count the number of players in the game
 	// and grab their xyz coords
 	for (i = 0; i < MAXPLAYERS; i++)
-		if (playeringame[i] && players[i].mo && players[i].mo->health > 0 && players[i].playerstate == PST_LIVE
+		if (players[i].ingame && players[i].mo && players[i].mo->health > 0 && players[i].playerstate == PST_LIVE
 			&& !players[i].exiting && !players[i].powers[pw_super] && players[i].powers[pw_carry] != CR_NIGHTSMODE)
 		{
 			if ((netgame || multiplayer) && players[i].spectator) // Ignore spectators
@@ -6699,7 +6681,7 @@ void A_MixUp(void *data)
 
 	if (numplayers <= 1) // Not enough players to mix up.
 	{
-		S_StartSound(actor, sfx_lose);
+		S_StartSoundFromMobj(actor, sfx_lose);
 		return;
 	}
 	else if (numplayers == 2) // Special case -- simple swap
@@ -6723,7 +6705,7 @@ void A_MixUp(void *data)
 		INT32 mflags2;
 
 		for (i = 0; i < MAXPLAYERS; i++)
-			if (playeringame[i] && players[i].mo && players[i].mo->health > 0 && players[i].playerstate == PST_LIVE
+			if (players[i].ingame && players[i].mo && players[i].mo->health > 0 && players[i].playerstate == PST_LIVE
 				&& !players[i].exiting && !players[i].powers[pw_super])
 			{
 				if ((netgame || multiplayer) && players[i].spectator) // Ignore spectators
@@ -6818,7 +6800,7 @@ void A_MixUp(void *data)
 
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
-			if (playeringame[i] && players[i].playerstate == PST_LIVE
+			if (players[i].ingame && players[i].playerstate == PST_LIVE
 				&& players[i].mo && players[i].mo->health > 0 && !players[i].exiting && !players[i].powers[pw_super] && players[i].powers[pw_carry] != CR_NIGHTSMODE)
 			{
 				if ((netgame || multiplayer) && players[i].spectator)// Ignore spectators
@@ -6870,7 +6852,7 @@ void A_MixUp(void *data)
 
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
-			if (playeringame[i] && players[i].playerstate == PST_LIVE
+			if (players[i].ingame && players[i].playerstate == PST_LIVE
 				&& players[i].mo && players[i].mo->health > 0 && !players[i].exiting && !players[i].powers[pw_super] && players[i].powers[pw_carry] != CR_NIGHTSMODE)
 			{
 				if ((netgame || multiplayer) && players[i].spectator)// Ignore spectators
@@ -6902,7 +6884,7 @@ void A_MixUp(void *data)
 	{
 		if (teleported[i])
 		{
-			if (playeringame[i] && players[i].playerstate == PST_LIVE
+			if (players[i].ingame && players[i].playerstate == PST_LIVE
 				&& players[i].mo && players[i].mo->health > 0 && !players[i].exiting && !players[i].powers[pw_super] && players[i].powers[pw_carry] != CR_NIGHTSMODE)
 			{
 				if ((netgame || multiplayer) && players[i].spectator)// Ignore spectators
@@ -6919,7 +6901,7 @@ void A_MixUp(void *data)
 	}
 
 	// Play the 'bowrwoosh!' sound
-	S_StartSound(NULL, sfx_mixup);
+	S_StartSoundFromEverywhere(sfx_mixup);
 }
 
 // Function: A_RecyclePowers
@@ -6949,7 +6931,7 @@ void A_RecyclePowers(void *data)
 
 	if (!multiplayer)
 	{
-		S_StartSound(actor, sfx_lose);
+		S_StartSoundFromMobj(actor, sfx_lose);
 		return;
 	}
 
@@ -6958,7 +6940,7 @@ void A_RecyclePowers(void *data)
 	// Count the number of players in the game
 	for (i = 0, j = 0; i < MAXPLAYERS; i++)
 	{
-		if (playeringame[i] && players[i].mo && players[i].mo->health > 0 && players[i].playerstate == PST_LIVE
+		if (players[i].ingame && players[i].mo && players[i].mo->health > 0 && players[i].playerstate == PST_LIVE
 			&& !players[i].exiting && !((netgame || multiplayer) && players[i].spectator))
 		{
 #ifndef WEIGHTEDRECYCLER
@@ -6988,7 +6970,7 @@ void A_RecyclePowers(void *data)
 
 	if (numplayers <= 1)
 	{
-		S_StartSound(actor, sfx_lose);
+		S_StartSoundFromMobj(actor, sfx_lose);
 		return; //nobody to touch!
 	}
 
@@ -7062,7 +7044,7 @@ void A_RecyclePowers(void *data)
 		P_FlashPal(&players[recv_pl], PAL_RECYCLE, 10);
 	}
 
-	S_StartSound(NULL, sfx_gravch); //heh, the sound effect I used is already in
+	S_StartSoundFromEverywhere(sfx_gravch); //heh, the sound effect I used is already in
 }
 
 // Function: A_Boss1Chase
@@ -7165,7 +7147,7 @@ nomissile:
 	}
 
 	// chase towards player
-	if (P_AproxDistance(actor->target->x-actor->x, actor->target->y-actor->y) > actor->radius+actor->target->radius)
+	if (P_AreMobjsFar2D(actor->target, actor, actor->radius+actor->target->radius))
 	{
 		if (--actor->movecount < 0 || (!P_Move(actor, actor->info->speed) && !P_MobjWasRemoved(actor)))
 			P_NewChaseDir(actor);
@@ -7413,14 +7395,14 @@ void A_Boss7Chase(void *data)
 	// Self-adjust if stuck on the edge
 	if (actor->tracer)
 	{
-		if (P_AproxDistance(actor->x - actor->tracer->x, actor->y - actor->tracer->y) > 128*FRACUNIT - actor->radius)
+		if (P_AreMobjsFar2D(actor, actor->tracer, 128*FRACUNIT - actor->radius))
 			P_InstaThrust(actor, R_PointToAngle2(actor->x, actor->y, actor->tracer->x, actor->tracer->y), FRACUNIT);
 	}
 
 	if (actor->flags2 & MF2_FRET)
 	{
 		P_SetMobjState(actor, S_BLACKEGG_DESTROYPLAT1);
-		S_StartSound(0, sfx_s3k53);
+		S_StartSoundFromEverywhere(sfx_s3k53);
 		actor->flags2 &= ~MF2_FRET;
 		return;
 	}
@@ -7440,7 +7422,7 @@ void A_Boss7Chase(void *data)
 	// Is a player on top of us?
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (!playeringame[i] || players[i].spectator)
+		if (!players[i].ingame || players[i].spectator)
 			continue;
 
 		if (!players[i].mo)
@@ -7449,7 +7431,7 @@ void A_Boss7Chase(void *data)
 		if (players[i].mo->health <= 0)
 			continue;
 
-		if (P_AproxDistance(players[i].mo->x - actor->x, players[i].mo->y - actor->y) > actor->radius)
+		if (P_AreMobjsFar2D(players[i].mo, actor, actor->radius))
 			continue;
 
 		if (players[i].mo->z > actor->z + actor->height - 2*FRACUNIT
@@ -7457,7 +7439,7 @@ void A_Boss7Chase(void *data)
 		{
 			// Punch him!
 			P_SetMobjState(actor, actor->info->meleestate);
-			S_StartSound(0, sfx_begrnd); // warning sound
+			S_StartSoundFromEverywhere(sfx_begrnd); // warning sound
 			return;
 		}
 	}
@@ -7511,7 +7493,7 @@ void A_Boss7Chase(void *data)
 				if (P_MobjWasRemoved(actor))
 					return;
 				P_SetMobjState(actor, actor->info->missilestate);
-				S_StartSound(0, sfx_beflap);
+				S_StartSoundFromEverywhere(sfx_beflap);
 				break;
 		}
 
@@ -7582,7 +7564,7 @@ void A_Boss2PogoSFX(void *data)
 	}
 
 	// Boing!
-	if (P_AproxDistance(actor->x-actor->target->x, actor->y-actor->target->y) < FixedMul(256*FRACUNIT, actor->scale))
+	if (P_AreMobjsClose2D(actor, actor->target, FixedMul(256*FRACUNIT, actor->scale)))
 	{
 		actor->angle = R_PointToAngle2(actor->x, actor->y, actor->target->x, actor->target->y);
 		P_InstaThrust(actor, actor->angle, FixedMul(actor->info->speed, actor->scale));
@@ -7594,7 +7576,7 @@ void A_Boss2PogoSFX(void *data)
 		actor->angle = R_PointToAngle2(actor->x, actor->y, actor->target->x, actor->target->y) + (P_RandomChance(FRACUNIT/2) ? -prandom : +prandom);
 		P_InstaThrust(actor, actor->angle, FixedMul(FixedMul(actor->info->speed,(locvar2)), actor->scale));
 	}
-	if (actor->info->activesound) S_StartSound(actor, actor->info->activesound);
+	if (actor->info->activesound) S_StartSoundFromMobj(actor, actor->info->activesound);
 	actor->momz = FixedMul(locvar1, actor->scale); // Bounce up in air
 	actor->reactiontime = 1;
 }
@@ -7616,7 +7598,7 @@ void A_Boss2PogoTarget(void *data)
 		return;
 
 	if (!actor->target || !(actor->target->flags & MF_SHOOTABLE) || (actor->target->player && actor->target->player->powers[pw_flashing])
-	|| P_AproxDistance(actor->x-actor->target->x, actor->y-actor->target->y) >= FixedMul(512*FRACUNIT, actor->scale))
+	|| P_AreMobjsFar2D(actor, actor->target, FixedMul(512*FRACUNIT, actor->scale)))
 	{
 		// look for a new target
 		if (P_LookForPlayers(actor, true, false, 512*FRACUNIT))
@@ -7637,7 +7619,7 @@ void A_Boss2PogoTarget(void *data)
 		P_InstaThrust(actor, actor->angle+ANGLE_180, FixedMul(FixedMul(actor->info->speed,(locvar2)), actor->scale)); // Move at wandering speed
 	}
 	// Try to land on top of the player.
-	else if (P_AproxDistance(actor->x-actor->target->x, actor->y-actor->target->y) < FixedMul(512*FRACUNIT, actor->scale))
+	else if (P_AreMobjsClose2D(actor, actor->target, FixedMul(512*FRACUNIT, actor->scale)))
 	{
 		fixed_t airtime, gravityadd, zoffs, height;
 
@@ -7671,7 +7653,7 @@ void A_Boss2PogoTarget(void *data)
 		airtime = FixedDiv((-actor->momz - FixedSqrt(FixedMul(actor->momz,actor->momz)+zoffs)), gravityadd)<<1; // to try and land on their head rather than on their feet
 
 		actor->angle = R_PointToAngle2(actor->x, actor->y, actor->target->x, actor->target->y);
-		P_InstaThrust(actor, actor->angle, FixedDiv(P_AproxDistance(actor->x - actor->target->x, actor->y - actor->target->y), airtime));
+		P_InstaThrust(actor, actor->angle, FixedDiv(P_GetMobjDistance2D(actor, actor->target), airtime));
 	}
 	// Wander semi-randomly towards the player to get closer.
 	else
@@ -7683,7 +7665,7 @@ void A_Boss2PogoTarget(void *data)
 		P_InstaThrust(actor, actor->angle, FixedMul(FixedMul(actor->info->speed,(locvar2)), actor->scale)); // Move at wandering speed
 	}
 	// Boing!
-	if (actor->info->activesound) S_StartSound(actor, actor->info->activesound);
+	if (actor->info->activesound) S_StartSoundFromMobj(actor, actor->info->activesound);
 
 	if (actor->info->missilestate) // spawn the pogo stick collision box
 	{
@@ -7745,7 +7727,7 @@ void A_TurretFire(void *data)
 
 	while (P_SupermanLook4Players(actor) && count < MAXPLAYERS)
 	{
-		if (P_AproxDistance(actor->x - actor->target->x, actor->y - actor->target->y) < dist)
+		if (P_AreMobjsClose2D(actor, actor->target, dist))
 		{
 			actor->flags2 |= MF2_FIRING;
 			actor->extravalue1 = locvar1;
@@ -7784,7 +7766,7 @@ void A_SuperTurretFire(void *data)
 
 	while (P_SupermanLook4Players(actor) && count < MAXPLAYERS)
 	{
-		if (P_AproxDistance(actor->x - actor->target->x, actor->y - actor->target->y) < dist)
+		if (P_AreMobjsClose2D(actor, actor->target, dist))
 		{
 			actor->flags2 |= MF2_FIRING;
 			actor->flags2 |= MF2_SUPERFIRE;
@@ -7815,7 +7797,7 @@ void A_TurretStop(void *data)
 	actor->flags2 &= ~MF2_SUPERFIRE;
 
 	if (actor->target && actor->info->activesound && !locvar1)
-		S_StartSound(actor, actor->info->activesound);
+		S_StartSoundFromMobj(actor, actor->info->activesound);
 }
 
 // Function: A_SparkFollow
@@ -7908,8 +7890,7 @@ void A_BuzzFly(void *data)
 	}
 
 	// If the player is over 3072 fracunits away, then look for another player
-	if (P_AproxDistance(P_AproxDistance(actor->target->x - actor->x, actor->target->y - actor->y),
-		actor->target->z - actor->z) > FixedMul(3072*FRACUNIT, actor->scale))
+	if (P_AreMobjsFar3D(actor->target, actor, FixedMul(3072*FRACUNIT, actor->scale)))
 	{
 		if (multiplayer || netgame)
 			P_LookForPlayers(actor, true, false, FixedMul(3072*FRACUNIT, actor->scale)); // maybe get a new target
@@ -7927,8 +7908,7 @@ void A_BuzzFly(void *data)
 		else
 			realspeed = FixedMul(actor->info->speed, actor->scale);
 
-		dist = P_AproxDistance(P_AproxDistance(actor->target->x - actor->x,
-			actor->target->y - actor->y), actor->target->z - actor->z);
+		dist = P_GetMobjDistance3D(actor->target, actor);
 
 		if (dist < 1)
 			dist = 1;
@@ -7948,7 +7928,7 @@ void A_BuzzFly(void *data)
 
 	if (locvar1 != sfx_None && !actor->threshold)
 	{
-		S_StartSound(actor, locvar1);
+		S_StartSoundFromMobj(actor, locvar1);
 		actor->threshold = locvar2;
 	}
 }
@@ -8130,7 +8110,7 @@ void A_EggShield(void *data)
 	// Search for players to push
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (!playeringame[i] || players[i].spectator)
+		if (!players[i].ingame || players[i].spectator)
 			continue;
 
 		player = &players[i];
@@ -8205,7 +8185,7 @@ void A_Boss1Spikeballs(void *data)
 	ball->movedir = FixedAngle(FixedMul(FixedDiv(locvar1<<FRACBITS, locvar2<<FRACBITS), 360<<FRACBITS));
 	ball->threshold = ball->radius + actor->radius + ball->info->painchance;
 
-	S_StartSound(ball, ball->info->seesound);
+	S_StartSoundFromMobj(ball, ball->info->seesound);
 	var1 = ball->state->var1, var2 = ball->state->var2;
 	ball->state->action(ball);
 }
@@ -8304,7 +8284,7 @@ void A_Boss3Path(void *data)
 
 		if (actor->target->x == actor->x && actor->target->y == actor->y)
 		{
-			dist = P_AproxDistance(P_AproxDistance(actor->target->x - actor->x, actor->target->y - actor->y), actor->target->z + actor->movefactor - actor->z);
+			dist = GetDistance3D(actor->target->x, actor->target->y, actor->target->z + actor->movefactor, actor->x, actor->y, actor->z);
 
 			if (dist < 1)
 				dist = 1;
@@ -8375,7 +8355,7 @@ void A_Boss3ShockThink(void *data)
 		fixed_t x0, y0, x1, y1;
 
 		// Break the link if movements are too different
-		if (R_PointToDist2(0, 0, snext->momx - actor->momx, snext->momy - actor->momy) > 12*actor->scale)
+		if (GetDistance2D(actor->momx, actor->momy, snext->momx, snext->momy) > 12*actor->scale)
 		{
 			P_SetTarget(&actor->hnext, NULL);
 			return;
@@ -8386,7 +8366,7 @@ void A_Boss3ShockThink(void *data)
 		y0 = actor->y;
 		x1 = snext->x;
 		y1 = snext->y;
-		if (R_PointToDist2(0, 0, x1 - x0, y1 - y0) > 2*actor->radius)
+		if (GetDistance2D(x0, y0, x1, y1) > 2*actor->radius)
 		{
 			snew = P_SpawnMobj((x0 >> 1) + (x1 >> 1),
 				(y0 >> 1) + (y1 >> 1),
@@ -8459,7 +8439,7 @@ void A_Shockwave(void *data)
 		sprev = shock;
 	}
 
-	S_StartSound(actor, shock->info->seesound);
+	S_StartSoundFromMobj(actor, shock->info->seesound);
 }
 
 // Function: A_LinedefExecute
@@ -8575,7 +8555,7 @@ void A_PlayActiveSound(void *data)
 		return;
 
 	if (actor->info->activesound)
-		S_StartSound(actor, actor->info->activesound);
+		S_StartSoundFromMobj(actor, actor->info->activesound);
 }
 
 // Function: A_SmokeTrailer
@@ -8869,7 +8849,7 @@ void A_PlaySound(void *data)
 	if (leveltime < 2 && (locvar2 >> 16))
 		return;
 
-	S_StartSound((locvar2 & 65535) ? actor : NULL, locvar1);
+	S_StartSoundFromMobj((locvar2 & 65535) ? actor : NULL, locvar1);
 }
 
 // Function: A_FindTarget
@@ -8887,7 +8867,7 @@ void A_FindTarget(void *data)
 	mobj_t *targetedmobj = NULL;
 	thinker_t *th;
 	mobj_t *mo2;
-	fixed_t dist1 = 0, dist2 = 0;
+	INT32 dist = 0, bestdist = 0;
 
 	if (LUA_CallAction(A_FINDTARGET, actor))
 		return;
@@ -8911,16 +8891,16 @@ void A_FindTarget(void *data)
 			if (targetedmobj == NULL)
 			{
 				targetedmobj = mo2;
-				dist2 = R_PointToDist2(actor->x, actor->y, mo2->x, mo2->y);
+				bestdist = P_GetMobjLargeDistance2D(actor, mo2);
 			}
 			else
 			{
-				dist1 = R_PointToDist2(actor->x, actor->y, mo2->x, mo2->y);
+				dist = P_GetMobjLargeDistance2D(actor, mo2);
 
-				if ((!locvar2 && dist1 < dist2) || (locvar2 && dist1 > dist2))
+				if ((!locvar2 && dist < bestdist) || (locvar2 && dist > bestdist))
 				{
 					targetedmobj = mo2;
-					dist2 = dist1;
+					bestdist = dist;
 				}
 			}
 		}
@@ -8952,7 +8932,7 @@ void A_FindTracer(void *data)
 	mobj_t *targetedmobj = NULL;
 	thinker_t *th;
 	mobj_t *mo2;
-	fixed_t dist1 = 0, dist2 = 0;
+	INT32 dist = 0, bestdist = 0;
 
 	if (LUA_CallAction(A_FINDTRACER, actor))
 		return;
@@ -8976,16 +8956,16 @@ void A_FindTracer(void *data)
 			if (targetedmobj == NULL)
 			{
 				targetedmobj = mo2;
-				dist2 = R_PointToDist2(actor->x, actor->y, mo2->x, mo2->y);
+				bestdist = P_GetMobjLargeDistance2D(actor, mo2);
 			}
 			else
 			{
-				dist1 = R_PointToDist2(actor->x, actor->y, mo2->x, mo2->y);
+				dist = P_GetMobjLargeDistance2D(actor, mo2);
 
-				if ((!locvar2 && dist1 < dist2) || (locvar2 && dist1 > dist2))
+				if ((!locvar2 && dist < bestdist) || (locvar2 && dist > bestdist))
 				{
 					targetedmobj = mo2;
-					dist2 = dist1;
+					bestdist = dist;
 				}
 			}
 		}
@@ -9656,7 +9636,7 @@ void A_RemoteAction(void *data)
 		mobj_t *targetedmobj = NULL;
 		thinker_t *th;
 		mobj_t *mo2;
-		fixed_t dist1 = 0, dist2 = 0;
+		INT32 dist = 0, bestdist = 0;
 
 		// scan the thinkers
 		for (th = thlist[THINK_MOBJ].next; th != &thlist[THINK_MOBJ]; th = th->next)
@@ -9671,16 +9651,16 @@ void A_RemoteAction(void *data)
 				if (targetedmobj == NULL)
 				{
 					targetedmobj = mo2;
-					dist2 = R_PointToDist2(actor->x, actor->y, mo2->x, mo2->y);
+					bestdist = P_GetMobjLargeDistance2D(actor, mo2);
 				}
 				else
 				{
-					dist1 = R_PointToDist2(actor->x, actor->y, mo2->x, mo2->y);
+					dist = P_GetMobjLargeDistance2D(actor, mo2);
 
-					if ((locvar2 && dist1 < dist2) || (!locvar2 && dist1 > dist2))
+					if ((locvar2 && dist < bestdist) || (!locvar2 && dist > bestdist))
 					{
 						targetedmobj = mo2;
-						dist2 = dist1;
+						bestdist = dist;
 					}
 				}
 			}
@@ -9922,7 +9902,6 @@ void A_SetObjectTypeState(void *data)
 
 	thinker_t *th;
 	mobj_t *mo2;
-	fixed_t dist = 0;
 
 	if (LUA_CallAction(A_SETOBJECTTYPESTATE, actor))
 		return;
@@ -9936,15 +9915,13 @@ void A_SetObjectTypeState(void *data)
 
 		if (mo2->type == (mobjtype_t)loc2lw)
 		{
-			dist = P_AproxDistance(mo2->x - actor->x, mo2->y - actor->y);
-
 			if (mo2->health > 0)
 			{
 				if (loc2up == 0)
 					P_SetMobjState(mo2, locvar1);
 				else
 				{
-					if (dist <= FixedMul(loc2up*FRACUNIT, actor->scale))
+					if (P_AreMobjsClose2D(mo2, actor, FixedMul(loc2up*FRACUNIT, actor->scale)))
 						P_SetMobjState(mo2, locvar1);
 				}
 			}
@@ -10454,20 +10431,15 @@ void A_CheckRange(void *data)
 	mobj_t *actor = data;
 	INT32 locvar1 = var1;
 	INT32 locvar2 = var2;
-	fixed_t dist;
+	mobj_t *target = (locvar1 >> 16) ? actor->tracer : actor->target;
 
 	if (LUA_CallAction(A_CHECKRANGE, actor))
 		return;
 
-	if ((!(locvar1 >> 16) && !actor->target) || ((locvar1 >> 16) && !actor->tracer))
+	if (!target)
 		return;
 
-	if (!(locvar1 >> 16)) //target
-		dist = P_AproxDistance(actor->target->x - actor->x, actor->target->y - actor->y);
-	else //tracer
-		dist = P_AproxDistance(actor->tracer->x - actor->x, actor->tracer->y - actor->y);
-
-	if (dist <= FixedMul((locvar1 & 65535)*FRACUNIT, actor->scale))
+	if (P_AreMobjsClose2D(target, actor, FixedMul((locvar1 & 65535)*FRACUNIT, actor->scale)))
 		P_SetMobjState(actor, locvar2);
 }
 
@@ -10516,33 +10488,16 @@ void A_CheckTrueRange(void *data)
 	mobj_t *actor = data;
 	INT32 locvar1 = var1;
 	INT32 locvar2 = var2;
-	fixed_t height; // vertical range
-	fixed_t dist; // horizontal range
-	fixed_t l; // true range
+	mobj_t *target = (locvar1 >> 16) ? actor->tracer : actor->target;
 
 	if (LUA_CallAction(A_CHECKTRUERANGE, actor))
 		return;
 
-	if ((!(locvar1 >> 16) && !actor->target) || ((locvar1 >> 16) && !actor->tracer))
+	if (!target)
 		return;
 
-	if (!(locvar1 >> 16)) // target
-	{
-		height = actor->target->z - actor->z;
-		dist = P_AproxDistance(actor->target->x - actor->x, actor->target->y - actor->y);
-
-	}
-	else // tracer
-	{
-		height = actor->tracer->z - actor->z;
-		dist = P_AproxDistance(actor->tracer->x - actor->x, actor->tracer->y - actor->y);
-	}
-
-	l = P_AproxDistance(dist, height);
-
-	if (l <= FixedMul((locvar1 & 65535)*FRACUNIT, actor->scale))
+	if (P_AreMobjsClose3D(target, actor, FixedMul((locvar1 & 65535) * FRACUNIT, actor->scale)))
 		P_SetMobjState(actor, locvar2);
-
 }
 
 // Function: A_CheckThingCount
@@ -10570,7 +10525,6 @@ void A_CheckThingCount(void *data)
 	INT32 count = 0;
 	thinker_t *th;
 	mobj_t *mo2;
-	fixed_t dist = 0;
 
 	if (LUA_CallAction(A_CHECKTHINGCOUNT, actor))
 		return;
@@ -10584,13 +10538,11 @@ void A_CheckThingCount(void *data)
 
 		if (mo2->type == (mobjtype_t)loc1up)
 		{
-			dist = P_AproxDistance(mo2->x - actor->x, mo2->y - actor->y);
-
 			if (loc2up == 0)
 				count++;
 			else
 			{
-				if (dist <= FixedMul(loc2up*FRACUNIT, actor->scale))
+				if (P_AreMobjsClose2D(mo2, actor, FixedMul(loc2up*FRACUNIT, actor->scale)))
 					count++;
 			}
 		}
@@ -10955,7 +10907,7 @@ void A_ForceWin(void *data)
 
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (playeringame[i] && ((players[i].mo && players[i].mo->health)
+		if (players[i].ingame && ((players[i].mo && players[i].mo->health)
 		    || ((netgame || multiplayer) && (players[i].lives || players[i].continues))))
 			break;
 	}
@@ -10965,7 +10917,7 @@ void A_ForceWin(void *data)
 
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (!playeringame[i])
+		if (!players[i].ingame)
 			continue;
 		P_DoPlayerExit(&players[i], true);
 	}
@@ -11209,7 +11161,7 @@ void A_HomingChase(void *data)
 
 	actor->angle = R_PointToAngle2(actor->x, actor->y, dest->x, dest->y);
 
-	dist = P_AproxDistance(P_AproxDistance(dest->x - actor->x, dest->y - actor->y), dest->z - actor->z);
+	dist = P_GetMobjDistance3D(dest, actor);
 
 	if (dist < 1)
 		dist = 1;
@@ -11274,7 +11226,7 @@ void A_TrapShot(void *data)
 	P_SetScale(missile, actor->scale, true);
 
 	if (missile->info->seesound)
-		S_StartSound(missile, missile->info->seesound);
+		S_StartSoundFromMobj(missile, missile->info->seesound);
 
 	P_SetTarget(&missile->target, actor);
 	missile->angle = actor->angle;
@@ -11359,7 +11311,7 @@ void A_VileTarget(void *data)
 		// Our "Archvile" here is actually Oprah. "YOU GET A TARGET! YOU GET A TARGET! YOU ALL GET A TARGET!"
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
-			if (!playeringame[i] || players[i].spectator)
+			if (!players[i].ingame || players[i].spectator)
 				continue;
 
 			if (!players[i].mo)
@@ -11436,7 +11388,7 @@ void A_VileAttack(void *data)
 		if (!P_CheckSight(actor, actor->target))
 			return;
 
-		S_StartSound(actor, soundtoplay);
+		S_StartSoundFromMobj(actor, soundtoplay);
 		P_DamageMobj(actor->target, actor, actor, 1, 0);
 		//actor->target->momz = 1000*FRACUNIT/actor->target->info->mass; // How id did it
 		actor->target->momz += FixedMul(10*FRACUNIT, actor->scale)*P_MobjFlip(actor->target); // How we're doing it
@@ -11465,7 +11417,7 @@ void A_VileAttack(void *data)
 		// Oprahvile strikes again, but this time, she brings HOT PAIN
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
-			if (!playeringame[i] || players[i].spectator)
+			if (!players[i].ingame || players[i].spectator)
 				continue;
 
 			if (!players[i].mo)
@@ -11477,7 +11429,7 @@ void A_VileAttack(void *data)
 			if (!P_CheckSight(actor, players[i].mo))
 				continue;
 
-			S_StartSound(actor, soundtoplay);
+			S_StartSoundFromMobj(actor, soundtoplay);
 			P_DamageMobj(players[i].mo, actor, actor, 1, 0);
 			//actor->target->momz = 1000*FRACUNIT/actor->target->info->mass; // How id did it
 			players[i].mo->momz += FixedMul(10*FRACUNIT, actor->scale)*P_MobjFlip(players[i].mo); // How we're doing it
@@ -11560,7 +11512,7 @@ void A_VileFire(void *data)
 
 	// Play sound, if one's specified
 	if (locvar1 > 0 && locvar1 < NUMSFX)
-		S_StartSound(actor, (sfxenum_t)locvar1);
+		S_StartSoundFromMobj(actor, (sfxenum_t)locvar1);
 
 	// Now draw the line to the actor's target
 	if (locvar2 & 0xFFFF)
@@ -11637,7 +11589,7 @@ void A_BrakChase(void *data)
 	{
 		actor->reactiontime--;
 		if (actor->reactiontime == 0 && actor->type == MT_CYBRAKDEMON)
-			S_StartSound(0, sfx_bewar1 + P_RandomKey(4));
+			S_StartSoundFromEverywhere(sfx_bewar1 + P_RandomKey(4));
 	}
 
 	// modify target threshold
@@ -11719,12 +11671,12 @@ void A_BrakChase(void *data)
 
 	// Optionally play a sound effect
 	if (locvar2 > 0 && locvar2 < NUMSFX)
-		S_StartSound(actor, (sfxenum_t)locvar2);
+		S_StartSoundFromMobj(actor, (sfxenum_t)locvar2);
 
 	// make active sound
 	if (actor->type != MT_CYBRAKDEMON && actor->info->activesound && P_RandomChance(3*FRACUNIT/256))
 	{
-		S_StartSound(actor, actor->info->activesound);
+		S_StartSoundFromMobj(actor, actor->info->activesound);
 	}
 }
 
@@ -11818,14 +11770,14 @@ void A_BrakLobShot(void *data)
 	g = FixedMul(gravity, P_GetSectorGravityFactor(actor->subsector->sector));
 
 	// Look up distance between actor and its target
-	x = P_AproxDistance(actor->target->x - actor->x, actor->target->y - actor->y);
+	x = P_GetMobjDistance2D(actor->target, actor);
 	if (!aimDirect)
 	{
 		// Distance should actually be a third of the way over
 		x = FixedDiv(x, 3<<FRACBITS);
 		newTargetX = actor->x + P_ReturnThrustX(actor, actor->angle, x);
 		newTargetY = actor->y + P_ReturnThrustY(actor, actor->angle, x);
-		x = P_AproxDistance(newTargetX - actor->x, newTargetY - actor->y);
+		x = GetDistance2D(actor->x, actor->y, newTargetX, newTargetY);
 		// Look up height difference between actor and the ground 1/3 of the way to its target
 		y = P_FloorzAtPos(newTargetX, newTargetY, actor->target->z, actor->target->height) - (actor->z + FixedMul(locvar2*FRACUNIT, actor->scale));
 	}
@@ -11879,7 +11831,7 @@ void A_BrakLobShot(void *data)
 	if (P_MobjWasRemoved(shot))
 		return;
 	if (shot->info->seesound)
-		S_StartSound(shot, shot->info->seesound);
+		S_StartSoundFromMobj(shot, shot->info->seesound);
 	P_SetTarget(&shot->target, actor); // where it came from
 
 	shot->angle = actor->angle;
@@ -11982,7 +11934,7 @@ void A_SpawnFreshCopy(void *data)
 	P_SetTarget(&newObject->tracer, actor->tracer);
 
 	if (newObject->info->seesound)
-		S_StartSound(newObject, newObject->info->seesound);
+		S_StartSoundFromMobj(newObject, newObject->info->seesound);
 }
 
 // Internal Flicky spawning function.
@@ -12198,7 +12150,7 @@ void A_FlickyCenter(void *data)
 
 		P_LookForPlayers(actor, true, false, actor->extravalue1);
 
-		if (actor->target && P_AproxDistance(actor->target->x - originx, actor->target->y - originy) < actor->extravalue1)
+		if (actor->target && GetDistance2D(actor->target->x, actor->target->y, originx, originy) < actor->extravalue1)
 		{
 			actor->extravalue2 = 1;
 			P_SetOrigin(actor, actor->target->x, actor->target->y, actor->target->z);
@@ -12257,7 +12209,7 @@ void A_FlickyAim(void *data)
 	if ((actor->momx == actor->momy && actor->momy == 0)
 		|| (actor->target && P_IsFlickyCenter(actor->target->type)
 			&& actor->target->extravalue1 && (actor->target->flags & MF_SLIDEME)
-			&& P_AproxDistance(actor->x - actor->target->x, actor->y - actor->target->y) >= actor->target->extravalue1))
+			&& P_AreMobjsFar2D(actor, actor->target, actor->target->extravalue1)))
 		flickyhitwall = true;
 
 	P_InternalFlickyBubble(actor);
@@ -12279,12 +12231,12 @@ void A_FlickyAim(void *data)
 			actor->movedir *= -1;
 
 		posvar = ((R_PointToAngle2(actor->target->x, actor->target->y, actor->x, actor->y) + actor->movedir*locvar1) >> ANGLETOFINESHIFT) & FINEMASK;
-		chasevar = FixedSqrt(max(FRACUNIT, P_AproxDistance(actor->target->x - actor->x, actor->target->y - actor->y) - locvar2)) + locvar2;
+		chasevar = FixedSqrt(max(FRACUNIT, P_GetMobjDistance2D(actor->target, actor) - locvar2)) + locvar2;
 
 		chasex = actor->target->x + FixedMul(FINECOSINE(posvar), chasevar);
 		chasey = actor->target->y + FixedMul(FINESINE(posvar), chasevar);
 
-		if (P_AproxDistance(chasex - actor->x, chasey - actor->y))
+		if (GetDistance2D(chasex, chasey, actor->x, actor->y))
 			actor->angle = R_PointToAngle2(actor->x, actor->y, chasex, chasey);
 	}
 	else if (flickyhitwall)
@@ -12326,7 +12278,7 @@ void P_InternalFlickyFly(mobj_t *actor, fixed_t flyspeed, fixed_t targetdist, fi
 		targetdist = 16*FRACUNIT; //Default!
 
 	if (actor->target && abs(chasez - actor->z) > targetdist)
-		targetdist = P_AproxDistance(actor->target->x - actor->x, actor->target->y - actor->y);
+		targetdist = P_GetMobjDistance2D(actor->target, actor);
 
 	if (actor->target
 		&& P_IsFlickyCenter(actor->target->type)
@@ -12407,7 +12359,7 @@ void A_FlickyCoast(void *data)
 		actor->momy = (11*actor->momy)/12;
 		actor->momz = (11*actor->momz)/12;
 
-		if (P_AproxDistance(P_AproxDistance(actor->momx, actor->momy), actor->momz) < locvar1)
+		if (GetDistance3D(0, 0, 0, actor->momx, actor->momy, actor->momz) < locvar1)
 			P_SetMobjState(actor, locvar2);
 
 		return;
@@ -12679,7 +12631,7 @@ void A_Boss5Jump(void *data)
 	g = FixedMul(gravity, P_GetSectorGravityFactor(actor->subsector->sector));
 
 	// Look up distance between actor and its tracer
-	x = P_AproxDistance(actor->tracer->x - actor->x, actor->tracer->y - actor->y);
+	x = P_GetMobjDistance2D(actor->tracer, actor);
 	// Look up height difference between actor and its tracer
 	y = actor->tracer->z - actor->z;
 
@@ -12792,7 +12744,7 @@ void A_MineExplode(void *data)
 #define dist 64
 		UINT8 i;
 		mobjtype_t type = ((actor->eflags & MFE_UNDERWATER) ? MT_UWEXPLODE : MT_SONIC3KBOSSEXPLODE);
-		S_StartSound(actor, ((actor->eflags & MFE_UNDERWATER) ? sfx_s3k57 : sfx_s3k4e));
+		S_StartSoundFromMobj(actor, ((actor->eflags & MFE_UNDERWATER) ? sfx_s3k57 : sfx_s3k4e));
 		P_SpawnMobj(actor->x, actor->y, actor->z, type);
 		for (i = 0; i < 16; i++)
 		{
@@ -12803,7 +12755,7 @@ void A_MineExplode(void *data)
 			if (P_MobjWasRemoved(b))
 				continue;
 			fixed_t dx = b->x - actor->x, dy = b->y - actor->y, dz = b->z - actor->z;
-			fixed_t dm = P_AproxDistance(dz, P_AproxDistance(dy, dx));
+			fixed_t dm = GetDistance3D(0, 0, 0, dx, dy, dz);
 			b->momx = FixedDiv(dx, dm)*3;
 			b->momy = FixedDiv(dy, dm)*3;
 			b->momz = FixedDiv(dz, dm)*3;
@@ -12836,7 +12788,7 @@ void A_MineRange(void *data)
 	if (!actor->target)
 		return;
 
-	dm = P_AproxDistance(actor->z - actor->target->z, P_AproxDistance(actor->y - actor->target->y, actor->x - actor->target->x));
+	dm = P_GetMobjDistance3D(actor, actor->target);
 	if ((dm>>FRACBITS) < locvar1)
 		P_SetMobjState(actor, actor->info->meleestate);
 }
@@ -12969,8 +12921,8 @@ void A_MultiShotDist(void *data)
 		// Quick! Look through players!
 		// Don't spawn dust unless a player is relatively close by (var1).
 		for (i = 0; i < MAXPLAYERS; ++i)
-			if (playeringame[i] && players[i].mo
-			 && P_AproxDistance(actor->x - players[i].mo->x, actor->y - players[i].mo->y) < (1600<<FRACBITS))
+			if (players[i].ingame && players[i].mo
+			 && P_AreMobjsClose2D(actor, players[i].mo, 1600<<FRACBITS))
 				break; // Stop looking.
 		if (i == MAXPLAYERS)
 			return; // don't make bubble!
@@ -13012,7 +12964,7 @@ void A_WhoCaresIfYourSonIsABee(void *data)
 		actor->extravalue1--;
 
 	if (actor->info->attacksound)
-		S_StartSound(actor, actor->info->attacksound);
+		S_StartSoundFromMobj(actor, actor->info->attacksound);
 
 	foffsetx = P_ReturnThrustX(actor, actor->angle, FixedMul((locvar2 >> 16)*FRACUNIT, actor->scale));
 	foffsety = P_ReturnThrustY(actor, actor->angle, FixedMul((locvar2 >> 16)*FRACUNIT, actor->scale));
@@ -13044,7 +12996,7 @@ void A_ParentTriesToSleep(void *data)
 	if (actor->extravalue1)
 	{
 		if (actor->info->seesound)
-			S_StartSound(actor, actor->info->seesound);
+			S_StartSoundFromMobj(actor, actor->info->seesound);
 		actor->reactiontime = 0;
 		P_SetMobjState(actor, locvar1);
 	}
@@ -13052,7 +13004,7 @@ void A_ParentTriesToSleep(void *data)
 	{
 		actor->reactiontime = 1;
 		if (actor->info->activesound) // more like INactivesound doy hoy hoy
-			S_StartSound(actor, actor->info->activesound);
+			S_StartSoundFromMobj(actor, actor->info->activesound);
 	}
 }
 
@@ -13191,7 +13143,7 @@ void A_Boss5FindWaypoint(void *data)
 		{
 			for (i = 0; i < MAXPLAYERS; i++)
 			{
-				if (!playeringame[i])
+				if (!players[i].ingame)
 					continue;
 				if (!players[i].mo)
 					continue;
@@ -13248,7 +13200,7 @@ void A_Boss5FindWaypoint(void *data)
 		{
 			for (i = 0; i < MAXPLAYERS; i++)
 			{
-				if (!playeringame[i])
+				if (!players[i].ingame)
 					continue;
 				if (!players[i].mo)
 					continue;
@@ -13320,7 +13272,7 @@ void A_DoNPCSkid(void *data)
 	if (!locvar2)
 		locvar2 = FRACUNIT/2;
 
-	if ((FixedHypot(actor->momx, actor->momy) < locvar2)
+	if ((P_GetMobjMomentum2D(actor) < locvar2)
 	|| !P_TryMove(actor, actor->x + actor->momx, actor->y + actor->momy, false))
 	{
 		if (P_MobjWasRemoved(actor))
@@ -13508,7 +13460,7 @@ void A_Boss5CheckOnGround(void *data)
 			P_SetMobjState(actor, locvar1);
 	}
 
-	if (actor->tracer && P_AproxDistance(actor->tracer->x - actor->x, actor->tracer->y - actor->y) < 2*actor->radius)
+	if (actor->tracer && P_AreMobjsClose2D(actor->tracer, actor, 2*actor->radius))
 	{
 		actor->momx = (4*actor->momx)/5;
 		actor->momy = (4*actor->momy)/5;
@@ -13640,7 +13592,7 @@ void A_Boss5MakeJunk(void *data)
 		P_SpawnMobjFromMobj(actor, 0, 0, 0, MT_PROJECTORLIGHT);
 		actor->z += P_MobjFlip(actor)*actor->height;
 		actor->flags |= MF_NOGRAVITY;
-		S_StartSound(actor, sfx_vwre);
+		S_StartSoundFromMobj(actor, sfx_vwre);
 		actor->extravalue2 = 49;
 		P_SetMobjState(actor, -locvar1);
 		actor->extravalue2 = curextravalue2;
@@ -13706,7 +13658,7 @@ void A_Boss5MakeJunk(void *data)
 		broked = P_SpawnMobjFromMobj(actor, 0, 0, 64<<FRACBITS, MT_GHOST);
 		if (!P_MobjWasRemoved(broked))
 		{
-			S_StartSound(broked, sfx_alart);
+			S_StartSoundFromMobj(broked, sfx_alart);
 			broked->fuse = states[S_FANG_INTRO12].tics+10;
 			P_SetMobjState(broked, S_ALART1);
 		}
@@ -13715,11 +13667,11 @@ void A_Boss5MakeJunk(void *data)
 	{
 		if (!P_MobjWasRemoved(broked))
 			broked->z += broked->momz;
-		S_StartSound(actor, sfx_s3kccs);
+		S_StartSoundFromMobj(actor, sfx_s3kccs);
 		actor->flags &= ~MF_NOCLIPTHING;
 	}
 	else
-		S_StartSound(actor, sfx_s3kd3s);
+		S_StartSoundFromMobj(actor, sfx_s3kd3s);
 }
 
 // Function: A_LookForBetter
@@ -13854,7 +13806,7 @@ static boolean PIT_DustDevilLaunch(mobj_t *thing)
 		//Player in the swirl part.
 		if (dustdevil->height - pos > thresh)
 		{
-			fixed_t dist = FixedHypot(thing->x - dustdevil->x, thing->y - dustdevil->y);
+			fixed_t dist = P_GetMobjDistance2D(thing, dustdevil);
 			fixed_t dragamount = player->speed;
 			fixed_t x, y;
 
@@ -13890,7 +13842,7 @@ static boolean PIT_DustDevilLaunch(mobj_t *thing)
 			player->powers[pw_carry] = CR_NONE;
 			player->powers[pw_nocontrol] = 0;
 			P_SetTarget(&thing->tracer, NULL);
-			S_StartSound(thing, sfx_wdjump);
+			S_StartSoundFromMobj(thing, sfx_wdjump);
 			P_SetMobjState(thing, S_PLAY_FALL);
 		}
 
@@ -13981,11 +13933,11 @@ void A_DustDevilThink(void *data)
 
 	dustdevil = actor;
 
-	P_DoBlockThingsIterate(xl, yl, xh, yh, PIT_DustDevilLaunch);
+	P_DoBlockThingsIterate(xl, yl, xh, yh, PIT_DustDevilLaunch, dustdevil);
 
 	//Whirlwind sound effect.
 	if (leveltime % 70 == 0)
-		S_StartSound(actor, sfx_s3kcel);
+		S_StartSoundFromMobj(actor, sfx_s3kcel);
 }
 
 // stuff used by A_TNTExplode
@@ -14004,7 +13956,7 @@ static boolean PIT_TNTExplode(mobj_t *nearby)
 	dx = nearby->x - barrel->x;
 	dy = nearby->y - barrel->y;
 	dz = nearby->z - barrel->z + (nearby->height - barrel->height/2)/2;
-	dm = P_AproxDistance(P_AproxDistance(dx, dy), dz);
+	dm = GetDistance3D(0, 0, 0, dx, dy, dz);
 
 	if (dm >= exploderadius || !P_CheckSight(barrel, nearby)) // out of range or not visible
 		return true;
@@ -14014,7 +13966,7 @@ static boolean PIT_TNTExplode(mobj_t *nearby)
 		if (nearby->state == &states[nearby->info->spawnstate])
 		{
 			if (barrel->info->attacksound)
-				S_StartSound(nearby, barrel->info->attacksound);
+				S_StartSoundFromMobj(nearby, barrel->info->attacksound);
 			nearby->momx = FixedMul(FixedDiv(dx, dm), explodethrust);
 			nearby->momy = FixedMul(FixedDiv(dy, dm), explodethrust);
 			nearby->momz = FixedMul(FixedDiv(dz, dm), explodethrust);
@@ -14084,7 +14036,7 @@ void A_TNTExplode(void *data)
 	P_SetThingPosition(actor);
 	actor->flags2 = MF2_EXPLOSION;
 	if (actor->info->deathsound)
-		S_StartSound(actor, actor->info->deathsound);
+		S_StartSoundFromMobj(actor, actor->info->deathsound);
 
 	explodethrust = 32*FRACUNIT;
 	exploderadius = 256*FRACUNIT;
@@ -14098,7 +14050,7 @@ void A_TNTExplode(void *data)
 
 	barrel = actor;
 
-	P_DoBlockThingsIterate(xl, yl, xh, yh, PIT_TNTExplode);
+	P_DoBlockThingsIterate(xl, yl, xh, yh, PIT_TNTExplode, barrel);
 
 	// cause a quake -- P_StartQuake does not exist yet
 	epicenter.x = actor->x;
@@ -14426,7 +14378,7 @@ void A_SnapperThinker(void *data)
 
 	// Look for nearby, valid players to chase angrily at.
 	if ((actor->target || P_LookForPlayers(actor, true, false, 1024*FRACUNIT))
-		&& P_AproxDistance(actor->target->x - xs, actor->target->y - ys) < 2048*FRACUNIT
+		&& ArePointsClose2D(xs, ys, actor->target->x, actor->target->y, 2048*FRACUNIT)
 		&& abs(actor->target->z - actor->z) < 80*FRACUNIT
 		&& P_CheckSight(actor, actor->target))
 	{
@@ -14441,7 +14393,7 @@ void A_SnapperThinker(void *data)
 		y1 = ys;
 	}
 
-	dist = P_AproxDistance(x1 - x0, y1 - y0);
+	dist = GetDistance2D(x0, y0, x1, y1);
 
 	// The snapper either chases what it considers to be a nearby player, or instead decides to go back to its spawnpoint.
 	if (chasing || dist > 32*FRACUNIT)
@@ -14511,6 +14463,10 @@ void A_SnapperThinker(void *data)
 				actor->extravalue1 -= speed;
 		}
 	}
+	else
+	{
+		P_SetTarget(&actor->target, NULL);
+	}
 
 	P_SnapperLegPlace(actor);
 }
@@ -14579,7 +14535,7 @@ void A_MinecartSparkThink(void *data)
 		actor->momz = P_RandomRange(2, 4)*FRACUNIT;
 
 	dz = actor->momz;
-	dm = FixedHypot(FixedHypot(dx, dy), dz);
+	dm = GetDistance3D(0, 0, 0, dx, dy, dz);
 	dx = FixedDiv(dx, dm);
 	dy = FixedDiv(dy, dm);
 	dz = FixedDiv(dz, dm);
@@ -14633,8 +14589,8 @@ void A_LavafallRocks(void *data)
 
 	// Don't spawn rocks unless a player is relatively close by.
 	for (i = 0; i < MAXPLAYERS; ++i)
-		if (playeringame[i] && players[i].mo
-			&& P_AproxDistance(actor->x - players[i].mo->x, actor->y - players[i].mo->y) < (actor->info->speed >> 1))
+		if (players[i].ingame && players[i].mo
+			&& P_AreMobjsClose2D(actor, players[i].mo, actor->info->speed >> 1))
 			break; // Stop looking.
 
 	if (i < MAXPLAYERS)
@@ -14668,8 +14624,8 @@ void A_LavafallLava(void *data)
 
 	// Don't spawn lava unless a player is nearby.
 	for (i = 0; i < MAXPLAYERS; ++i)
-		if (playeringame[i] && players[i].mo
-			&& P_AproxDistance(actor->x - players[i].mo->x, actor->y - players[i].mo->y) < (actor->info->speed))
+		if (players[i].ingame && players[i].mo
+			&& P_AreMobjsClose2D(actor, players[i].mo, actor->info->speed))
 			break; // Stop looking.
 
 	if (i >= MAXPLAYERS)
@@ -14822,7 +14778,7 @@ void A_RolloutSpawn(void *data)
 
 	if (!(actor->target)
 		|| P_MobjWasRemoved(actor->target)
-		|| P_AproxDistance(actor->x - actor->target->x, actor->y - actor->target->y) > locvar1)
+		|| P_AreMobjsFar2D(actor, actor->target, locvar1))
 	{
 		P_SetTarget(&actor->target, P_SpawnMobj(actor->x, actor->y, actor->z, locvar2));
 		if (!P_MobjWasRemoved(actor->target))
@@ -14854,7 +14810,7 @@ void A_RolloutRock(void *data)
 	UINT8 maxframes = actor->info->reactiontime; // number of frames the mobj cycles through
 	fixed_t pi = (22*FRACUNIT/7);
 	fixed_t circumference = FixedMul(2 * pi, actor->radius); // used to calculate when to change frame
-	fixed_t speed = P_AproxDistance(actor->momx, actor->momy), topspeed = FixedMul(actor->info->speed, actor->scale);
+	fixed_t speed = P_GetMobjMomentum2D(actor), topspeed = FixedMul(actor->info->speed, actor->scale);
 	boolean inwater = actor->eflags & (MFE_TOUCHWATER|MFE_UNDERWATER);
 
 	if (LUA_CallAction(A_ROLLOUTROCK, actor))
@@ -14877,7 +14833,7 @@ void A_RolloutRock(void *data)
 	actor->friction = FRACUNIT; // turns out riding on solids sucks, so let's just make it easier on ourselves
 
 	if (actor->eflags & MFE_JUSTHITFLOOR)
-		S_StartSound(actor, actor->info->painsound);
+		S_StartSoundFromMobj(actor, actor->info->painsound);
 
 	if (actor->threshold)
 		actor->threshold--;
@@ -14891,9 +14847,9 @@ void A_RolloutRock(void *data)
 		if (flip*prevmomz < 0 && flip*actor->momz >= 0 && !actor->threshold)
 		{
 			if (actor->eflags & MFE_UNDERWATER)
-				S_StartSound(actor, sfx_splash);
+				S_StartSoundFromMobj(actor, sfx_splash);
 			else if (!actor->threshold)
-				S_StartSound(actor, sfx_splish);
+				S_StartSoundFromMobj(actor, sfx_splish);
 			actor->threshold = max((topspeed - speed) >> FRACBITS, 8);
 		}
 	}
@@ -14910,7 +14866,7 @@ void A_RolloutRock(void *data)
 		actor->momy = FixedMul(actor->momy, locvar1);
 	}
 
-	speed = P_AproxDistance(actor->momx, actor->momy); // recalculate speed for visual rolling
+	speed = P_GetMobjMomentum2D(actor); // recalculate speed for visual rolling
 
 	if (((actor->flags & MF_PUSHABLE) || !(actor->flags2 & MF2_STRONGBOX))
 		&& speed < actor->scale) // stop moving if speed is insignificant
@@ -15037,7 +14993,7 @@ void A_DragonSegment(void *data)
 		return;
 	}
 
-	dist = P_AproxDistance(P_AproxDistance(actor->x - target->x, actor->y - target->y), actor->z - target->z);
+	dist = P_GetMobjDistance3D(target, actor);
 	radius = actor->radius + target->radius;
 	hangle = R_PointToAngle2(target->x, target->y, actor->x, actor->y);
 	zangle = R_PointToAngle2(0, target->z, dist, actor->z);

@@ -164,7 +164,7 @@ typedef struct
 	INT16 ttloop; // # frame to loop; -1 means dont loop
 	UINT16 tttics; // # of tics per frame
 
-	char musname[6+1]; ///< Music track to play. "" for no music.
+	char musname[MAX_MUSIC_NAME+1]; ///< Music track to play. "" for no music.
 	UINT16 mustrack; ///< Subsong to play. Only really relevant for music modules and specific formats supported by GME. 0 to ignore.
 	boolean muslooping; ///< Loop the music
 	boolean musstop; ///< Don't play any music
@@ -431,6 +431,7 @@ typedef struct
 	INT32 lives;
 	INT32 continuescore;
 	INT32 gamemap;
+	UINT8 flags;
 } saveinfo_t;
 
 extern description_t *description;
@@ -448,7 +449,7 @@ extern INT16 char_on, startchar;
 #define NOSAVESLOT 0 //slot where Play Without Saving appears
 #define MARATHONSLOT 420 // just has to be nonzero, but let's use one that'll show up as an obvious error if something goes wrong while not using our existing saves
 
-#define BwehHehHe() S_StartSound(NULL, sfx_bewar1+M_RandomKey(4)) // Bweh heh he
+#define BwehHehHe() S_StartSoundFromEverywhere(sfx_bewar1+M_RandomKey(4)) // Bweh heh he
 
 void M_TutorialSaveControlResponse(INT32 ch);
 
@@ -489,6 +490,7 @@ UINT16 M_GetColorIndex(UINT16 color);
 menucolor_t* M_GetColorFromIndex(UINT16 index);
 void M_InitPlayerSetupColors(void);
 void M_FreePlayerSetupColors(void);
+void M_RegisterCustomCVOption(consvar_t* cvar);
 
 // These defines make it a little easier to make menus
 #define DEFAULTMENUSTYLE(id, header, source, prev, x, y)\
@@ -527,7 +529,7 @@ void M_FreePlayerSetupColors(void);
 	M_DrawPauseMenu,\
 	x, y,\
 	0,\
-	NULL\
+	M_QuitPauseMenu\
 }
 
 #define CENTERMENUSTYLE(id, header, source, prev, y)\

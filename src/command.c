@@ -2180,14 +2180,14 @@ void CV_AddValue(consvar_t *var, INT32 increment)
 					if(increment > 0) // Going up!
 					{
 						newvalue++;
-						if (newvalue == NUMMAPS)
+						if (newvalue == numgamemaps)
 							newvalue = 0;
 					}
 					else // Going down!
 					{
 						newvalue--;
 						if (newvalue == -1)
-							newvalue = NUMMAPS-1;
+							newvalue = numgamemaps-1;
 					}
 
 					if (newvalue == oldvalue)
@@ -2195,7 +2195,6 @@ void CV_AddValue(consvar_t *var, INT32 increment)
 
 					if(!mapheaderinfo[newvalue])
 						continue; // Don't allocate the header.  That just makes memory usage skyrocket.
-
 				} while (newvalue != oldvalue && !M_CanShowLevelInList(newvalue, gt));
 
 				var->value = newvalue + 1;
@@ -2491,6 +2490,22 @@ static boolean CV_FilterVarByVersion(consvar_t *v, const char *valstr)
 		if (!CV_FilterJoyAxisVars(v, valstr))
 			return false;
 	}
+
+	if (GETMAJOREXECVERSION(cv_execversion.value) < 57) // 57 = 2.2.16
+	{
+		if (
+			(!stricmp(v->name, "movebob") && atoi(valstr) == FRACUNIT) ||
+			(!stricmp(v->name, "playersforexit") && atoi(valstr) == 4) || // 4 = all
+			(!stricmp(v->name, "advancemap") && atoi(valstr) == 1) || // 1 = next
+			(!stricmp(v->name, "cam_speed") && !stricmp(valstr, "0.3")) ||
+			(!stricmp(v->name, "cam2_speed") && !stricmp(valstr, "0.3")) ||
+			(!stricmp(v->name, "timerres") && atoi(valstr) == 0) || // 0 = classic
+			(!stricmp(v->name, "gr_modelinterpolation")) || // Force reset
+			(!stricmp(v->name, "fov") && atoi(valstr) == 90)
+		)
+			return false;
+	}
+
 	return true;
 }
 

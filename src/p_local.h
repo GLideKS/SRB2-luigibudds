@@ -58,10 +58,10 @@
 
 typedef enum
 {
+	THINK_DYNSLOPE,
 	THINK_POLYOBJ,
 	THINK_MAIN,
 	THINK_MOBJ,
-	THINK_DYNSLOPE,
 	THINK_PRECIP,
 	NUM_THINKERLISTS
 } thinklistnum_t; /**< Thinker lists. */
@@ -133,6 +133,10 @@ boolean P_TryCameraMove(fixed_t x, fixed_t y, camera_t *thiscam);
 void P_SlideCameraMove(camera_t *thiscam);
 boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcalled);
 pflags_t P_GetJumpFlags(player_t *player);
+statenum_t P_GetCanonicalPlayerState(player_t *player, statenum_t state);
+boolean P_IsPlayerInState(player_t *player, statenum_t state);
+boolean P_IsPlayerInSuperTransformationState(player_t *player);
+boolean P_IsPlayerInNightsTransformationState(player_t *player);
 boolean P_PlayerInPain(player_t *player);
 void P_DoPlayerPain(player_t *player, mobj_t *source, mobj_t *inflictor);
 void P_ResetPlayer(player_t *player);
@@ -219,9 +223,9 @@ void P_DoMetalJetFume(player_t *player, mobj_t *fume);
 void P_DoFollowMobj(player_t *player, mobj_t *followmobj);
 
 void P_PlayLivesJingle(player_t *player);
-#define P_PlayRinglossSound(s)	S_StartSound(s, (mariomode) ? sfx_mario8 : sfx_altow1 + P_RandomKey(4));
-#define P_PlayDeathSound(s)		S_StartSound(s, sfx_altdi1 + P_RandomKey(4));
-#define P_PlayVictorySound(s)	S_StartSound(s, sfx_victr1 + P_RandomKey(4));
+void P_PlayRinglossSound(mobj_t *source, player_t *player);
+void P_PlayDeathSound(mobj_t *source, player_t *player);
+void P_PlayVictorySound(mobj_t *source, player_t *player);
 
 boolean P_GetLives(player_t *player);
 boolean P_SpectatorJoinGame(player_t *player);
@@ -256,7 +260,7 @@ typedef enum
 
 typedef struct
 {
-	char musname[7];
+	char musname[MAX_MUSIC_NAME+1];
 	boolean looping;
 } jingle_t;
 
@@ -413,6 +417,8 @@ extern msecnode_t *sector_list;
 
 extern mprecipsecnode_t *precipsector_list;
 
+void P_UnsetBlockmapEntry(mobj_t *thing);
+void P_SetBlockmapEntry(mobj_t *thing);
 void P_UnsetThingPosition(mobj_t *thing);
 void P_SetThingPosition(mobj_t *thing);
 void P_SetUnderlayPosition(mobj_t *thing);
@@ -558,5 +564,17 @@ void P_DoSuperDetransformation(player_t *player);
 void P_ExplodeMissile(mobj_t *mo);
 void P_CheckGravity(mobj_t *mo, boolean affect);
 void P_SetPitchRollFromSlope(mobj_t *mo, pslope_t *slope);
+boolean P_IsMobjInPainState(mobj_t *mobj);
+
+fixed_t P_GetMobjDistance2D(mobj_t *mobj1, mobj_t *mobj2);
+fixed_t P_GetMobjDistance3D(mobj_t *mobj1, mobj_t *mobj2);
+INT32 P_GetMobjLargeDistance2D(mobj_t *mobj1, mobj_t *mobj2);
+INT32 P_GetMobjLargeDistance3D(mobj_t *mobj1, mobj_t *mobj2);
+boolean P_AreMobjsClose2D(mobj_t *mobj1, mobj_t *mobj2, fixed_t maxdist);
+boolean P_AreMobjsClose3D(mobj_t *mobj1, mobj_t *mobj2, fixed_t maxdist);
+boolean P_AreMobjsFar2D(mobj_t *mobj1, mobj_t *mobj2, fixed_t mindist);
+boolean P_AreMobjsFar3D(mobj_t *mobj1, mobj_t *mobj2, fixed_t mindist);
+fixed_t P_GetMobjMomentum2D(mobj_t *mobj);
+fixed_t P_GetMobjMomentum3D(mobj_t *mobj);
 
 #endif // __P_LOCAL__

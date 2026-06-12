@@ -1,7 +1,7 @@
 // SONIC ROBO BLAST 2
 //-----------------------------------------------------------------------------
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2024 by Sonic Team Junior.
+// Copyright (C) 1999-2025 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -25,6 +25,7 @@
 #include "g_game.h" // Joystick axes (for lua)
 #include "i_joy.h"
 #include "g_input.h" // Game controls (for lua)
+#include "p_maputl.h" // P_PathTraverse constants (for lua)
 
 #include "deh_tables.h"
 
@@ -4575,6 +4576,7 @@ const char *const MSF_LIST[] = {
 	"TRIGGERSPECIAL_HEADBUMP",
 	"TRIGGERLINE_PLANE",
 	"TRIGGERLINE_MOBJ",
+	"MSF_INVERTPRECIP",
 	"GRAVITYFLIP",
 	"HEATWAVE",
 	"NOCLIPCAMERA",
@@ -5006,6 +5008,7 @@ struct int_const_s const INT_CONST[] = {
 
 	// doomdef.h constants
 	{"TICRATE",TICRATE},
+	{"TR",TICRATE},
 	{"MUSICRATE",MUSICRATE},
 	{"RING_DIST",RING_DIST},
 	{"PUSHACCEL",PUSHACCEL},
@@ -5040,6 +5043,7 @@ struct int_const_s const INT_CONST[] = {
 	{"FF_ANIMATE",FF_ANIMATE},
 	{"FF_RANDOMANIM",FF_RANDOMANIM},
 	{"FF_GLOBALANIM",FF_GLOBALANIM},
+	{"FF_BRIGHTMASK",FF_BRIGHTMASK},
 	{"FF_FULLBRIGHT",FF_FULLBRIGHT},
 	{"FF_SEMIBRIGHT",FF_SEMIBRIGHT},
 	{"FF_FULLDARK",FF_FULLDARK},
@@ -5053,6 +5057,7 @@ struct int_const_s const INT_CONST[] = {
 	{"FF_SUBTRACT",FF_SUBTRACT},
 	{"FF_REVERSESUBTRACT",FF_REVERSESUBTRACT},
 	{"FF_MODULATE",FF_MODULATE},
+	{"FF_OVERLAY",FF_OVERLAY},
 	{"FF_TRANSMASK",FF_TRANSMASK},
 	{"FF_TRANSSHIFT",FF_TRANSSHIFT},
 	// new preshifted translucency (used in source)
@@ -5260,6 +5265,7 @@ struct int_const_s const INT_CONST[] = {
 	{"SF_DASHMODE",SF_DASHMODE},
 	{"SF_FASTWAIT",SF_FASTWAIT},
 	{"SF_FASTEDGE",SF_FASTEDGE},
+	{"SF_JETFUME",SF_JETFUME},
 	{"SF_MULTIABILITY",SF_MULTIABILITY},
 	{"SF_NONIGHTSROTATION",SF_NONIGHTSROTATION},
 	{"SF_NONIGHTSSUPER",SF_NONIGHTSSUPER},
@@ -5548,11 +5554,6 @@ struct int_const_s const INT_CONST[] = {
 	{"POF_NOSPECIALS",POF_NOSPECIALS},             ///< Don't apply sector specials.
 	{"POF_SPLAT",POF_SPLAT},                       ///< Use splat flat renderer (treat cyan pixels as invisible).
 
-#ifdef HAVE_LUA_SEGS
-	// Node flags
-	{"NF_SUBSECTOR",NF_SUBSECTOR}, // Indicate a leaf.
-#endif
-
 	// Slope flags
 	{"SL_NOPHYSICS",SL_NOPHYSICS},
 	{"SL_DYNAMIC",SL_DYNAMIC},
@@ -5641,6 +5642,7 @@ struct int_const_s const INT_CONST[] = {
 	{"CV_HIDDEN",CV_HIDEN},
 	{"CV_CHEAT",CV_CHEAT},
 	{"CV_ALLOWLUA",CV_ALLOWLUA},
+	{"CV_MENU",CV_MENU},
 
 	// v_video flags
 	{"V_NOSCALEPATCH",V_NOSCALEPATCH},
@@ -5713,6 +5715,7 @@ struct int_const_s const INT_CONST[] = {
 	{"KR_TIMEOUT",KR_TIMEOUT},
 	{"KR_BAN",KR_BAN},
 	{"KR_LEAVE",KR_LEAVE},
+	{"KR_IDLE",KR_IDLE},
 
 	// translation colormaps
 	{"TC_DEFAULT",TC_DEFAULT},
@@ -5722,6 +5725,13 @@ struct int_const_s const INT_CONST[] = {
 	{"TC_RAINBOW",TC_RAINBOW},
 	{"TC_BLINK",TC_BLINK},
 	{"TC_DASHMODE",TC_DASHMODE},
+
+	// level exit flags
+	{"EXITMAP_SKIPSTATS",EXITMAP_SKIPSTATS},
+	{"EXITMAP_SKIPCUTSCENE",EXITMAP_SKIPCUTSCENE},
+	{"EXITMAP_SKIPSPECIAL",EXITMAP_SKIPSPECIAL},
+	{"EXITMAP_SKIPRECORDS",EXITMAP_SKIPRECORDS},
+	{"EXITMAP_NOTIMEATTACK",EXITMAP_NOTIMEATTACK},
 
 	// marathonmode flags
 	{"MA_INIT",MA_INIT},
@@ -5828,6 +5838,11 @@ struct int_const_s const INT_CONST[] = {
 	{"MB_BUTTON8",MB_BUTTON8},
 	{"MB_SCROLLUP",MB_SCROLLUP},
 	{"MB_SCROLLDOWN",MB_SCROLLDOWN},
+
+	// P_PathTraverse constants
+	{"PT_ADDLINES",PT_ADDLINES},
+	{"PT_ADDTHINGS",PT_ADDTHINGS},
+	{"PT_EARLYOUT",PT_EARLYOUT},
 
 	// screen.h constants
 	{"BASEVIDWIDTH",BASEVIDWIDTH},
