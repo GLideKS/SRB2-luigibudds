@@ -77,12 +77,16 @@ It works without any additional assets, just copy the build to your existing SRB
 - Highlighting with shift+left/right arrow keys is now supported.
 - - Deleting and inserting over them does too.
 - Various CTRL modifiers:
-- - CTRL+Up arrow key or mouse wheel to move to the top of the log,
-- - CTRL+Down arrow key or mouse wheel to move to the bottom of the log,
+- - CTRL+Up arrow key (Or just PageUp) or mouse wheel to move to the top of the log *(This is exclusive to Windowed mode!)*,
+- - CTRL+Down arrow key (Or just PageDown) or mouse wheel to move to the bottom of the log *(This is exclusive to Windowed mode!)*,
 - - CTRL+W to wipe chat input (i.e, basically a shorter variant of CTRL+A+BACKSPACE),
 - - CTRL+Backspace to delete a whole word,
 - - CTRL+DEL to delete a whole word infront of the cursor,
-- - CTRL+R to clear the chat display *(This is exclusive to Windowed mode!)*
+- - CTRL+R to clear the chat display *(This is exclusive to Windowed mode!)*,
+- - CTRL+T to quickswitch between sayteam and normal say,
+- - CTRL+Left arrow key to skip a whole word infront of the cursor, CTRL+Right for behind the cursor,
+- - - You can also highlight while doing this by holding shift.
+- the Home and End keys now works in chat (including their shift modifiers).
 - `chat_showlimit` to show character count and max allowed.
 - `chat_clearonexit` can be turned off to only clear chat input once you send a message instead of also clearing it on exit.
 - `chatcursor` changes the appearance of the chat cursor. (_ or |)
