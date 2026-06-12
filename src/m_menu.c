@@ -186,8 +186,8 @@ static tic_t keydown = 0;
 static huddrawlist_h luahuddrawlist_playersetup;
 
 //Addons Menu: Local mode
+#define LOCALMODE_KEY KEY_RALT
 static void M_LocalAddons(INT32 choice);
-const INT32 LOCALMODE_KEY = KEY_RALT;
 static boolean addons_localmode = false;
 
 //
