@@ -1360,11 +1360,13 @@ boolean HU_Responder(event_t *ev)
 				{
 					if (c_selection == c_input) // no selection, move the cursor
 					{
-						c_selection = (c_input = max((INT32)c_input - 1, 0));
+						c_input = max((INT32)c_input - 1, 0);
+						c_selection = c_input;
 					}
 					else // was selecting, move the cursor to the start of the selection
 					{
-						c_selection = (c_input = min(c_input, c_selection));
+						c_input = min(c_input, c_selection);
+						c_selection = c_input;
 					}
 				}
 
@@ -1383,11 +1385,13 @@ boolean HU_Responder(event_t *ev)
 				{
 					if (c_selection == c_input) // no selection, move the cursor
 					{
-						c_selection = (c_input = min(c_input + 1, strlen(w_chat)));
+						c_input = min(c_input + 1, strlen(w_chat));
+						c_selection = c_input;
 					}
 					else // was selecting, move the cursor to the end of the selection
 					{
-						c_selection = (c_input = max(c_input, c_selection));
+						c_input = max(c_input, c_selection);
+						c_selection = c_input;
 					}
 				}
 
