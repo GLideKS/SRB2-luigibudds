@@ -22,6 +22,7 @@
 #include "netcode/d_clisrv.h"
 #include "netcode/net_command.h"
 #include "netcode/gamestate.h"
+#include "netcode/tic_command.h"
 
 #include "g_game.h"
 #include "g_input.h"
@@ -1856,7 +1857,7 @@ void HU_Drawer(void)
 //
 // HU_drawPing
 //
-void HU_drawPing(INT32 x, INT32 y, UINT32 ping, boolean notext, INT32 flags)
+void HU_drawPing(INT32 x, INT32 y, UINT32 ping, boolean notext, INT32 flags, INT32 pnum)
 {
 	UINT8 numbars = 0; // how many ping bars do we draw?
 	UINT8 barcolor = 31; // color we use for the bars (green, yellow, red or black)
@@ -1864,6 +1865,10 @@ void HU_drawPing(INT32 x, INT32 y, UINT32 ping, boolean notext, INT32 flags)
 	SINT8 yoffset = 6;
 	INT32 dx = x+1 - (V_SmallStringWidth(va("%dms", ping),
 				V_ALLOWLOWERCASE|flags)/2);
+
+	const boolean gentleman = (cv_mindelay.value && (ping < G_TicsToMilliseconds((tic_t)simulated_lag))) && (pnum == consoleplayer || pnum == secondarydisplayplayer);
+	if (gentleman)
+		ping = G_TicsToMilliseconds((tic_t)simulated_lag);
 
 	if (ping < 128)
 	{
@@ -1880,6 +1885,8 @@ void HU_drawPing(INT32 x, INT32 y, UINT32 ping, boolean notext, INT32 flags)
 		numbars = 1;
 		barcolor = 35;
 	}
+	if (gentleman)
+		barcolor = 194;
 
 	if (ping < UINT32_MAX && (!notext || vid.width >= 640)) // how sad, we're using a shit resolution.
 		V_DrawSmallString(dx, y+4, V_ALLOWLOWERCASE|flags, va("%dms", ping));
@@ -1922,7 +1929,7 @@ void HU_DrawTabRankings(INT32 x, INT32 y, playersort_t *tab, INT32 scorelines, I
 		if (!splitscreen) // don't draw it on splitscreen,
 		{
 			if (tab[i].num != serverplayer)
-				HU_drawPing(x + 253, y, players[tab[i].num].quittime ? UINT32_MAX : playerpingtable[tab[i].num], false, 0);
+				HU_drawPing(x + 253, y, players[tab[i].num].quittime ? UINT32_MAX : playerpingtable[tab[i].num], false, 0, tab[i].num);
 			//else
 			//	V_DrawSmallString(x+ 246, y+4, MENUCOLOR, "SERVER");
 		}
@@ -2123,7 +2130,7 @@ static void HU_Draw32TeamTabRankings(playersort_t *tab, INT32 whiteplayer)
 		if (!splitscreen)
 		{
 			if (tab[i].num != serverplayer)
-				HU_drawPing(x + 135, y+1, players[tab[i].num].quittime ? UINT32_MAX : playerpingtable[tab[i].num], true, 0);
+				HU_drawPing(x + 135, y+1, players[tab[i].num].quittime ? UINT32_MAX : playerpingtable[tab[i].num], true, 0, tab[i].num);
 			//else
 				//V_DrawSmallString(x+ 129, y+4, MENUCOLOR, "HOST");
 		}
@@ -2248,7 +2255,7 @@ void HU_DrawTeamTabRankings(playersort_t *tab, INT32 whiteplayer)
 		if (!splitscreen)
 		{
 			if (tab[i].num != serverplayer)
-				HU_drawPing(x+ 113, y, players[tab[i].num].quittime ? UINT32_MAX : playerpingtable[tab[i].num], false, 0);
+				HU_drawPing(x+ 113, y, players[tab[i].num].quittime ? UINT32_MAX : playerpingtable[tab[i].num], false, 0, tab[i].num);
 			//else
 			//	V_DrawSmallString(x+ 94, y+4, MENUCOLOR, "SERVER");
 		}
@@ -2279,7 +2286,7 @@ void HU_DrawDualTabRankings(INT32 x, INT32 y, playersort_t *tab, INT32 scoreline
 
 		strlcpy(name, tab[i].name, 12);
 		if (tab[i].num != serverplayer)
-			HU_drawPing(x+ 113, y, players[tab[i].num].quittime ? UINT32_MAX : playerpingtable[tab[i].num], false, 0);
+			HU_drawPing(x+ 113, y, players[tab[i].num].quittime ? UINT32_MAX : playerpingtable[tab[i].num], false, 0, tab[i].num);
 		//else
 		//	V_DrawSmallString(x+ 94, y+4, MENUCOLOR, "SERVER");
 
@@ -2388,7 +2395,7 @@ static void HU_Draw32TabRankings(INT32 x, INT32 y, playersort_t *tab, INT32 scor
 		if (!splitscreen) // don't draw it on splitscreen,
 		{
 			if (tab[i].num != serverplayer)
-				HU_drawPing(x+ 135, y+1, players[tab[i].num].quittime ? UINT32_MAX : playerpingtable[tab[i].num], true, 0);
+				HU_drawPing(x+ 135, y+1, players[tab[i].num].quittime ? UINT32_MAX : playerpingtable[tab[i].num], true, 0, tab[i].num);
 			//else
 			//	V_DrawSmallString(x+ 129, y+4, MENUCOLOR, "HOST");
 		}
