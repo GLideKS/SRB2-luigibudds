@@ -419,47 +419,6 @@ void Net_UnAcknowledgePacket(INT32 node)
 		nodes[node].firstacktosend = UINT8_MAX;
 }
 
-/** Checks if all acks have been received
-  *
-  * \return True if all acks have been received
-  *
-  */
-static boolean Net_AllAcksReceived(void)
-{
-	for (INT32 nodei = 0; nodei < numnetnodes; nodei++)
-	{
-		for (INT32 i = 0; i < MAXACKPACKETS; i++)
-			if (nodes[nodei].ackpak[i].acknum)
-				return false;
-	}
-
-	return true;
-}
-
-/** Waits for all ackreturns
-  *
-  * \param timeout Timeout in seconds
-  *
-  */
-void Net_WaitAllAckReceived(UINT32 timeout)
-{
-	tic_t tictac = I_GetTime();
-	timeout = tictac + timeout*NEWTICRATE;
-
-	HGetPacket(NULL);
-	while (timeout > I_GetTime() && !Net_AllAcksReceived())
-	{
-		while (tictac == I_GetTime())
-		{
-			I_Sleep(cv_sleep.value);
-			I_UpdateTime(cv_timescale.value);
-		}
-		tictac = I_GetTime();
-		HGetPacket(NULL);
-		Net_AckTicker();
-	}
-}
-
 static void InitNode(node_t *node)
 {
 	node->firstacktosend = 0;
@@ -1098,7 +1057,7 @@ void D_CloseConnection(void)
 	if (netgame)
 	{
 		// wait the ackreturn with timout of 5 Sec
-		Net_WaitAllAckReceived(5);
+		// Net_WaitAllAckReceived(5);
 
 		// close all connection
 		for (INT32 i = 0; i < MAXNETNODES; i++)
