@@ -1397,7 +1397,7 @@ boolean HU_Responder(event_t *ev)
 
 				return true;
 			case KEY_BACKSPACE:
-				if (CHAT_MUTE || c_input <= 0)
+				if (CHAT_MUTE || (c_input == 0 && c_selection == c_input))
 					return true;
 
 				hu_tick = 0;
@@ -1415,7 +1415,7 @@ boolean HU_Responder(event_t *ev)
 
 				return true;
 			case KEY_DEL:
-				if (CHAT_MUTE || c_input >= strlen(w_chat))
+				if (CHAT_MUTE || (c_input >= strlen(w_chat) && c_selection == c_input))
 					return true;
 
 				hu_tick = 0;
