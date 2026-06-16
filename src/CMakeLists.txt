@@ -190,9 +190,15 @@ if("${SRB2_CONFIG_USE_GME}")
 	endif()
 endif()
 
-target_link_libraries(SRB2SDL2 PRIVATE webm::libwebm webm::libvpx)
+target_link_libraries(SRB2SDL2 PRIVATE webm::libwebm_mkvmuxer)
 target_link_libraries(SRB2SDL2 PRIVATE libyuv::libyuv)
 target_link_libraries(SRB2SDL2 PRIVATE Vorbis::vorbis Vorbis::vorbisenc)
+#target_link_libraries(SRB2SDL2 PRIVATE Ogg::ogg)
+if(unofficial-libvpx_FOUND)
+	target_link_libraries(SRB2SDL2 PRIVATE unofficial::libvpx::libvpx)
+else()
+	target_link_libraries(SRB2SDL2 PRIVATE libvpx::libvpx)
+endif()
 
 target_compile_definitions(SRB2SDL2 PRIVATE -D_LARGEFILE64_SOURCE)
 
