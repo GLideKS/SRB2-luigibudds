@@ -1517,37 +1517,37 @@ static menuitem_t OP_DataOptionsMenu[] =
 static menuitem_t OP_BanpyuraOptionsMenu[] =
 {
 	{IT_HEADER, 				NULL, "Heads-Up Display", 			            NULL,		   0},
-	{IT_STRING | IT_CVAR,		NULL, "Wipes",       					   &cv_wipes,          10},
-	{IT_STRING | IT_CVAR,		NULL, "Menu Caps",       			    &cv_menucaps,          15},
-	{IT_STRING | IT_CVAR,		NULL, "Menu Text Color",       	       &cv_menucolor,          20},
-	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          25},
+	{IT_STRING | IT_CVAR,		NULL, "Screen Fades",       			   &cv_wipes,          6},
+	{IT_STRING | IT_CVAR,		NULL, "Uppercase Menus",       			&cv_menucaps,          11},
+	{IT_STRING | IT_CVAR,		NULL, "Menu Text Color",       	       &cv_menucolor,          16},
+	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          21},
 
-	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   35},
-	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          45},
-	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's delay",       	  &cv_gentlemens,          50},
+	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   31},
+	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          37},
+	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's Delay",       	  &cv_gentlemens,          42},
 
-	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			            		NULL,		   60},
-	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,         70},
+	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			        NULL,		   52},
+	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,          58},
 };
 
 static menuitem_t OP_P1BanpyuraOptionsMenu[] =
 {
 	{IT_HEADER, 				NULL, "Heads-Up Display", 			            NULL,		   0},
-	{IT_STRING | IT_CVAR,		NULL, "Inverted Crosshairs",    &cv_crosshair_invert,          10},
+	{IT_STRING | IT_CVAR,		NULL, "Inverted Crosshairs",    &cv_crosshair_invert,          6},
 
-	{IT_HEADER, 				NULL, "Camera", 								NULL,		   20},
-	{IT_STRING | IT_CVAR, 		NULL, "Exact Looking", 				   &cv_cam_exact,		   30},
-	{IT_STRING | IT_CVAR, 		NULL, "Camera Clipping", 			&cv_cam_clipping,		   35},
+	{IT_HEADER, 				NULL, "Camera", 								NULL,		   16},
+	{IT_STRING | IT_CVAR, 		NULL, "Exact Aiming", 				   &cv_cam_exact,		   22},
+	{IT_STRING | IT_CVAR, 		NULL, "Clipping Style", 			&cv_cam_clipping,		   27},
 };
 
 static menuitem_t OP_P2BanpyuraOptionsMenu[] =
 {
 	{IT_HEADER, 				NULL, "Heads-Up Display", 			            NULL,		   0},
-	{IT_STRING | IT_CVAR,		NULL, "Inverted Crosshairs",    &cv_crosshair2_invert,          10},
+	{IT_STRING | IT_CVAR,		NULL, "Inverted Crosshairs",    &cv_crosshair2_invert,         6},
 
-	{IT_HEADER, 				NULL, "Camera", 								NULL,		   20},
-	{IT_STRING | IT_CVAR, 		NULL, "Exact Looking", 				   &cv_cam2_exact,		   30},
-	{IT_STRING | IT_CVAR, 		NULL, "Camera Clipping", 			&cv_cam2_clipping,		   35},
+	{IT_HEADER, 				NULL, "Camera", 								NULL,		   16},
+	{IT_STRING | IT_CVAR, 		NULL, "Exact Aiming", 				   &cv_cam2_exact,		   22},
+	{IT_STRING | IT_CVAR, 		NULL, "Clipping Style", 			&cv_cam2_clipping,		   27},
 };
 
 //End of Banpyura Options
