@@ -15,6 +15,7 @@
 #include "byteptr.h"
 #include "hu_stuff.h"
 
+#include "doomtype.h"
 #include "m_menu.h" // gametype_cons_t
 #include "m_cond.h" // emblems
 #include "m_misc.h" // word jumping
@@ -1866,7 +1867,7 @@ void HU_drawPing(INT32 x, INT32 y, UINT32 ping, boolean notext, INT32 flags, INT
 	INT32 dx = x+1 - (V_SmallStringWidth(va("%dms", ping),
 				V_ALLOWLOWERCASE|flags)/2);
 
-	const boolean gentleman = (cv_mindelay.value && (ping < G_TicsToMilliseconds((tic_t)simulated_lag))) && (pnum == consoleplayer || pnum == secondarydisplayplayer);
+	const boolean gentleman = (cv_mindelay.value && (ping < (UINT32)G_TicsToMilliseconds((tic_t)simulated_lag))) && (pnum == consoleplayer || pnum == secondarydisplayplayer);
 	if (gentleman)
 		ping = G_TicsToMilliseconds((tic_t)simulated_lag);
 
