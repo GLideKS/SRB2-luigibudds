@@ -83,6 +83,7 @@
 #include "../lua_libs.h"
 #include "../lua_hook.h"
 #include "sdlmain.h"
+#include "../netcode/tic_command.h" // simulated_lag
 #ifdef HWRENDER
 #include "../hardware/hw_main.h"
 #include "../hardware/hw_drv.h"
@@ -92,7 +93,7 @@
 #endif
 
 // maximum number of windowed modes (see windowedModes[][])
-#define MAXWINMODES (21)
+#define MAXWINMODES (22)
 
 /**	\brief
 */
@@ -166,6 +167,7 @@ static INT32 windowedModes[MAXWINMODES][2] =
 	{1600, 900}, // 1.66
 	{1536, 864}, // 1.66,4.80
 	{1366, 768}, // 1.66
+	{1360, 768}, // 1.66
 	{1440, 900}, // 1.60,4.50
 	{1280,1024}, // 1.33?
 	{1280, 960}, // 1.33,4.00
@@ -1309,7 +1311,10 @@ void I_FinishUpdate(void)
 	if (cv_ticrate.value)
 		SCR_DisplayTicRate();
 
-	if (cv_showping.value && netgame && consoleplayer != serverplayer)
+	if (cv_showping.value && (
+		(netgame && consoleplayer != serverplayer)
+		|| (simulated_lag != 0 && consoleplayer == serverplayer && Playing())
+	))
 		SCR_DisplayLocalPing();
 
 	if (rendermode == render_soft && screens[0])

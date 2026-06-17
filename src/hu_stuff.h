@@ -108,7 +108,8 @@ void HU_Ticker(void);
 void HU_Drawer(void);
 char HU_dequeueChatChar(void);
 void HU_clearChatChars(void);
-void HU_drawPing(INT32 x, INT32 y, UINT32 ping, boolean notext, INT32 flags);	// Lat': Ping drawer for scoreboard.
+float HU_pingMSToDelay(UINT32 ping);
+void HU_drawPing(INT32 x, INT32 y, UINT32 ping, boolean notext, INT32 flags, INT32 pnum);	// Lat': Ping drawer for scoreboard.
 void HU_DrawTabRankings(INT32 x, INT32 y, playersort_t *tab, INT32 scorelines, INT32 whiteplayer);
 void HU_DrawTeamTabRankings(playersort_t *tab, INT32 whiteplayer);
 void HU_DrawDualTabRankings(INT32 x, INT32 y, playersort_t *tab, INT32 scorelines, INT32 whiteplayer);

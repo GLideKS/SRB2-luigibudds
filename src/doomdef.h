@@ -674,7 +674,7 @@ extern int
 	compoptimized;
 
 // lift restrictions on adding multiple of the same file
-#define LIFT_FILE_RESTRICTIONS
+// #define LIFT_FILE_RESTRICTIONS
 
 // Disabled code and code under testing
 // None of these that are disabled in the normal build are guaranteed to work perfectly

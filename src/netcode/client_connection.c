@@ -58,7 +58,7 @@ static void DrawConnectionStatusBox(void)
 	if (cl_mode == CL_CONFIRMCONNECT || IsDownloadingFile())
 		return;
 
-	V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, V_YELLOWMAP|MENUCAPS, "Press ESC to abort");
+	V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, MENUCOLOR|MENUCAPS, "Press ESC to abort");
 }
 
 static void DrawFileProgress(fileneeded_t *file, int y)
@@ -153,7 +153,7 @@ static void CL_DrawConnectionStatus(void)
 				cltext = M_GetText("Connecting to server...");
 				break;
 		}
-		V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, V_YELLOWMAP|MENUCAPS, cltext);
+		V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, MENUCOLOR|MENUCAPS, cltext);
 	}
 	else
 	{
@@ -162,7 +162,7 @@ static void CL_DrawConnectionStatus(void)
 			INT32 totalfileslength;
 			INT32 loadcompletednum = 0;
 
-			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, V_YELLOWMAP|MENUCAPS, "Press ESC to abort");
+			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, MENUCOLOR|MENUCAPS, "Press ESC to abort");
 
 			// ima just count files here
 			if (fileneeded)
@@ -173,7 +173,7 @@ static void CL_DrawConnectionStatus(void)
 			}
 
 			// Loading progress
-			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, V_YELLOWMAP|MENUCAPS, "Loading server addons...");
+			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, MENUCOLOR|MENUCAPS, "Loading server addons...");
 			totalfileslength = (INT32)((loadcompletednum/(double)(fileneedednum)) * 256);
 			M_DrawTextBox(BASEVIDWIDTH/2-128-8, BASEVIDHEIGHT-16-8, 32, 1);
 			V_DrawFill(BASEVIDWIDTH/2-128, BASEVIDHEIGHT-16, 256, 8, 111);
@@ -186,7 +186,7 @@ static void CL_DrawConnectionStatus(void)
 			INT32 totalfileslength;
 			INT32 checkcompletednum = 0;
 
-			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, V_YELLOWMAP|MENUCAPS, "Press ESC to abort");
+			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, MENUCOLOR|MENUCAPS, "Press ESC to abort");
 
 			// ima just count files here
 			if (fileneeded)
@@ -197,7 +197,7 @@ static void CL_DrawConnectionStatus(void)
 			}
 
 			// Check progress
-			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, V_YELLOWMAP|MENUCAPS, "Checking server addon list...");
+			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, MENUCOLOR|MENUCAPS, "Checking server addon list...");
 			totalfileslength = (INT32)((checkcompletednum/(double)(fileneedednum)) * 256);
 			M_DrawTextBox(BASEVIDWIDTH/2-128-8, BASEVIDHEIGHT-16-8, 32, 1);
 			V_DrawFill(BASEVIDWIDTH/2-128, BASEVIDHEIGHT-16, 256, 8, 111);
@@ -254,7 +254,7 @@ static void CL_DrawConnectionStatus(void)
 			const char *download_str = M_GetText("Downloading \"%s\"");
 #endif
 
-			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, V_ALLOWLOWERCASE|V_YELLOWMAP|MENUCAPS,
+			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, V_ALLOWLOWERCASE|MENUCOLOR|MENUCAPS,
 				va(download_str, tempname));
 
 			// Rusty: actually lets do this instead
@@ -274,12 +274,12 @@ static void CL_DrawConnectionStatus(void)
 					strlcpy(tempname, http_source, sizeof(tempname));
 				}
 
-				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, V_ALLOWLOWERCASE|V_YELLOWMAP|MENUCAPS,
+				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, V_ALLOWLOWERCASE|MENUCOLOR|MENUCAPS,
 					va(M_GetText("from %s"), tempname));
 			}
 			else
 			{
-				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, V_ALLOWLOWERCASE|V_YELLOWMAP|MENUCAPS,
+				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-16, V_ALLOWLOWERCASE|MENUCOLOR|MENUCAPS,
 					M_GetText("from the server"));
 			}
 
@@ -291,7 +291,7 @@ static void CL_DrawConnectionStatus(void)
 				Snake_Draw(snake);
 
 			DrawConnectionStatusBox();
-			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, V_YELLOWMAP|MENUCAPS,
+			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, MENUCOLOR|MENUCAPS,
 				M_GetText("Waiting to download files..."));
 		}
 	}
@@ -1161,8 +1161,8 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 			if (fileneeded[0].status == FS_FOUND)
 			{
 				// Gamestate is now handled within CL_LoadReceivedSavegame()
-				CL_LoadReceivedSavegame(false);
-				cl_mode = CL_CONNECTED;
+				if (CL_LoadReceivedSavegame(false))
+					cl_mode = CL_CONNECTED;
 			} // don't break case continue to CL_CONNECTED
 			else
 				break;
@@ -1209,9 +1209,14 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 		if (gamekeydown[KEY_ESCAPE] || gamekeydown[KEY_JOY1+1] || cl_mode == CL_ABORTED)
 		{
 			CONS_Printf(M_GetText("Network game synchronization aborted.\n"));
-			M_StartMessage(M_GetText("Network game synchronization aborted.\n\nPress ESC\n"), NULL, MM_NOTHING);
+			// M_StartMessage(M_GetText("Network game synchronization aborted.\n\nPress ESC\n"), NULL, MM_NOTHING);
+
+			menu_t *menu = currentMenu;
 
 			AbortConnection();
+
+			if (menu == &MessageDef)
+				currentMenu = &MessageDef;
 
 			memset(gamekeydown, 0, NUMKEYS);
 			return false;

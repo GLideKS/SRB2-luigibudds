@@ -85,6 +85,16 @@ consvar_t cv_constextsize = CVAR_INIT ("con_textsize", "Medium", CV_SAVE|CV_CALL
 
 consvar_t cv_menucaps = CVAR_INIT ("menucaps", "On", CV_SAVE, CV_OnOff, NULL);
 
+static CV_PossibleValue_t menucolor_cons_t[] = {
+	{0, "White"},
+	{V_REDMAP, "Red"}, {V_ORANGEMAP, "Orange"}, {V_YELLOWMAP, "Yellow"},
+	{V_PERIDOTMAP, "Peridot"}, {V_GREENMAP, "Green"}, {V_AQUAMAP, "Aqua"},
+	{V_SKYMAP, "Sky"}, {V_AZUREMAP, "Azure"}, {V_BLUEMAP, "Blue"},
+	{V_PURPLEMAP, "Purple"}, {V_MAGENTAMAP, "Magenta"}, {V_ROSYMAP, "Rosy"},
+	{V_BROWNMAP, "Brown"}, {V_GRAYMAP, "Gray"}, {V_INVERTMAP, "Inverted"},
+	{0, NULL} };
+consvar_t cv_menucolor = CVAR_INIT("menucolor", "Yellow", CV_SAVE, menucolor_cons_t, NULL);
+
 // local copy of the palette for V_GetColor()
 RGBA_t *pLocalPalette = NULL;
 RGBA_t *pMasterPalette = NULL;
@@ -1096,6 +1106,30 @@ void V_DrawBlock(INT32 x, INT32 y, INT32 scrn, INT32 width, INT32 height, const 
 			return;
 	}
 }
+//
+// Converts a Video Flag to the matching palette index defined in the function
+//
+int V_VMAPToPaletteIndex(INT32 v_map)
+{
+	switch (v_map) {
+		case V_REDMAP: return 34; break;    	// Red
+		case V_ORANGEMAP: return 52; break;  	// Orange
+		case V_YELLOWMAP: return 73; break;  	// Yellow
+		case V_PERIDOTMAP: return 188; break;	// Peridot
+		case V_GREENMAP: return 98; break;   	// Green
+		case V_AQUAMAP: return 122; break;   	// Aqua
+		case V_SKYMAP: return 131; break;    	// Sky
+		case V_AZUREMAP: return 146; break;  	// Azure
+		case V_BLUEMAP: return 149; break;   	// Blue
+		case V_PURPLEMAP: return 162; break; 	// Purple
+		case V_MAGENTAMAP: return 178; break;	// Magenta
+		case V_ROSYMAP: return 201; break;   	// Rosy
+		case V_BROWNMAP: return 226; break;  	// Brown
+		case V_GRAYMAP: return 12; break;    	// Gray
+		case V_INVERTMAP: return 29; break;  	// Inverted
+		default:          return 0;   break; 	// White
+	}
+}
 
 //
 // Fills a box of pixels with a single color, NOTE: scaled to screen size
@@ -1300,7 +1334,7 @@ static UINT32 V_GetHWConsBackColor(void)
 	switch (cons_backcolor.value)
 	{
 		case 0:		r = 0xff; g = 0xff; b = 0xff;	break; 	// White
-		case 1:		r = 0x80; g = 0x80; b = 0x80;	break; 	// Black
+		case 1:		r = 0x01; g = 0x01; b = 0x01;	break; 	// Black -- it was gray, not totally black
 		case 2:		r = 0xde; g = 0xb8; b = 0x87;	break;	// Sepia
 		case 3:		r = 0x40; g = 0x20; b = 0x10;	break; 	// Brown
 		case 4:		r = 0xfa; g = 0x80; b = 0x72;	break; 	// Pink
@@ -1318,6 +1352,7 @@ static UINT32 V_GetHWConsBackColor(void)
 		case 16:	r = 0x00; g = 0x00; b = 0xff;	break; 	// Blue
 		case 17:	r = 0xff; g = 0x00; b = 0xff;	break; 	// Purple
 		case 18:	r = 0xee; g = 0x82; b = 0xee;	break; 	// Lavender
+		case 19:	r = 0x80; g = 0x80; b = 0x80;	break; 	// Gray
 		// Default green
 		default:	r = 0x00; g = 0x80; b = 0x00;	break;
 	}
@@ -1863,6 +1898,7 @@ void V_DrawPromptBack(INT32 boxheight, INT32 color)
 			case 16:	hwcolor = 0x0000ff00;	break; 	// Blue
 			case 17:	hwcolor = 0xff00ff00;	break; 	// Purple
 			case 18:	hwcolor = 0xee82ee00;	break; 	// Lavender
+			case 19:	hwcolor = 0x80808000;	break; 	// Gray
 			// Default green
 			default:	hwcolor = 0x00800000;	break;
 		}

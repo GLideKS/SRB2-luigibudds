@@ -141,6 +141,9 @@ void HWR_Lighting(FSurfaceInfo *Surface, INT32 light_level, extracolormap_t *col
 	tint_color.rgba = (colormap != NULL) ? (UINT32)colormap->rgba : 0x00000000;
 	fade_color.rgba = (colormap != NULL) ? (UINT32)colormap->fadergba : 0xFF000000;
 
+	// Clamp the light level, since it can sometimes go out of the 0-255 range from animations
+	light_level = min(max(light_level, cv_secbright.value), 255);
+
 	// Crappy backup coloring if you can't do shaders
 	if (!HWR_UseShader())
 	{
@@ -177,9 +180,6 @@ void HWR_Lighting(FSurfaceInfo *Surface, INT32 light_level, extracolormap_t *col
 		poly_color.s.green = (UINT8)green;
 		poly_color.s.blue = (UINT8)blue;
 	}
-
-	// Clamp the light level, since it can sometimes go out of the 0-255 range from animations
-	light_level = min(max(light_level, 0), 255);
 
 	V_CubeApply(&tint_color.s.red, &tint_color.s.green, &tint_color.s.blue);
 	V_CubeApply(&fade_color.s.red, &fade_color.s.green, &fade_color.s.blue);
@@ -311,8 +311,8 @@ static FUINT HWR_CalcSlopeLight(FUINT lightnum, angle_t dir, fixed_t delta)
 
 static UINT8 HWR_SideLightLevel(side_t *side, INT16 base_lightlevel)
 {
-	return max(0, min(255, side->light +
-		((side->lightabsolute) ? 0 : base_lightlevel)));
+	return (max(max(0, cv_secbright.value), min(255, side->light +
+		((side->lightabsolute) ? 0 : base_lightlevel))));
 }
 
 /* TODO: implement per-texture lighting
@@ -2937,6 +2937,7 @@ static void HWR_DrawDropShadow(mobj_t *thing, fixed_t scale)
 	{
 		shader = SHADER_SPRITE;
 		blendmode |= PF_ColorMapped;
+		sSurf.LightInfo.light_level = 0;
 	}
 
 	HWR_ProcessPolygon(&sSurf, shadowVerts, 4, blendmode, shader, false);
@@ -3315,6 +3316,7 @@ static void HWR_DrawBoundingBox(gl_vissprite_t *vis)
 {
 	FOutVector v[24];
 	FSurfaceInfo Surf = {0};
+	RGBA_t *palette = HWR_GetTexturePalette();
 
 	//
 	// create a cube (side view)
@@ -3354,7 +3356,7 @@ static void HWR_DrawBoundingBox(gl_vissprite_t *vis)
 	v[ 3].y = v[ 4].y = v[ 5].y = v[ 9].y = v[10].y = v[11].y =
 		v[15].y = v[16].y = v[17].y = v[21].y = v[22].y = v[23].y = vis->gzt; // top
 
-	Surf.PolyColor = V_GetColor(R_GetBoundingBoxColor(vis->mobj));
+	Surf.PolyColor = palette[R_GetBoundingBoxColor(vis->mobj)];
 
 	HWR_ProcessPolygon(&Surf, v, 24, (cv_renderhitboxgldepth.value ? 0 : PF_NoDepthTest)|PF_Modulated|PF_NoTexture|PF_WireFrame, SHADER_NONE, false);
 }
@@ -3422,7 +3424,7 @@ static void HWR_DrawSprite(gl_vissprite_t *spr)
 		renderflags_t renderflags = spr->renderflags;
 
 		if (spr->rotateflags & SRF_3D || renderflags & RF_NOSPLATBILLBOARD)
-			angle = spr->mobj->angle;
+			angle = spr->mobj->player ? R_InterpolateAngle(spr->mobj->old_angle, spr->mobj->angle) : spr->angle;
 		else
 			angle = viewangle;
 
@@ -3477,8 +3479,8 @@ static void HWR_DrawSprite(gl_vissprite_t *spr)
 		// Translate
 		for (i = 0; i < 4; i++)
 		{
-			wallVerts[i].x = rotated[i].x + FIXED_TO_FLOAT(spr->mobj->x);
-			wallVerts[i].z = rotated[i].y + FIXED_TO_FLOAT(spr->mobj->y);
+			wallVerts[i].x = rotated[i].x + spr->x1;
+			wallVerts[i].z = rotated[i].y + spr->z1;
 		}
 
 		if (renderflags & (RF_SLOPESPLAT | RF_OBJECTSLOPESPLAT))
@@ -5711,6 +5713,7 @@ static void CV_glmodellighting_OnChange(void);
 static void CV_glpaletterendering_OnChange(void);
 static void CV_glpalettedepth_OnChange(void);
 static void CV_glshaders_OnChange(void);
+static void CV_gllightdithering_OnChange(void);
 
 static CV_PossibleValue_t glfiltermode_cons_t[]= {{HWD_SET_TEXTUREFILTER_POINTSAMPLED, "Nearest"},
 	{HWD_SET_TEXTUREFILTER_BILINEAR, "Bilinear"}, {HWD_SET_TEXTUREFILTER_TRILINEAR, "Trilinear"},
@@ -5750,6 +5753,7 @@ static CV_PossibleValue_t glpalettedepth_cons_t[] = {{16, "16 bits"}, {24, "24 b
 
 consvar_t cv_glpaletterendering = CVAR_INIT ("gr_paletterendering", "On", CV_SAVE|CV_CALL, CV_OnOff, CV_glpaletterendering_OnChange);
 consvar_t cv_glpalettedepth = CVAR_INIT ("gr_palettedepth", "16 bits", CV_SAVE|CV_CALL, glpalettedepth_cons_t, CV_glpalettedepth_OnChange);
+consvar_t cv_gllightdither = CVAR_INIT ("gr_lightdithering", "Off", CV_SAVE|CV_CALL, CV_OnOff, CV_gllightdithering_OnChange);
 
 #define ONLY_IF_GL_LOADED if (vid.glstate != VID_GL_LIBRARY_LOADED) return;
 consvar_t cv_glwireframe = CVAR_INIT ("gr_wireframe", "Off", 0, CV_OnOff, NULL);
@@ -5803,6 +5807,15 @@ static void CV_glshaders_OnChange(void)
 	}
 }
 
+static void CV_gllightdithering_OnChange(void)
+{
+	ONLY_IF_GL_LOADED
+	if (gl_shadersavailable)
+	{
+		HWR_CompileShaders();
+	}
+}
+
 //added by Hurdler: console varibale that are saved
 void HWR_AddCommands(void)
 {
@@ -5832,6 +5845,7 @@ void HWR_AddCommands(void)
 
 	CV_RegisterVar(&cv_glpaletterendering);
 	CV_RegisterVar(&cv_glpalettedepth);
+	CV_RegisterVar(&cv_gllightdither);
 	CV_RegisterVar(&cv_glwireframe);
 }
 

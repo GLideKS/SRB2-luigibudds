@@ -117,6 +117,7 @@ extern consvar_t cv_showhud, cv_translucenthud, cv_moviemodeinfo;
 extern consvar_t cv_homremoval;
 extern consvar_t cv_chasecam, cv_chasecam2;
 extern consvar_t cv_flipcam, cv_flipcam2;
+extern consvar_t cv_menubgcolor;
 
 extern consvar_t cv_shadow;
 extern consvar_t cv_translucency;
@@ -127,6 +128,7 @@ extern consvar_t cv_renderview;
 extern consvar_t cv_renderhitbox, cv_renderhitboxinterpolation, cv_renderhitboxgldepth;
 extern consvar_t cv_renderwalls, cv_renderfloors, cv_renderthings;
 extern consvar_t cv_ffloorclip, cv_spriteclip;
+extern consvar_t cv_secbright;
 
 extern boolean r_renderwalls;
 extern boolean r_renderfloors;

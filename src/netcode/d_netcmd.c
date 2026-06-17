@@ -749,6 +749,8 @@ void D_RegisterClientCommands(void)
 	CV_RegisterVar(&cv_rollingdemos);
 	CV_RegisterVar(&cv_netstat);
 	CV_RegisterVar(&cv_netticbuffer);
+	CV_RegisterVar(&cv_mindelay);
+	CV_RegisterVar(&cv_gentlemens);
 
 #ifdef NETGAME_DEVMODE
 	CV_RegisterVar(&cv_fishcake);
@@ -809,6 +811,8 @@ void D_RegisterClientCommands(void)
 	CV_RegisterVar(&cv_chatnotifications);
 	CV_RegisterVar(&cv_crosshair);
 	CV_RegisterVar(&cv_crosshair2);
+	CV_RegisterVar(&cv_crosshair_invert);
+	CV_RegisterVar(&cv_crosshair2_invert);
 	CV_RegisterVar(&cv_alwaysfreelook);
 	CV_RegisterVar(&cv_alwaysfreelook2);
 	CV_RegisterVar(&cv_chasefreelook);
