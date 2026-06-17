@@ -1,5 +1,12 @@
 # Sonic Robo Blast 2 Banpyura
 
+> [!WARNING]
+> In order to keep track of the changes and identify future issues, **we're currently reimplementing all the necessary stuff from the ground up (some stuff will not be in)**, unlinking completely from SRB2-edit and taking SRB2's master branch as a base. 
+>
+> This plan is currently going and worked on `vanilla-master` branch, so that branch will be the default one once it's done.
+>
+> This repository also has `next` branch to have parity with SRB2 v2.2.16 nightly for when v2.2.16 comes out.
+
 A custom net-compatible build of SRB2 that includes a plethora of fixes, improvements, and new features.
 
 # Installation:
