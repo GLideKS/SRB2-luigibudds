@@ -1195,10 +1195,7 @@ boolean HU_Responder(event_t *ev)
 
 			I_SetTextInputMode(false);
 			chat_on = false;
-
-			if (cv_chat_clearonexit.value)
-				c_selection = c_input = 0; // reset cursor entirely
-
+			c_selection = c_input = 0; // reset cursor entirely
 			chat_scrollmedown = true; // you hit enter, so you might wanna autoscroll to see what you just sent. :)
 			I_UpdateMouseGrab();
 			return true; // Probably eat this...?
@@ -1247,7 +1244,7 @@ boolean HU_Responder(event_t *ev)
 					c_selection = (c_input += pastelen);
 					return true;
 				case 'c':
-					if (CHAT_MUTE || chatlen <= 0) // check length anyway for safetys sake
+					if (CHAT_MUTE || chatlen == 0) // check length anyway for safetys sake
 						return true;
 
 					// The following has been taken from console.c
@@ -1259,7 +1256,7 @@ boolean HU_Responder(event_t *ev)
 						I_ClipboardCopy(&w_chat[c_selection], c_input-c_selection);
 					return true;
 				case 'x':
-					if (CHAT_MUTE || chatlen <= 0) // check length anyway for safetys sake
+					if (CHAT_MUTE || chatlen == 0) // check length anyway for safetys sake
 						return true;
 
 					if (c_selection == c_input) // Nothing
@@ -1272,7 +1269,7 @@ boolean HU_Responder(event_t *ev)
 					Chat_DeleteSelection();
 					return true;
 				case 'a':
-					if (CHAT_MUTE || chatlen <= 0) // check length anyway for safetys sake
+					if (CHAT_MUTE || chatlen == 0) // check length anyway for safetys sake
 						return true;
 
 					c_selection = 0;
@@ -1315,7 +1312,7 @@ boolean HU_Responder(event_t *ev)
 			case KEY_PGUP:
 			case KEY_MOUSEWHEELUP:
 			case KEY_UPARROW:
-				if (!(chat_scroll > 0) || OLDCHAT)
+				if (chat_scroll == 0 || OLDCHAT)
 					return true;
 
 				if (ctrldown || c == KEY_PGUP)
@@ -1333,7 +1330,7 @@ boolean HU_Responder(event_t *ev)
 			case KEY_PGDN:
 			case KEY_MOUSEWHEELDOWN:
 			case KEY_DOWNARROW:
-				if (OLDCHAT || !(chat_scroll < chat_maxscroll && chat_maxscroll > 0))
+				if (OLDCHAT || chat_scroll > chat_maxscroll || chat_maxscroll == 0)
 					return true;
 
 				if (ctrldown || c == KEY_PGDN)
