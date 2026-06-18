@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <memory>
 
-#include <tcb/span.hpp>
+#include "tcb/span.hpp"
 
 namespace srb2::media
 {

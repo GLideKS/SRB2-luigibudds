@@ -10,9 +10,6 @@ target_sources(SRB2SDL2 PRIVATE
 	cfile.hpp
 	container.hpp
 	encoder.hpp
-	options.cpp
-	options.hpp
-	options_values.cpp
 	video_encoder.hpp
 	video_frame.hpp
 	vorbis.cpp

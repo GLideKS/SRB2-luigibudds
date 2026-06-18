@@ -7,16 +7,18 @@
 // See the 'LICENSE' file for more details.
 //-----------------------------------------------------------------------------
 
+#include <cassert>
 #include <filesystem>
 #include <sstream>
 #include <string>
 
-#include <fmt/format.h>
+// #include <fmt/format.h>
 
-#include "../cxxutil.hpp"
 #include "avrecorder_impl.hpp"
 
+extern "C" {
 #include "../v_video.h"
+}
 
 using namespace srb2::media;
 
@@ -38,37 +40,44 @@ void Impl::container_dtor_handler(const MediaContainer& container) const
 
 	if (max_size_ && container.size() > *max_size_)
 	{
-		const std::string line = fmt::format(
-			"Video size has exceeded limit {} > {} ({}%)."
+		// const std::string line = fmt::format(
+		// 	"Video size has exceeded limit {} > {} ({}%)."
+		// 	" This should not happen, please report this bug.\n",
+		// 	container.size(),
+		// 	*max_size_,
+		// 	100.f * (*max_size_ / static_cast<float>(container.size()))
+		// );
+
+		CONS_Alert(CONS_WARNING, "Video size has exceeded limit %lu > %lu (%f%%)."
 			" This should not happen, please report this bug.\n",
 			container.size(),
 			*max_size_,
-			100.f * (*max_size_ / static_cast<float>(container.size()))
-		);
-
-		CONS_Alert(CONS_WARNING, "%s\n", line.c_str());
+			100.f * (*max_size_ / static_cast<float>(container.size())));
 	}
 
-	std::ostringstream msg;
+	// std::ostringstream msg;
 
-	msg << "Video saved: " << std::filesystem::path(container.file_name()).filename().string()
-		<< fmt::format(" ({:.2f}", container.size() / kMb);
+	// msg << "Video saved: " << std::filesystem::path(container.file_name()).filename().string()
+	// 	<< fmt::format(" ({:.2f}", container.size() / kMb);
 
-	if (max_size_)
-	{
-		msg << fmt::format("/{:.2f}", *max_size_ / kMb);
-	}
+	// if (max_size_)
+	// {
+	// 	msg << fmt::format("/{:.2f}", *max_size_ / kMb);
+	// }
 
-	msg << fmt::format(" MB, {:.1f}", container.duration().count());
+	// msg << fmt::format(" MB, {:.1f}", container.duration().count());
 
-	if (max_duration_config_)
-	{
-		msg << fmt::format("/{:.1f}", max_duration_config_->count());
-	}
+	// if (max_duration_config_)
+	// {
+	// 	msg << fmt::format("/{:.1f}", max_duration_config_->count());
+	// }
 
-	msg << " seconds)";
+	// msg << " seconds)";
 
-	CONS_Printf("%s\n", msg.str().c_str());
+	CONS_Printf("Video saved: %s%s (%.2f/%.2f MB, %.1f/%.1f seconds)\n",
+		"movies/", std::filesystem::path(container.file_name()).filename().string().c_str(),
+		container.size() / kMb, *max_size_ / kMb,
+		container.duration().count(), max_duration_config_->count());
 }
 
 void AVRecorder::print_configuration() const
@@ -97,7 +106,7 @@ void AVRecorder::print_configuration() const
 
 void AVRecorder::draw_statistics() const
 {
-	SRB2_ASSERT(impl_->video_encoder_ != nullptr);
+	assert(impl_->video_encoder_ != nullptr);
 
 	auto draw = [](int x, std::string text, int32_t flags = 0)
 	{
@@ -143,7 +152,16 @@ void AVRecorder::draw_statistics() const
 		return 0;
 	}();
 
-	draw(200, fmt::format("{:.0f}", fps), fps_color);
-	draw(230, fmt::format("{:.1f}s", impl_->container_->duration().count()));
-	draw(260, fmt::format("{:.1f} MB", size / kMb), mb_color);
+	V_DrawThinString(
+		200, 190, (V_6WIDTHSPACE | V_ALLOWLOWERCASE | V_SNAPTOBOTTOM | V_SNAPTORIGHT) | fps_color,
+		va("%.0f", fps));
+	V_DrawThinString(
+		230, 190, (V_6WIDTHSPACE | V_ALLOWLOWERCASE | V_SNAPTOBOTTOM | V_SNAPTORIGHT),
+		va("%.1fs", impl_->container_->duration().count()));
+	V_DrawThinString(
+		260, 190, (V_6WIDTHSPACE | V_ALLOWLOWERCASE | V_SNAPTOBOTTOM | V_SNAPTORIGHT) | mb_color,
+		va("%.1f MB", size / kMb));
+	// draw(200, fmt::format("{:.0f}", fps), fps_color);
+	// draw(230, fmt::format("{:.1f}s", impl_->container_->duration().count()));
+	// draw(260, fmt::format("{:.1f} MB", size / kMb), mb_color);
 }

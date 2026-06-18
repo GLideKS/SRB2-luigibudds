@@ -7,6 +7,7 @@
 // See the 'LICENSE' file for more details.
 //-----------------------------------------------------------------------------
 
+#include <cassert>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -14,13 +15,14 @@
 #include <mutex>
 #include <stdexcept>
 
-#include <fmt/format.h>
-#include <tcb/span.hpp>
+// #include <fmt/format.h>
+#include "tcb/span.hpp"
 
-#include "../cxxutil.hpp"
 #include "vp8.hpp"
 #include "vpx_error.hpp"
 #include "yuv420p.hpp"
+
+#include "../m_avrecorder.h"
 
 using namespace srb2::media;
 
@@ -31,7 +33,7 @@ const vpx_codec_enc_cfg_t VP8Encoder::configure(const Config user)
 	vpx_codec_enc_cfg_t cfg;
 	vpx_codec_enc_config_default(kCodec, &cfg, 0);
 
-	cfg.g_threads = options_.get<int>("threads");
+	cfg.g_threads = cv_vp8_threads.value;
 
 	cfg.g_w = user.width;
 	cfg.g_h = user.height;
@@ -43,17 +45,17 @@ const vpx_codec_enc_cfg_t VP8Encoder::configure(const Config user)
 	cfg.g_timebase.den = user.frame_rate;
 
 	cfg.g_pass = VPX_RC_ONE_PASS;
-	cfg.rc_end_usage = static_cast<vpx_rc_mode>(options_.get<int>("quality_mode"));
+	cfg.rc_end_usage = static_cast<vpx_rc_mode>(cv_vp8_quality_mode.value);
 	cfg.kf_mode = VPX_KF_AUTO;
 
-	cfg.rc_target_bitrate = options_.get<int>("target_bitrate");
-	cfg.rc_min_quantizer = options_.get<int>("min_q");
-	cfg.rc_max_quantizer = options_.get<int>("max_q");
+	cfg.rc_target_bitrate = cv_vp8_target_bitrate.value;
+	cfg.rc_min_quantizer = cv_vp8_min_q.value;
+	cfg.rc_max_quantizer = cv_vp8_max_q.value;
 
 	// Keyframe spacing, in number of frames.
 	// kf_max_dist should be low enough to allow scrubbing.
 
-	int kf_max = options_.get<int>("kf_max");
+	int kf_max = cv_vp8_kf_max.value;
 
 	if (kf_max == static_cast<int>(KeyFrameOption::kAuto))
 	{
@@ -61,7 +63,7 @@ const vpx_codec_enc_cfg_t VP8Encoder::configure(const Config user)
 		kf_max = (user.frame_rate / 2); // every .5s
 	}
 
-	cfg.kf_min_dist = options_.get<int>("kf_min");
+	cfg.kf_min_dist = cv_vp8_kf_min.value;
 	cfg.kf_max_dist = kf_max;
 
 	return cfg;
@@ -69,12 +71,12 @@ const vpx_codec_enc_cfg_t VP8Encoder::configure(const Config user)
 
 VP8Encoder::VP8Encoder(Config config) : ctx_(config), img_(config.width, config.height), frame_rate_(config.frame_rate)
 {
-	SRB2_ASSERT(config.buffer_method == VideoFrame::BufferMethod::kEncoderAllocatedRGBA8888);
+	assert(config.buffer_method == VideoFrame::BufferMethod::kEncoderAllocatedRGBA8888);
 
-	control<int>(VP8E_SET_CPUUSED, "cpu_used");
-	control<int>(VP8E_SET_CQ_LEVEL, "cq_level");
-	control<int>(VP8E_SET_SHARPNESS, "sharpness");
-	control<int>(VP8E_SET_TOKEN_PARTITIONS, "token_parts");
+	control<int>(VP8E_SET_CPUUSED, &cv_vp8_cpu_used);
+	control<int>(VP8E_SET_CQ_LEVEL, &cv_vp8_cq_level);
+	control<int>(VP8E_SET_SHARPNESS, &cv_vp8_sharpness);
+	control<int>(VP8E_SET_TOKEN_PARTITIONS, &cv_vp8_token_parts);
 
 	auto plane = [this](int k, int ycs = 0)
 	{
@@ -99,7 +101,8 @@ VP8Encoder::CtxWrapper::CtxWrapper(const Config user)
 
 	if (vpx_codec_enc_init(&ctx_, kCodec, &cfg, 0) != VPX_CODEC_OK)
 	{
-		throw std::invalid_argument(fmt::format("vpx_codec_enc_init: {}", VpxError(ctx_)));
+		// throw std::invalid_argument(fmt::format("vpx_codec_enc_init: {}", VpxError(ctx_)));
+		throw std::invalid_argument("romoney5 TODO");
 	}
 }
 
@@ -123,7 +126,7 @@ VP8Encoder::ImgWrapper::~ImgWrapper()
 
 VideoFrame::instance_t VP8Encoder::new_frame(int width, int height, int pts)
 {
-	SRB2_ASSERT(frame_ != nullptr);
+	assert(frame_ != nullptr);
 
 	if (rgba_buffer_.resize(width, height))
 	{
@@ -148,8 +151,8 @@ void VP8Encoder::encode(VideoFrame::instance_t frame)
 	{
 		using T = YUV420pFrame;
 
-		SRB2_ASSERT(frame_ == nullptr);
-		SRB2_ASSERT(dynamic_cast<T*>(frame.get()) != nullptr);
+		assert(frame_ == nullptr);
+		assert(dynamic_cast<T*>(frame.get()) != nullptr);
 
 		frame_ = std::unique_ptr<T>(static_cast<T*>(frame.release()));
 	}
@@ -169,7 +172,8 @@ void VP8Encoder::encode(VideoFrame::instance_t frame)
 
 	if (vpx_codec_encode(ctx_, img_, frame_->pts(), 1, 0, deadline_) != VPX_CODEC_OK)
 	{
-		throw std::invalid_argument(fmt::format("VP8Encoder::encode: vpx_codec_encode: {}", VpxError(ctx_)));
+		// throw std::invalid_argument(fmt::format("VP8Encoder::encode: vpx_codec_encode: {}", VpxError(ctx_)));
+		throw std::invalid_argument("romoney5 TODO");
 	}
 
 	process();
@@ -181,7 +185,8 @@ void VP8Encoder::flush()
 	{
 		if (vpx_codec_encode(ctx_, nullptr, 0, 0, 0, 0) != VPX_CODEC_OK)
 		{
-			throw std::invalid_argument(fmt::format("VP8Encoder::flush: vpx_codec_encode: {}", VpxError(ctx_)));
+			// throw std::invalid_argument(fmt::format("VP8Encoder::flush: vpx_codec_encode: {}", VpxError(ctx_)));
+			throw std::invalid_argument("romoney5 TODO");
 		}
 	} while (process());
 }
@@ -223,13 +228,14 @@ bool VP8Encoder::process()
 }
 
 template <typename T>
-void VP8Encoder::control(vp8e_enc_control_id id, const char* option)
+void VP8Encoder::control(vp8e_enc_control_id id, consvar_t *option)
 {
-	auto value = options_.get<T>(option);
+	auto value = option->value;
 
 	if (vpx_codec_control_(ctx_, id, value) != VPX_CODEC_OK)
 	{
-		throw std::invalid_argument(fmt::format("vpx_codec_control: {}, {}={}", VpxError(ctx_), option, value));
+		// throw std::invalid_argument(fmt::format("vpx_codec_control: {}, {}={}", VpxError(ctx_), option, value));
+		throw std::invalid_argument("romoney5 TODO");
 	}
 }
 

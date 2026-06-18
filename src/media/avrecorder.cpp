@@ -7,6 +7,13 @@
 // See the 'LICENSE' file for more details.
 //-----------------------------------------------------------------------------
 
+extern "C" {
+#include "../i_time.h"
+}
+// romoney5: i want to Give an Award to! whoever made c++
+#undef min
+#undef max
+
 #include <algorithm>
 #include <chrono>
 #include <exception>
@@ -16,9 +23,9 @@
 #include <thread>
 #include <utility>
 
-#include "../cxxutil.hpp"
-#include "../i_time.h"
+extern "C" {
 #include "../m_fixed.h"
+}
 #include "avrecorder_impl.hpp"
 #include "webm_container.hpp"
 
@@ -42,7 +49,7 @@ Impl::Impl(Config cfg) :
 		[this](const MediaContainer& container) { container_dtor_handler(container); },
 	})),
 
-	audio_encoder_(make_audio_encoder(cfg)),
+	// audio_encoder_(make_audio_encoder(cfg)),
 	video_encoder_(make_video_encoder(cfg)),
 
 	epoch_(I_GetTime()),
@@ -51,17 +58,17 @@ Impl::Impl(Config cfg) :
 {
 }
 
-std::unique_ptr<AudioEncoder> Impl::make_audio_encoder(const Config cfg) const
-{
-	if (!cfg.audio)
-	{
-		return nullptr;
-	}
+// std::unique_ptr<AudioEncoder> Impl::make_audio_encoder(const Config cfg) const
+// {
+// 	if (!cfg.audio)
+// 	{
+// 		return nullptr;
+// 	}
 
-	const Config::Audio& a = *cfg.audio;
+// 	const Config::Audio& a = *cfg.audio;
 
-	return container_->make_audio_encoder({2, a.sample_rate});
-}
+// 	return container_->make_audio_encoder({2, a.sample_rate});
+// }
 
 std::unique_ptr<VideoEncoder> Impl::make_video_encoder(const Config cfg) const
 {
@@ -117,7 +124,7 @@ std::optional<int> Impl::advance_video_pts()
 		return {};
 	}
 
-	SRB2_ASSERT(video_encoder_ != nullptr);
+	assert(video_encoder_ != nullptr);
 
 	const float tic_pts = video_encoder_->frame_rate() / static_cast<float>(TICRATE);
 	const int pts = ((I_GetTime() - epoch_) + FixedToFloat(g_time.timefrac)) * tic_pts;
@@ -165,7 +172,7 @@ void Impl::worker()
 
 const char* AVRecorder::file_extension()
 {
-	return "webm";
+	return "webm"; // defines:
 }
 
 AVRecorder::AVRecorder(const Config config) : impl_(std::make_unique<Impl>(config))
@@ -189,24 +196,34 @@ const char* AVRecorder::format_name() const
 	return impl_->container_->name();
 }
 
-void AVRecorder::push_audio_samples(audio_buffer_t buffer)
+float AVRecorder::size() const
 {
-	const auto _ = impl_->queue_guard();
-
-	auto& q = impl_->audio_queue_;
-
-	if (!q.advance(q.pts(), buffer.size()))
-	{
-		return;
-	}
-
-	using T = const float;
-	tcb::span<T> p(reinterpret_cast<T*>(buffer.data()), buffer.size() * 2); // 2 channels
-
-	std::copy(p.begin(), p.end(), std::back_inserter(q.vec_));
-
-	impl_->wake_up_worker();
+	return impl_->container_->size();
 }
+
+INT32 AVRecorder::frames() const
+{
+	return impl_->container_->duration().count() * TICRATE;
+}
+
+// void AVRecorder::push_audio_samples(audio_buffer_t buffer)
+// {
+// 	const auto _ = impl_->queue_guard();
+
+// 	auto& q = impl_->audio_queue_;
+
+// 	if (!q.advance(q.pts(), buffer.size()))
+// 	{
+// 		return;
+// 	}
+
+// 	using T = const float;
+// 	tcb::span<T> p(reinterpret_cast<T*>(buffer.data()), buffer.size() * 2); // 2 channels
+
+// 	std::copy(p.begin(), p.end(), std::back_inserter(q.vec_));
+
+// 	impl_->wake_up_worker();
+// }
 
 bool AVRecorder::invalid() const
 {

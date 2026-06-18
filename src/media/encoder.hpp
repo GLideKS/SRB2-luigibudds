@@ -13,7 +13,7 @@
 #include <chrono>
 #include <cstddef>
 
-#include <tcb/span.hpp>
+#include "tcb/span.hpp"
 
 namespace srb2::media
 {

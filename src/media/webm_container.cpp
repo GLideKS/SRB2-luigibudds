@@ -11,9 +11,8 @@
 #include <memory>
 #include <stdexcept>
 
-#include <fmt/format.h>
+// #include <fmt/format.h>
 
-#include "../cxxutil.hpp"
 #include "webm_vorbis.hpp"
 #include "webm_vp8.hpp"
 
@@ -46,12 +45,12 @@ WebmContainer::~WebmContainer()
 	}
 }
 
-std::unique_ptr<AudioEncoder> WebmContainer::make_audio_encoder(AudioEncoder::Config cfg)
-{
-	const uint64_t tid = segment_.AddAudioTrack(cfg.sample_rate, cfg.channels, 0);
+// std::unique_ptr<AudioEncoder> WebmContainer::make_audio_encoder(AudioEncoder::Config cfg)
+// {
+// 	const uint64_t tid = segment_.AddAudioTrack(cfg.sample_rate, cfg.channels, 0);
 
-	return std::make_unique<WebmVorbisEncoder>(*this, tid, cfg);
-}
+// 	return std::make_unique<WebmVorbisEncoder>(*this, tid, cfg);
+// }
 
 std::unique_ptr<VideoEncoder> WebmContainer::make_video_encoder(VideoEncoder::Config cfg)
 {
@@ -115,13 +114,14 @@ void WebmContainer::write_frame(
 			is_key_frame
 		))
 	{
-		throw std::runtime_error(fmt::format(
-			"mkvmuxer::Segment::AddFrame, size={}, track={}, ts={}, key={}",
-			buffer.size_bytes(),
-			trackid,
-			timestamp,
-			is_key_frame
-		));
+		// throw std::runtime_error(fmt::format(
+		// 	"mkvmuxer::Segment::AddFrame, size={}, track={}, ts={}, key={}",
+		// 	buffer.size_bytes(),
+		// 	trackid,
+		// 	timestamp,
+		// 	is_key_frame
+		// ));
+		throw std::runtime_error("romoney5 TODO");
 	}
 
 	queue_[trackid].data_size += buffer.size_bytes();

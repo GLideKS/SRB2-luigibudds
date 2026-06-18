@@ -10,7 +10,7 @@
 #ifndef __SRB2_MEDIA_AUDIO_ENCODER_HPP__
 #define __SRB2_MEDIA_AUDIO_ENCODER_HPP__
 
-#include <tcb/span.hpp>
+#include "tcb/span.hpp"
 
 #include "encoder.hpp"
 

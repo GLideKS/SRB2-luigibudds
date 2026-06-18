@@ -12,7 +12,7 @@
 
 #include <string>
 
-#include <fmt/format.h>
+// #include <fmt/format.h>
 #include <vpx/vpx_codec.h>
 
 class VpxError
@@ -25,21 +25,22 @@ public:
 		const char* error = vpx_codec_error(ctx_);
 		const char* detail = vpx_codec_error_detail(ctx_);
 
-		return detail ? fmt::format("{}: {}", error, detail) : error;
+		// return detail ? fmt::format("{}: {}", error, detail) : error;
+		return detail ? "romoney5 TODO" : error;
 	}
 
 private:
 	vpx_codec_ctx_t* ctx_;
 };
 
-template <>
-struct fmt::formatter<VpxError> : formatter<std::string>
-{
-	template <typename FormatContext>
-	auto format(const VpxError& error, FormatContext& ctx) const
-	{
-		return formatter<std::string>::format(error.description(), ctx);
-	}
-};
+// template <>
+// struct fmt::formatter<VpxError> : formatter<std::string>
+// {
+// 	template <typename FormatContext>
+// 	auto format(const VpxError& error, FormatContext& ctx) const
+// 	{
+// 		return formatter<std::string>::format(error.description(), ctx);
+// 	}
+// };
 
 #endif // __SRB2_MEDIA_VPX_ERROR_HPP__

@@ -691,7 +691,7 @@ static void M_CreateScreenShotPalette(void)
 #if NUMSCREENS > 2
 static const char *Newsnapshotfile(const char *pathname, const char *ext)
 {
-	static char freename[13] = "srb2XXXX.ext";
+	static char freename[14] = "srb2XXXX.exte";
 	int i = 5000; // start in the middle: num screenshots divided by 2
 	int add = i; // how much to add or subtract if wrong; gets divided by 2 each time
 	int result; // -1 = guess too high, 0 = correct, 1 = guess too low
@@ -1289,7 +1289,11 @@ void M_SaveFrame(void)
 	{
 		if (rendermode == render_soft)
 		{
-			M_AVRecorder_CopySoftwareScreen();
+			M_AVRecorder_SaveSoftwareScreen();
+		}
+		else if (rendermode == render_opengl)
+		{
+			M_AVRecorder_SaveOpenGLScreen();
 		}
 
 		if (M_AVRecorder_IsExpired())
@@ -1427,11 +1431,20 @@ void M_StopMovie(void)
 
 INT32 M_RecordedFrames(void)
 {
-	return movieframesrecorded;
+	switch (moviemode)
+	{	
+		case MM_GIF: case MM_APNG:
+			return movieframesrecorded;
+		case MM_AVRECORDER:
+			return M_AVRecorder_GetFrames();
+		default:
+			return 0;
+	}
 }
 
 float M_SavedSize(void)
 {
+	const float kMb = 1024.f * 1024.f;
 	if (!moviemode)
 		return 0;
 	
@@ -1441,10 +1454,12 @@ float M_SavedSize(void)
 			return GIF_GetSizeMB();
 		case MM_APNG:
 #ifdef USE_APNG
-		return ftell(apng_FILE);
+			return ftell(apng_FILE) / kMb;
 #else
-		return 0;
+			return 0;
 #endif
+		case MM_AVRECORDER:
+			return M_AVRecorder_GetSize() / kMb;
 		default:
 			return 0;
 	}

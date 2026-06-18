@@ -16,9 +16,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include <fmt/format.h>
+// #include <fmt/format.h>
 
-#include "../cxxutil.hpp"
 #include "vorbis.hpp"
 #include "webm_encoder.hpp"
 
@@ -37,7 +36,8 @@ public:
 
 		if (!track()->SetCodecPrivate(reinterpret_cast<const uint8_t*>(p.data()), p.size()))
 		{
-			throw std::runtime_error(fmt::format("mkvmuxer::AudioTrack::SetCodecPrivate, size={}", p.size()));
+			// throw std::runtime_error(fmt::format("mkvmuxer::AudioTrack::SetCodecPrivate, size={}", p.size()));
+			throw std::runtime_error("romoney5 TODO");
 		}
 	}
 

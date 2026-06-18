@@ -10,6 +10,13 @@
 #ifndef __SRB2_MEDIA_AVRECORDER_IMPL_HPP__
 #define __SRB2_MEDIA_AVRECORDER_IMPL_HPP__
 
+extern "C" {
+#include "../i_time.h"
+}
+// romoney5: i want to Give an Award to! whoever made c++
+#undef min
+#undef max
+
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -20,7 +27,6 @@
 #include <thread>
 #include <vector>
 
-#include "../i_time.h"
 #include "avrecorder.hpp"
 #include "container.hpp"
 
@@ -42,7 +48,7 @@ public:
 		template <typename, typename = void>
 		struct Traits
 		{
-		};
+		}; // 😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱v
 
 		template <typename _>
 		struct Traits<AudioEncoder, _>
@@ -53,7 +59,7 @@ public:
 		template <typename _>
 		struct Traits<VideoEncoder, _>
 		{
-			using frame_type = IndexedVideoFrame::instance_t;
+			using frame_type = StagingVideoFrame::instance_t;
 		};
 
 		std::vector<typename Traits<T>::frame_type> vec_;
@@ -141,7 +147,7 @@ private:
 	mutable std::recursive_mutex queue_mutex_; // guards audio and video queues
 	std::condition_variable_any queue_cond_;
 
-	std::unique_ptr<AudioEncoder> make_audio_encoder(const Config cfg) const;
+	// std::unique_ptr<AudioEncoder> make_audio_encoder(const Config cfg) const;
 	std::unique_ptr<VideoEncoder> make_video_encoder(const Config cfg) const;
 
 	QueueState encode_queues();
@@ -151,8 +157,7 @@ private:
 
 	void container_dtor_handler(const MediaContainer& container) const;
 
-	// TODO: remove once hwr2 twodee is finished
-	VideoFrame::instance_t convert_indexed_video_frame(const IndexedVideoFrame& indexed);
+	VideoFrame::instance_t convert_staging_video_frame(const StagingVideoFrame& indexed);
 };
 
 template <>

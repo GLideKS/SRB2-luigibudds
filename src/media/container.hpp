@@ -35,7 +35,7 @@ public:
 
 	virtual ~MediaContainer() = default;
 
-	virtual std::unique_ptr<AudioEncoder> make_audio_encoder(AudioEncoder::Config config) = 0;
+	// virtual std::unique_ptr<AudioEncoder> make_audio_encoder(AudioEncoder::Config config) = 0;
 	virtual std::unique_ptr<VideoEncoder> make_video_encoder(VideoEncoder::Config config) = 0;
 
 	virtual const char* name() const = 0;

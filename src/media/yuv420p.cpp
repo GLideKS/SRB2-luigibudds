@@ -8,14 +8,14 @@
 //-----------------------------------------------------------------------------
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <memory>
 
 #include <libyuv/convert.h>
 #include <libyuv/scale_argb.h>
-#include <tcb/span.hpp>
+#include "tcb/span.hpp"
 
-#include "../cxxutil.hpp"
 #include "yuv420p.hpp"
 
 using namespace srb2::media;
@@ -42,7 +42,7 @@ bool YUV420pFrame::BufferRGBA::resize(int width, int height)
 	std::size_t n = vec_.size();
 
 	p = std::align(kAlignment, 1, p, n);
-	SRB2_ASSERT(p != nullptr);
+	assert(p != nullptr);
 
 	plane = tcb::span<uint8_t>(reinterpret_cast<uint8_t*>(p), new_size);
 

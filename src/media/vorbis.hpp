@@ -15,7 +15,6 @@
 #include <vorbis/codec.h>
 
 #include "audio_encoder.hpp"
-#include "options.hpp"
 
 namespace srb2::media
 {
@@ -23,7 +22,7 @@ namespace srb2::media
 class VorbisEncoder : public AudioEncoder
 {
 public:
-	static const Options options_;
+	// static const Options options_;
 
 	VorbisEncoder(Config config);
 	~VorbisEncoder();

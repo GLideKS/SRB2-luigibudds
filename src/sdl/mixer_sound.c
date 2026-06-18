@@ -41,6 +41,8 @@
 #include "../z_zone.h"
 #include "../byteptr.h"
 
+#include "../m_avrecorder.h"
+
 #ifdef _MSC_VER
 #pragma warning(disable : 4214 4244)
 #endif
@@ -1607,5 +1609,13 @@ boolean I_FadeInPlaySong(UINT32 ms, boolean looping)
 		return I_FadeSongFromVolume(100, 0, ms, NULL);
 	else
 		return false;
+}
+
+void I_UpdateAudioRecorder(void)
+{
+	// must be locked since av_recorder is used by audio_callback
+	// SdlAudioLockHandle _;
+
+	// av_recorder = g_av_recorder;
 }
 #endif

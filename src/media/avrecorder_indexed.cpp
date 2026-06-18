@@ -9,46 +9,66 @@
 
 // TODO: remove this file once hwr2 twodee is finished
 
+#include <cassert>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <utility>
 
-#include "../cxxutil.hpp"
 #include "avrecorder_impl.hpp"
 
 using namespace srb2::media;
 
 using Impl = AVRecorder::Impl;
 
-VideoFrame::instance_t Impl::convert_indexed_video_frame(const IndexedVideoFrame& indexed)
+VideoFrame::instance_t Impl::convert_staging_video_frame(const StagingVideoFrame& staging)
 {
-	VideoFrame::instance_t frame = video_encoder_->new_frame(indexed.width, indexed.height, indexed.pts);
+	VideoFrame::instance_t frame = video_encoder_->new_frame(staging.width, staging.height, staging.pts);
 
-	SRB2_ASSERT(frame != nullptr);
+	assert(frame != nullptr);
 
 	const VideoFrame::Buffer& buffer = frame->rgba_buffer();
 
-	const uint8_t* s = indexed.screen.data();
+	const uint8_t* s = staging.screen.data();
 	uint8_t* p = buffer.plane.data();
 
-	for (int y = 0; y < frame->height(); ++y)
+	if (!staging.indexed)
 	{
-		for (int x = 0; x < frame->width(); ++x)
+		// Convert from RGB8 to RGBA8
+		for (int y = 0; y < frame->height(); ++y)
 		{
-			const RGBA_t& c = indexed.palette[s[x]];
+			for (int x = 0; x < frame->width(); ++x)
+			{
+				p[x * 4] = s[x * 3];
+				p[x * 4 + 1] = s[x * 3 + 1];
+				p[x * 4 + 2] = s[x * 3 + 2];
+				p[x * 4 + 3] = 255;
+			}
 
-			reinterpret_cast<uint32_t*>(p)[x] = c.rgba;
+			s += staging.width * 3;
+			p += buffer.row_stride;
 		}
+	}
+	else
+	{
+		for (int y = 0; y < frame->height(); ++y)
+		{
+			for (int x = 0; x < frame->width(); ++x)
+			{
+				const RGBA_t& c = staging.palette[s[x]];
 
-		s += indexed.width;
-		p += buffer.row_stride;
+				reinterpret_cast<uint32_t*>(p)[x] = c.rgba;
+			}
+
+			s += staging.width;
+			p += buffer.row_stride;
+		}
 	}
 
 	return frame;
 }
 
-AVRecorder::IndexedVideoFrame::instance_t AVRecorder::new_indexed_video_frame(uint32_t width, uint32_t height)
+AVRecorder::StagingVideoFrame::instance_t AVRecorder::new_staging_video_frame(uint32_t width, uint32_t height, boolean indexed)
 {
 	std::optional<int> pts = impl_->advance_video_pts();
 
@@ -57,10 +77,10 @@ AVRecorder::IndexedVideoFrame::instance_t AVRecorder::new_indexed_video_frame(ui
 		return nullptr;
 	}
 
-	return std::make_unique<IndexedVideoFrame>(width, height, *pts);
+	return std::make_unique<StagingVideoFrame>(width, height, indexed, *pts);
 }
 
-void AVRecorder::push_indexed_video_frame(IndexedVideoFrame::instance_t frame)
+void AVRecorder::push_staging_video_frame(StagingVideoFrame::instance_t frame)
 {
 	auto _ = impl_->queue_guard();
 

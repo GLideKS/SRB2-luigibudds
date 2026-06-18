@@ -14,9 +14,12 @@
 
 #include <vpx/vp8cx.h>
 
-#include "options.hpp"
 #include "video_encoder.hpp"
 #include "yuv420p.hpp"
+
+extern "C" {
+#include "../m_avrecorder.h"
+}
 
 namespace srb2::media
 {
@@ -24,8 +27,6 @@ namespace srb2::media
 class VP8Encoder : public VideoEncoder
 {
 public:
-	static const Options options_;
-
 	VP8Encoder(VideoEncoder::Config config);
 
 	virtual VideoFrame::instance_t new_frame(int width, int height, int pts) override final;
@@ -87,8 +88,8 @@ private:
 	ImgWrapper img_;
 
 	const int frame_rate_;
-	const int thread_count_ = options_.get<int>("threads");
-	const int deadline_ = options_.get<int>("deadline");
+	const int thread_count_ = cv_vp8_threads.value;
+	const int deadline_ = cv_vp8_deadline.value;
 
 	mutable std::recursive_mutex frame_count_mutex_;
 
@@ -104,7 +105,7 @@ private:
 	bool process();
 
 	template <typename T> // T = option type
-	void control(vp8e_enc_control_id id, const char* option);
+	void control(vp8e_enc_control_id id, consvar_t *option);
 };
 
 }; // namespace srb2::media

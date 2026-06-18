@@ -68,6 +68,7 @@
 #include "../i_system.h"
 #include "../v_video.h"
 #include "../m_argv.h"
+#include "../m_avrecorder.h"
 #include "../m_menu.h"
 #include "../d_main.h"
 #include "../s_sound.h"

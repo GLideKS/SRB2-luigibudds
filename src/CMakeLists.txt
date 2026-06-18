@@ -361,7 +361,6 @@ target_compile_options(SRB2SDL2 PRIVATE
 		-Wall
 		-Wextra
 		-Wno-trigraphs
-		-Wconditional-uninitialized
 	>
 
 	# C++, MSVC

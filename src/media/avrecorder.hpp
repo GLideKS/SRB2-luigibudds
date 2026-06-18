@@ -19,9 +19,10 @@
 #include <string>
 #include <vector>
 
-#include <tcb/span.hpp>
+#include "tcb/span.hpp"
 
-#include "../audio/sample.hpp"
+#include "../doomtype.h"
+// #include "../audio/sample.hpp"
 
 namespace srb2::media
 {
@@ -29,8 +30,8 @@ namespace srb2::media
 class AVRecorder
 {
 public:
-	using audio_sample_t = srb2::audio::Sample<2>;
-	using audio_buffer_t = tcb::span<const audio_sample_t>;
+	// using audio_sample_t = srb2::audio::Sample<2>;
+	// using audio_buffer_t = tcb::span<const audio_sample_t>;
 
 	class Impl;
 
@@ -57,18 +58,18 @@ public:
 		std::optional<Video> video;
 	};
 
-	// TODO: remove once hwr2 twodee is finished
-	struct IndexedVideoFrame
+	struct StagingVideoFrame
 	{
-		using instance_t = std::unique_ptr<IndexedVideoFrame>;
+		using instance_t = std::unique_ptr<StagingVideoFrame>;
 
 		std::array<RGBA_t, 256> palette;
 		std::vector<uint8_t> screen;
 		uint32_t width, height;
+		boolean indexed;
 		int pts;
 
-		IndexedVideoFrame(uint32_t width_, uint32_t height_, int pts_) :
-			screen(width_ * height_), width(width_), height(height_), pts(pts_)
+		StagingVideoFrame(uint32_t width_, uint32_t height_, boolean indexed_, int pts_) :
+			screen(width_ * height_ * 3), width(width_), height(height_), indexed(indexed_), pts(pts_)
 		{
 		}
 	};
@@ -83,16 +84,22 @@ public:
 	void print_configuration() const;
 	void draw_statistics() const;
 
-	void push_audio_samples(audio_buffer_t buffer);
+	// void push_audio_samples(audio_buffer_t buffer);
 
 	// May return nullptr in case called between units of
 	// Config::frame_rate
-	IndexedVideoFrame::instance_t new_indexed_video_frame(uint32_t width, uint32_t height);
+	StagingVideoFrame::instance_t new_staging_video_frame(uint32_t width, uint32_t height, boolean indexed);
 
-	void push_indexed_video_frame(IndexedVideoFrame::instance_t frame);
+	void push_staging_video_frame(StagingVideoFrame::instance_t frame);
 
 	// Proper name of the container format.
 	const char* format_name() const;
+
+	// romoney5: filesize
+	float size() const;
+
+	// romoney5: frame count
+	INT32 frames() const;
 
 	// True if this instance has terminated. Continuing to use
 	// this interface is useless and the object should be

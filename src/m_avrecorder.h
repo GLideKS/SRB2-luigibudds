@@ -10,7 +10,8 @@
 #ifndef M_AVRECORDER_H
 #define M_AVRECORDER_H
 
-#include "typedef.h" // consvar_t
+#include "blua/luaconf.h"
+#include "command.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,8 +35,15 @@ void M_AVRecorder_PrintCurrentConfiguration(void);
 
 void M_AVRecorder_DrawFrameRate(void);
 
-// TODO: remove once hwr2 twodee is finished
-void M_AVRecorder_CopySoftwareScreen(void);
+float M_AVRecorder_GetSize(void);
+
+INT32 M_AVRecorder_GetFrames(void);
+
+void M_AVRecorder_AudioEncoder(void);
+
+void M_AVRecorder_SaveSoftwareScreen(void);
+
+void M_AVRecorder_SaveOpenGLScreen(void);
 
 extern consvar_t
 	cv_movie_custom_resolution,
@@ -45,6 +53,26 @@ extern consvar_t
 	cv_movie_showfps,
 	cv_movie_size,
 	cv_movie_sound;
+
+// romoney5: encoder options
+extern consvar_t
+	cv_vorbis_quality,
+	cv_vorbis_max_bitrate,
+	cv_vorbis_nominal_bitrate,
+	cv_vorbis_min_bitrate,
+
+	cv_vp8_quality_mode,
+	cv_vp8_target_bitrate,
+	cv_vp8_min_q,
+	cv_vp8_max_q,
+	cv_vp8_kf_min,
+	cv_vp8_kf_max,
+	cv_vp8_cpu_used,
+	cv_vp8_cq_level,
+	cv_vp8_deadline,
+	cv_vp8_sharpness,
+	cv_vp8_token_parts,
+	cv_vp8_threads;
 
 #ifdef __cplusplus
 }; // extern "C"

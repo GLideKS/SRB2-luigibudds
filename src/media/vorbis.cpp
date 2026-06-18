@@ -11,12 +11,13 @@
 #include <cstddef>
 #include <stdexcept>
 
-#include <fmt/format.h>
+// #include <fmt/format.h>
 #include <vorbis/vorbisenc.h>
 
-#include "../cxxutil.hpp"
 #include "vorbis.hpp"
 #include "vorbis_error.hpp"
+
+#include "../m_avrecorder.h"
 
 using namespace srb2::media;
 
@@ -27,7 +28,8 @@ void runtime_assert(VorbisError error, const char *what)
 {
 	if (error != 0)
 	{
-		throw std::runtime_error(fmt::format("{}: {}", what, error));
+		// throw std::runtime_error(fmt::format("{}: {}", what, error));
+		throw std::runtime_error("romoney5 TODO");
 	}
 }
 
@@ -35,9 +37,9 @@ void runtime_assert(VorbisError error, const char *what)
 
 VorbisEncoder::VorbisEncoder(Config cfg)
 {
-	const long max_bitrate = options_.get<int>("max_bitrate");
-	const long nominal_bitrate = options_.get<int>("nominal_bitrate");
-	const long min_bitrate = options_.get<int>("min_bitrate");
+	const long max_bitrate = cv_vorbis_max_bitrate.value;
+	const long nominal_bitrate = cv_vorbis_nominal_bitrate.value;
+	const long min_bitrate = cv_vorbis_min_bitrate.value;
 
 	vorbis_info_init(&vi_);
 
@@ -49,25 +51,27 @@ VorbisEncoder::VorbisEncoder(Config cfg)
 
 		if (error != 0)
 		{
-			throw std::invalid_argument(fmt::format(
-				"vorbis_encode_init: {}, max_bitrate={}, nominal_bitrate={}, min_bitrate={}",
-				error,
-				max_bitrate,
-				nominal_bitrate,
-				min_bitrate
-			));
+			// throw std::invalid_argument(fmt::format(
+			// 	"vorbis_encode_init: {}, max_bitrate={}, nominal_bitrate={}, min_bitrate={}",
+			// 	error,
+			// 	max_bitrate,
+			// 	nominal_bitrate,
+			// 	min_bitrate
+			// ));
+			throw std::invalid_argument("romoney5 TODO");
 		}
 	}
 	else
 	{
 		// variable bitrate mode
-		const float quality = options_.get<float>("quality");
+		const float quality = cv_vorbis_quality.value;
 
 		VorbisError error = vorbis_encode_init_vbr(&vi_, cfg.channels, cfg.sample_rate, quality);
 
 		if (error != 0)
 		{
-			throw std::invalid_argument(fmt::format("vorbis_encode_init: {}, quality={}", error, quality));
+			// throw std::invalid_argument(fmt::format("vorbis_encode_init: {}, quality={}", error, quality));
+			throw std::invalid_argument("romoney5 TODO");
 		}
 	}
 
@@ -93,7 +97,8 @@ VorbisEncoder::headers_t VorbisEncoder::generate_headers()
 
 	if (error != 0)
 	{
-		throw std::invalid_argument(fmt::format("vorbis_analysis_headerout: {}", error));
+		// throw std::invalid_argument(fmt::format("vorbis_analysis_headerout: {}", error));
+		throw std::invalid_argument("romoney5 TODO");
 	}
 
 	vorbis_comment_clear(&vc);

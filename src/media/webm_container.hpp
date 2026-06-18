@@ -30,7 +30,7 @@ public:
 	WebmContainer(Config cfg);
 	~WebmContainer();
 
-	virtual std::unique_ptr<AudioEncoder> make_audio_encoder(AudioEncoder::Config config) override final;
+	// virtual std::unique_ptr<AudioEncoder> make_audio_encoder(AudioEncoder::Config config) override final;
 	virtual std::unique_ptr<VideoEncoder> make_video_encoder(VideoEncoder::Config config) override final;
 
 	virtual const char* name() const override final { return "WebM"; }

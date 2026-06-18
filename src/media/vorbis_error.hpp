@@ -12,7 +12,7 @@
 
 #include <string>
 
-#include <fmt/format.h>
+// #include <fmt/format.h>
 #include <vorbis/codec.h>
 
 class VorbisError
@@ -33,7 +33,8 @@ public:
 		case OV_EIMPL:
 			return "Invalid settings (OV_EIMPL)";
 		default:
-			return fmt::format("error {}", error_);
+			// return fmt::format("error {}", error_);
+			return "romoney5 TODO";
 		}
 	}
 
@@ -41,14 +42,14 @@ private:
 	int error_;
 };
 
-template <>
-struct fmt::formatter<VorbisError> : formatter<std::string>
-{
-	template <typename FormatContext>
-	auto format(const VorbisError& error, FormatContext& ctx) const
-	{
-		return formatter<std::string>::format(error.name(), ctx);
-	}
-};
+// template <>
+// struct fmt::formatter<VorbisError> : formatter<std::string>
+// {
+// 	template <typename FormatContext>
+// 	auto format(const VorbisError& error, FormatContext& ctx) const
+// 	{
+// 		return formatter<std::string>::format(error.name(), ctx);
+// 	}
+// };
 
 #endif // __SRB2_MEDIA_VORBIS_ERROR_HPP__

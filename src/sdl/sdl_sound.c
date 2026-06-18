@@ -1520,6 +1520,14 @@ boolean I_FadeInPlaySong(UINT32 ms, boolean looping)
         return false;
 }
 
+void I_UpdateAudioRecorder(void)
+{
+	// must be locked since av_recorder is used by audio_callback
+	// SdlAudioLockHandle _;
+
+	// av_recorder = g_av_recorder;
+}
+
 /// ------------------------
 //  MUSIC LOADING AND CLEANUP
 //  \todo Split logic between loading and playing,

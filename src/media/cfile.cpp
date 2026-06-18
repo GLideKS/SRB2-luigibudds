@@ -12,7 +12,7 @@
 #include <cstring>
 #include <stdexcept>
 
-#include <fmt/format.h>
+// #include <fmt/format.h>
 
 #include "cfile.hpp"
 
@@ -24,7 +24,8 @@ CFile::CFile(const std::string file_name) : name_(file_name)
 
 	if (file_ == nullptr)
 	{
-		throw std::invalid_argument(fmt::format("{}: {}", name(), std::strerror(errno)));
+		// throw std::invalid_argument(fmt::format("{}: {}", name(), std::strerror(errno)));
+		throw std::invalid_argument("romoney5 TODO");
 	}
 }
 
