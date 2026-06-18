@@ -23,8 +23,10 @@
 // romoney5: ugh..
 extern "C" {
 #include "command.h"
+#include "doomdef.h"
 #include "doomtype.h"
 #include "i_sound.h"
+#include "m_anigif.h"
 #include "m_avrecorder.h"
 #include "m_fixed.h"
 #include "m_misc.h"
@@ -86,7 +88,6 @@ consvar_t cv_movie_showfps = CVAR_INIT("movie_showfps", "Yes", CV_SAVE, CV_YesNo
 consvar_t cv_movie_sound = CVAR_INIT("movie_sound", "On", CV_SAVE, CV_OnOff, NULL);
 
 consvar_t cv_movie_duration = CVAR_INIT("movie_duration", "Unlimited", CV_SAVE | CV_FLOAT, movie_limit_cons_t, NULL);
-consvar_t cv_movie_size = CVAR_INIT("movie_size", "8.0", CV_SAVE | CV_FLOAT, movie_limit_cons_t, NULL); // romoney5 TODO
 
 // romoney5: encoder options
 
@@ -131,7 +132,6 @@ void M_AVRecorder_AddCommands(void)
 	CV_RegisterVar(&cv_movie_fps);
 	CV_RegisterVar(&cv_movie_resolution);
 	CV_RegisterVar(&cv_movie_showfps);
-	CV_RegisterVar(&cv_movie_size);
 	CV_RegisterVar(&cv_movie_sound);
 
 	// srb2::media::Options::register_all();
@@ -164,9 +164,9 @@ static AVRecorder::Config configure()
 		cfg.max_duration = std::chrono::duration<float>(FixedToFloat(cv_movie_duration.value));
 	}
 
-	if (cv_movie_size.value > 0)
+	if (cv_gif_maxsize.value > 0)
 	{
-		cfg.max_size = FixedToFloat(cv_movie_size.value) * 1024 * 1024;
+		cfg.max_size = FixedToFloat(cv_gif_maxsize.value * FRACUNIT) * 1024 * 1024;
 	}
 
 	if (sound_started && cv_movie_sound.value)
@@ -282,7 +282,7 @@ void M_AVRecorder_PrintCurrentConfiguration(void)
 
 boolean M_AVRecorder_IsExpired(void)
 {
-	assert(g_av_recorder != nullptr);
+	if (g_av_recorder == nullptr) return true;
 
 	return g_av_recorder->invalid();
 }

@@ -51,7 +51,6 @@ extern consvar_t
 	cv_movie_fps,
 	cv_movie_resolution,
 	cv_movie_showfps,
-	cv_movie_size,
 	cv_movie_sound;
 
 // romoney5: encoder options
