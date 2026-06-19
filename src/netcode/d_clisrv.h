@@ -125,6 +125,8 @@ extern UINT8 playernode[MAXPLAYERS];
 extern plrinfo_pak playerinfo[MAXPLAYERS];
 extern SINT8 joinnode;
 
+extern INT32 viewfiles;
+
 INT32 D_NumPlayers(void);
 INT32 D_NumNodes(boolean skiphost);
 INT32 D_NumBots(void);
