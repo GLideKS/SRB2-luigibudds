@@ -151,13 +151,8 @@ static void CL_DrawServerInfo(void)
 	if (serverlist[joinnode].info.actnum)
 		strcat(mapname, va(" %d", serverlist[joinnode].info.actnum));
 
-	V_DrawThinString(12 + xoffset, ypos+22, V_ALLOWLOWERCASE, va("%s", mapname));
-	V_DrawThinString(12 + xoffset, ypos+32, V_ALLOWLOWERCASE, va("%s", serverlist[joinnode].info.gametypename));
-
-	if (fileneedednum > 0)
-		V_DrawThinString(12 + xoffset, ypos+42, V_ALLOWLOWERCASE|MENUCOLOR, va("%i %s", fileneedednum, (fileneedednum == 1) ? "Addon" : "Addons"));
-	else
-		V_DrawThinString(12 + xoffset, ypos+42, V_ALLOWLOWERCASE|MENUCOLOR, "Vanilla");
+	V_DrawThinString(12 + xoffset, ypos+32, V_ALLOWLOWERCASE, va("%s", mapname));
+	V_DrawThinString(12 + xoffset, ypos+42, V_ALLOWLOWERCASE, va("%s", serverlist[joinnode].info.gametypename));
 
 	if (serverlist[joinnode].info.flags & SV_DEDICATED)
 		V_DrawRightAlignedThinString(BASEVIDWIDTH - 12, ypos+42, V_ALLOWLOWERCASE|MENUCOLOR, "Dedicated Server");
@@ -173,8 +168,17 @@ static void CL_DrawPlayerList(void)
 	// INT32 outer_padding = 8;
 	INT32 inner_padding = 0; //4;
 
-	V_DrawString(12, ypos+58, V_ALLOWLOWERCASE|MENUCOLOR,
-		"Players");
+	if (serverlist[joinnode].info.numberofplayer <= 0)
+	{
+		V_DrawString(12 + 1, ypos + 58, V_ALLOWLOWERCASE|V_GRAYMAP, "No players.");
+		V_DrawString(12 + 8 * 10
+			, ypos+58, V_ALLOWLOWERCASE|V_GRAYMAP,
+			va(" (%i/%i)", serverlist[joinnode].info.numberofplayer, serverlist[joinnode].info.maxplayer));
+
+		return;
+	}
+
+	V_DrawString(12, ypos+58, V_ALLOWLOWERCASE|MENUCOLOR, "Players");
 	V_DrawString(12 + 8 * 7
 		, ypos+58, V_ALLOWLOWERCASE,
 		va(" (%i/%i)", serverlist[joinnode].info.numberofplayer, serverlist[joinnode].info.maxplayer));
@@ -182,27 +186,24 @@ static void CL_DrawPlayerList(void)
 	INT32 x = 12;
 	INT32 y = ypos + 68;
 	char player_name[MAXPLAYERNAME+1];
-	if (serverlist[joinnode].info.numberofplayer <= 0)
-	{
-		V_DrawThinString(12, ypos + 70, V_ALLOWLOWERCASE, "No players.");
-		return;
-	}
 
 	INT32 playersdrawn = 0;
 
-	for (INT32 i = 0; i < MAXPLAYERS; i++)
+	INT32 player_width = 6 * (MAXPLAYERNAME - 5);
+	INT32 player_height = 9;
+	INT32 rows = 11; //(body_height - inner_padding - 12) / player_height;
+
+	for (INT32 i = 0; i < max(MAXPLAYERS, rows * 3); i++)
 	{
-		plrinfo_pak player = playerinfo[i];
+		INT32 color = (cv_menubgcolor.value - 2) - (i & 1);
+		INT32 player_x = x + inner_padding + (i / rows) * (player_width + 1);
+		INT32 player_y = y + inner_padding + ((i % rows) * player_height);
 
-		if (player.num <= MAXPLAYERS)
+		V_DrawFill(player_x, player_y - 1, player_width, player_height - 1, color);
+
+		if (i < MAXPLAYERS && playerinfo[i].num <= MAXPLAYERS)
 		{
-			INT32 color = (cv_menubgcolor.value - 2) - (i & 1);
-			INT32 player_width = 6 * (MAXPLAYERNAME - 5);
-			INT32 player_height = 10;
-			INT32 rows = 10; //(body_height - inner_padding - 12) / player_height;
-
-			INT32 player_x = x + inner_padding + (playersdrawn / rows) * (player_width + 1);
-			INT32 player_y = y + inner_padding + ((playersdrawn % rows) * player_height);
+			plrinfo_pak player = playerinfo[i];
 
 			INT32 flags = 0;
 			switch (player.team)
@@ -229,11 +230,11 @@ static void CL_DrawPlayerList(void)
 				}
 			}
 
+			INT32 player_x2 = x + inner_padding + (playersdrawn / rows) * (player_width + 1);
+			INT32 player_y2 = y + inner_padding + ((playersdrawn % rows) * player_height);
 			strncpy(player_name, playerinfo[i].name, MAXPLAYERNAME);
 			player_name[MAXPLAYERNAME] = '\0';
-
-			V_DrawFill(player_x, player_y - 1, player_width, player_height - 1, color);
-			V_DrawThinString(player_x + 1, player_y, V_ALLOWLOWERCASE|flags, player_name);
+			V_DrawThinString(player_x2 + 1, player_y2, V_ALLOWLOWERCASE|flags, player_name);
 
 			playersdrawn++;
 		}
@@ -244,7 +245,10 @@ static void CL_DrawAddonList(void)
 {
 	INT32 ccstime = I_GetTime();
 	const INT32 ypos = 6;
+
 	V_DrawString(12, ypos+58, V_ALLOWLOWERCASE|MENUCOLOR, "Addons");
+	V_DrawString(12 + 8 * 6, ypos+58, V_ALLOWLOWERCASE,
+		va(" (%i)", fileneedednum));
 
 #define charsonside 18
 #define maxcharlen (charsonside * 2) + 3 // 3 for the 3 dots
@@ -361,9 +365,9 @@ static void CL_DrawDownloadAddonList(void)
 			else
 				V_DrawFill(x - 2, y - 1, 290, height, (cv_menubgcolor.value - 2));
 			
-			const char *color = "\x80";
+			INT32 color = 0; // new addon
 			if (filelist[i].status == FS_MD5SUMBAD)
-				color = "\x87";
+				color = V_SKYMAP; // addon update
 
 			char tempname[28];
 			char *filename = filelist[i].filename;
@@ -379,7 +383,10 @@ static void CL_DrawDownloadAddonList(void)
 			{
 				strlcpy(tempname, filename, sizeof(tempname));
 			}
-			V_DrawThinString(x, y + 1, V_ALLOWLOWERCASE|V_6WIDTHSPACE, va("\x82%.2d %s%s", i + 1, color, filename));
+
+			V_DrawThinString(x, y + 1, V_ALLOWLOWERCASE|V_6WIDTHSPACE|MENUCOLOR, va("%.2d", i + 1));
+
+			V_DrawThinString(x + 6 * 3, y + 1, V_ALLOWLOWERCASE|V_6WIDTHSPACE|color, filename);
 
 			float file_size = ((float)filelist[i].totalsize);
 			const char *size_mode = "B";
@@ -415,7 +422,7 @@ static void CL_DrawDownloadAddonList(void)
 			totalsize /= 1024.0f;
 		}
 
-		V_DrawThinString(12, ypos + 58, V_ALLOWLOWERCASE|MENUCOLOR,
+		V_DrawString(12, ypos + 58, V_ALLOWLOWERCASE|MENUCOLOR,
 			va("Download %i addons?", filelistsize));
 		V_DrawRightAlignedString(BASEVIDWIDTH - x - 3, ypos + 58, V_ALLOWLOWERCASE|MENUCOLOR, va("%.1f%s total", (float)totalsize, size_mode));
 
@@ -430,7 +437,7 @@ static void CL_DrawDownloadAddonList(void)
 	}
 	else
 	{
-		V_DrawThinString(12, ypos + 58, V_ALLOWLOWERCASE|MENUCOLOR, "No new addons needed.");
+		V_DrawString(12, ypos + 58, V_ALLOWLOWERCASE|MENUCOLOR, "No addons needed.");
 		if (serverisfull)
 		{
 			V_DrawThinString(12, ypos + 66, V_ALLOWLOWERCASE, M_GetText("This server is full!"));
@@ -442,7 +449,7 @@ static void CL_DrawDownloadAddonList(void)
 	// Buttons
 	V_DrawFill(8, BASEVIDHEIGHT - (ypos + 18), BASEVIDWIDTH - 16, 13, cv_menubgcolor.value);
 	V_DrawThinString(
-		16, BASEVIDHEIGHT - (ypos + 15),
+		12, BASEVIDHEIGHT - (ypos + 15),
 		V_ALLOWLOWERCASE, va("%sESC%s - Cancel", GetChatColorFromVideoFlag(MENUCOLOR), "\x80")
 	);
 
@@ -476,7 +483,8 @@ static void CL_DrawConnectionStatus(void)
 
 	if (cl_mode != CL_DOWNLOADFILES && cl_mode != CL_DOWNLOADHTTPFILES
 	&& cl_mode != CL_LOADFILES && cl_mode != CL_CHECKFILES
-	&& cl_mode != CL_ASKFULLFILELIST && cl_mode != CL_VIEWSERVER)
+	&& cl_mode != CL_ASKFULLFILELIST && cl_mode != CL_VIEWSERVER
+	&& cl_mode != CL_CONFIRMCONNECT)
 	{
 		INT32 animtime = ((ccstime / 4) & 15) + 16;
 		UINT8 palstart;
@@ -1499,7 +1507,12 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 
 		case CL_ASKFULLFILELIST:
 			if (cl_lastcheckedfilecount == UINT16_MAX) // All files retrieved
+			{
+				viewserver_addons = false;
+				viewserver_toggle = false;
+				viewserver_scroll = 0;
 				cl_mode = CL_VIEWSERVER;
+			}
 			else if (fileneedednum != cl_lastcheckedfilecount || I_GetTime() >= *asksent)
 			{
 				if (CL_AskFileList(fileneedednum))
@@ -1615,15 +1628,70 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 	{
 		I_OsPolling();
 
+		/*
 		if (cl_mode == CL_CONFIRMCONNECT)
 			D_ProcessEvents(); //needed for menu system to receive inputs
 		else
+		*/
 		{
 			// my hand has been forced and I am dearly sorry for this awful hack :vomit:
 			for (; eventtail != eventhead; eventtail = (eventtail+1) & (MAXEVENTS-1))
 			{
 				if (!Snake_JoyGrabber(snake, &events[eventtail]))
 					G_MapEventsToControls(&events[eventtail]);
+			}
+		}
+
+		// key handler for addon confirmation
+		if (cl_mode == CL_CONFIRMCONNECT)
+		{
+			INT32 totalfiles = 0;
+			for (int i = 0; i < fileneedednum; i++)
+				if (fileneeded[i].status == FS_NOTFOUND || fileneeded[i].status == FS_MD5SUMBAD)
+					totalfiles++;
+
+			if (gamekeydown[KEY_ENTER])
+			{
+				if (totalfiles > 0)
+				{
+					BeginDownload(UseDirectDownloader());
+				}
+				else
+				{
+					cl_mode = CL_LOADFILES;
+				}
+				S_StartSound(NULL, sfx_menu1);
+			}
+			else if (gamekeydown[KEY_ESCAPE])
+			{
+				cl_mode = CL_ABORTED;
+			}
+			
+			if (totalfiles > ADDONSCROLLLIMIT)
+			{
+				if (gamekeydown[KEY_DOWNARROW])
+				{
+					if (viewfiles != (totalfiles - ADDONSCROLLLIMIT))
+					{
+						viewfiles++;
+						S_StartSound(NULL, sfx_menu1);
+					}
+
+					if (viewfiles > (totalfiles - ADDONSCROLLLIMIT))
+						viewfiles = totalfiles - ADDONSCROLLLIMIT;
+				}
+
+				if (gamekeydown[KEY_UPARROW])
+				{
+					if (viewfiles)
+					{
+						viewfiles--;
+						S_StartSound(NULL, sfx_menu1);
+					}
+
+					if (viewfiles < 0)
+						viewfiles = 0;
+				}
 			}
 		}
 
