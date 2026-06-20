@@ -103,6 +103,8 @@ tic_t neededtic;
 SINT8 servernode = 0; // the number of the server node
 SINT8 joinnode = 0; // used for CL_VIEWSERVER
 
+INT32 viewfiles = 0; // used for CL_CONFIRMCONNECT
+
 boolean acceptnewnode = true;
 
 UINT16 software_MAXPACKETLENGTH;
@@ -160,6 +162,7 @@ void CL_Reset(void)
 	multiplayer = false;
 	servernode = 0;
 	joinnode = 0;
+	viewfiles = 0;
 	server = true;
 	numnetnodes = 1;
 	numslots = 1;
