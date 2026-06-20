@@ -327,6 +327,14 @@ consvar_t cv_chaty = CVAR_INIT ("chaty", "169", CV_SAVE, chaty_cons_t, NULL);
 consvar_t cv_chatsnapx = CVAR_INIT ("chatsnapx", "Left", CV_SAVE, chatsnapx_cons_t, NULL);
 consvar_t cv_chatsnapy = CVAR_INIT ("chatsnapy", "Bottom", CV_SAVE, chatsnapy_cons_t, NULL);
 
+// MORE chat stuff!!! YUM!!!!
+consvar_t cv_chat_showlimit = CVAR_INIT ("chat_showlimit", "On", CV_SAVE, CV_OnOff, NULL);
+consvar_t cv_chat_clearonexit = CVAR_INIT ("chat_clearonexit", "On", CV_SAVE, CV_OnOff, NULL);
+
+// romoney5: make the chat cursor a pipe like every other text box made after the 2000s
+static CV_PossibleValue_t chatcursor_cons_t[] = {{1, "_"}, {2, "|"}, {0, NULL}};
+consvar_t cv_chatcursor = CVAR_INIT ("chatcursor", "|", CV_SAVE, chatcursor_cons_t, NULL);
+
 // Pause game upon window losing focus
 consvar_t cv_pauseifunfocused = CVAR_INIT ("pauseifunfocused", "Yes", CV_SAVE, CV_YesNo, NULL);
 
