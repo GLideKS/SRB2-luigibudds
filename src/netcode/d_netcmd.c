@@ -1697,7 +1697,7 @@ static void Command_StopMovie_f(void)
 }
 
 // romoney5: save the currently loaded addon list,
-// excluding the base files
+// excluding the base files and local addons
 static void Command_SaveAddons_f(void)
 {
 	char pathname[MAX_WADPATH * 2];
@@ -1732,16 +1732,8 @@ static void Command_SaveAddons_f(void)
 		// don't check for the main pk3s
 		if (i < mainwads) continue;
 
-		// and don't include music.pk3 if it was loaded right after
-		if (i == mainwads)
-		{
-			char *name = wadfiles[i]->filename;
-
-			name = strrchr(name, 'm');
-
-			if (strcmp(name, "music.pk3") == 0)
-				continue;
-		}
+		// and don't include any unimportant addons
+		if (!wadfiles[i]->important) continue;
 
 		// otherwise write it down
 		fprintf(file, "addfile \"%s\"\n", wadfiles[i]->filename);
