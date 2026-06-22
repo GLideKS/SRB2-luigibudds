@@ -53,6 +53,8 @@
 #include "../m_perfstats.h"
 #include "../u_list.h"
 
+#include <time.h>
+
 #ifdef NETGAME_DEVMODE
 #define CV_RESTRICT CV_NETVAR
 #else
@@ -121,6 +123,7 @@ static void Command_Timedemo_f(void);
 static void Command_Stopdemo_f(void);
 static void Command_StartMovie_f(void);
 static void Command_StopMovie_f(void);
+static void Command_SaveAddons_f(void);
 static void Command_Map_f(void);
 static void Command_ResetCamera_f(void);
 
@@ -704,6 +707,9 @@ void D_RegisterClientCommands(void)
 	COM_AddCommand("screenshot", M_ScreenShot, COM_LUA);
 	COM_AddCommand("startmovie", Command_StartMovie_f, COM_LUA);
 	COM_AddCommand("stopmovie", Command_StopMovie_f, COM_LUA);
+
+	// romoney5
+	COM_AddCommand("saveaddons", Command_SaveAddons_f, 0);
 
 	CV_RegisterVar(&cv_screenshot_option);
 	CV_RegisterVar(&cv_screenshot_folder);
@@ -1691,6 +1697,57 @@ static void Command_StartMovie_f(void)
 static void Command_StopMovie_f(void)
 {
 	M_StopMovie();
+}
+
+// romoney5: save the currently loaded addon list,
+// excluding the base files and local addons
+static void Command_SaveAddons_f(void)
+{
+	char pathname[MAX_WADPATH * 2];
+	char timename[48];
+	char filename[MAX_WADPATH];
+    time_t timer;
+    struct tm* tm_info;
+	FILE *file;
+
+	INT32 savedaddons = 0; // amount of written addons
+
+	// set the paths first (e.g. /home/orbit/.srb2/addonlists)
+	strcpy(pathname, srb2home);
+
+	strcat(pathname, PATHSEP "addonlists" PATHSEP);
+	I_mkdir(pathname, 0755);
+
+	// get the time
+    timer = time(NULL);
+    tm_info = localtime(&timer);
+
+    strftime(timename, 48, "%m-%d-%Y %H:%M:%S", tm_info);
+
+    // save as a cfg to be recognized properly in the addons menu
+	strcpy(filename, va("%s-%s.cfg", cv_servername.string, timename));
+	// open the file (e.g. heystinky-06-20-2026 18:29:49.cfg)
+	file = fopen(va("%s%s", pathname, filename), "w");
+
+	// check which addons are worthy of being put into the file
+	for (INT32 i = 0; i < numwadfiles; i++)
+	{
+		// don't check for the main pk3s
+		if (i < mainwads) continue;
+
+		// and don't include any unimportant addons
+		if (!wadfiles[i]->important) continue;
+
+		// otherwise write it down
+		fprintf(file, "addfile \"%s\"\n", wadfiles[i]->filename);
+
+		savedaddons++;
+	}
+
+	// we made it!
+	fclose(file);
+
+	CONS_Printf("Saved addon list (%d addons) to %s%s\n", savedaddons, pathname, filename);
 }
 
 INT32 mapchangepending = 0;
