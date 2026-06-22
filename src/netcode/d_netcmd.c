@@ -809,6 +809,9 @@ void D_RegisterClientCommands(void)
 	CV_RegisterVar(&cv_chatsnapx);
 	CV_RegisterVar(&cv_chatsnapy);
 	CV_RegisterVar(&cv_chatnotifications);
+	CV_RegisterVar(&cv_chat_showlimit);
+	CV_RegisterVar(&cv_chat_clearonexit);
+	CV_RegisterVar(&cv_chatcursor);
 	CV_RegisterVar(&cv_crosshair);
 	CV_RegisterVar(&cv_crosshair2);
 	CV_RegisterVar(&cv_crosshair_invert);

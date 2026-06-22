@@ -1522,12 +1522,19 @@ static menuitem_t OP_BanpyuraOptionsMenu[] =
 	{IT_STRING | IT_CVAR,		NULL, "Menu Text Color",       	       &cv_menucolor,          16},
 	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          21},
 
-	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   31},
-	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          37},
-	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's Delay",       	  &cv_gentlemens,          42},
+	{IT_HEADER, 				NULL, "Chat Tweaks", 			            	NULL,		   31},
+	{IT_STRING | IT_CVAR,		NULL, "Horizontal Position",       		   &cv_chatx,          37},
+	{IT_STRING | IT_CVAR,		NULL, "Vertical Position",       	  	   &cv_chaty,          42},
+	{IT_STRING | IT_CVAR,		NULL, "Show Char. Limit",         &cv_chat_showlimit,          47},
+	{IT_STRING | IT_CVAR,		NULL, "Clear Input text on Exit",&cv_chat_clearonexit,         52},
+	{IT_STRING | IT_CVAR,		NULL, "Chat Cursor",                  &cv_chatcursor,          57},
 
-	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			        NULL,		   52},
-	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,          58},
+	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   67},
+	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          73},
+	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's Delay",       	  &cv_gentlemens,          78},
+
+	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			        NULL,		   88},
+	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,          94},
 };
 
 static menuitem_t OP_P1BanpyuraOptionsMenu[] =
