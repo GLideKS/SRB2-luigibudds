@@ -1658,8 +1658,9 @@ void G_BuildTiccmd(ticcmd_t *cmd, INT32 realtics, UINT8 ssplayer)
 		static boolean last_centerviewdown[2], centerviewhold[2]; // detect taps for toggle behavior
 		boolean down = PLAYERINPUTDOWN(ssplayer, GC_CENTERVIEW);
 
-		if (!(controlstyle == CS_SIMPLE && cv_cam_centertoggle[forplayer].value))
-			centerviewdown = down;
+		if (cv_cam_centertoggle[forplayer].value == 0) {
+				centerviewdown = down;
+			}
 		else
 		{
 			if (down && !last_centerviewdown[forplayer])
