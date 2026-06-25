@@ -83,7 +83,7 @@ static CV_PossibleValue_t constextsize_cons_t[] = {
 static void CV_constextsize_OnChange(void);
 consvar_t cv_constextsize = CVAR_INIT ("con_textsize", "Medium", CV_SAVE|CV_CALL, constextsize_cons_t, CV_constextsize_OnChange);
 
-consvar_t cv_menucaps = CVAR_INIT ("menucaps", "On", CV_SAVE, CV_OnOff, NULL);
+consvar_t cv_menucaps = CVAR_INIT ("menucaps", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
 
 static CV_PossibleValue_t menucolor_cons_t[] = {
 	{0, "White"},
@@ -93,7 +93,7 @@ static CV_PossibleValue_t menucolor_cons_t[] = {
 	{V_PURPLEMAP, "Purple"}, {V_MAGENTAMAP, "Magenta"}, {V_ROSYMAP, "Rosy"},
 	{V_BROWNMAP, "Brown"}, {V_GRAYMAP, "Gray"}, {V_INVERTMAP, "Inverted"},
 	{0, NULL} };
-consvar_t cv_menucolor = CVAR_INIT("menucolor", "Yellow", CV_SAVE, menucolor_cons_t, NULL);
+consvar_t cv_menucolor = CVAR_INIT("menucolor", "Yellow", CV_SAVE|CV_CLIENT, menucolor_cons_t, NULL);
 
 // local copy of the palette for V_GetColor()
 RGBA_t *pLocalPalette = NULL;

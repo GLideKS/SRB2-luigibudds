@@ -9859,8 +9859,8 @@ consvar_t cv_cam_speed = CVAR_INIT ("cam_speed", "0.4", CV_FLOAT|CV_SAVE|CV_ALLO
 consvar_t cv_cam_rotate = CVAR_INIT ("cam_rotate", "0", CV_CALL|CV_NOINIT|CV_ALLOWLUA, CV_CamRotate, CV_CamRotate_OnChange);
 consvar_t cv_cam_rotspeed = CVAR_INIT ("cam_rotspeed", "10", CV_SAVE|CV_ALLOWLUA, rotation_cons_t, NULL);
 consvar_t cv_cam_turnmultiplier = CVAR_INIT ("cam_turnmultiplier", "0.75", CV_FLOAT|CV_SAVE|CV_ALLOWLUA, multiplier_cons_t, NULL);
-consvar_t cv_cam_gamepadxsensitivity = CVAR_INIT ("cam_gamepadxsensitivity", "1", CV_FLOAT|CV_SAVE|CV_ALLOWLUA, sensitivity_cons_t, NULL);
-consvar_t cv_cam_gamepadysensitivity = CVAR_INIT ("cam_gamepadysensitivity", "1", CV_FLOAT|CV_SAVE|CV_ALLOWLUA, sensitivity_cons_t, NULL);
+consvar_t cv_cam_gamepadxsensitivity = CVAR_INIT ("cam_gamepadxsensitivity", "1", CV_FLOAT|CV_SAVE|CV_ALLOWLUA|CV_CLIENT, sensitivity_cons_t, NULL);
+consvar_t cv_cam_gamepadysensitivity = CVAR_INIT ("cam_gamepadysensitivity", "1", CV_FLOAT|CV_SAVE|CV_ALLOWLUA|CV_CLIENT, sensitivity_cons_t, NULL);
 consvar_t cv_cam_orbit = CVAR_INIT ("cam_orbit", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
 consvar_t cv_cam_adjust = CVAR_INIT ("cam_adjust", "On", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
 consvar_t cv_cam2_dist = CVAR_INIT ("cam2_curdist", "160", CV_FLOAT|CV_ALLOWLUA, campos_cons_t, NULL);
@@ -9870,20 +9870,20 @@ consvar_t cv_cam2_speed = CVAR_INIT ("cam2_speed", "0.4", CV_FLOAT|CV_SAVE|CV_AL
 consvar_t cv_cam2_rotate = CVAR_INIT ("cam2_rotate", "0", CV_CALL|CV_NOINIT|CV_ALLOWLUA, CV_CamRotate, CV_CamRotate2_OnChange);
 consvar_t cv_cam2_rotspeed = CVAR_INIT ("cam2_rotspeed", "10", CV_SAVE|CV_ALLOWLUA, rotation_cons_t, NULL);
 consvar_t cv_cam2_turnmultiplier = CVAR_INIT ("cam2_turnmultiplier", "0.75", CV_FLOAT|CV_SAVE|CV_ALLOWLUA, multiplier_cons_t, NULL);
-consvar_t cv_cam2_gamepadxsensitivity = CVAR_INIT ("cam2_gamepadxsensitivity", "1", CV_FLOAT|CV_SAVE|CV_ALLOWLUA, sensitivity_cons_t, NULL);
-consvar_t cv_cam2_gamepadysensitivity = CVAR_INIT ("cam2_gamepadysensitivity", "1", CV_FLOAT|CV_SAVE|CV_ALLOWLUA, sensitivity_cons_t, NULL);
+consvar_t cv_cam2_gamepadxsensitivity = CVAR_INIT ("cam2_gamepadxsensitivity", "1", CV_FLOAT|CV_SAVE|CV_ALLOWLUA|CV_CLIENT, sensitivity_cons_t, NULL);
+consvar_t cv_cam2_gamepadysensitivity = CVAR_INIT ("cam2_gamepadysensitivity", "1", CV_FLOAT|CV_SAVE|CV_ALLOWLUA|CV_CLIENT, sensitivity_cons_t, NULL);
 consvar_t cv_cam2_orbit = CVAR_INIT ("cam2_orbit", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
 consvar_t cv_cam2_adjust = CVAR_INIT ("cam2_adjust", "On", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
 
 // romoney5: noclip camera
 static CV_PossibleValue_t clipping_cons_t[] = { {0, "Off"}, {1, "Vanilla"}, {2, "Exact"}, {0, NULL} };
 
-consvar_t cv_cam_clipping = CVAR_INIT ("cam_clipping", "Vanilla", CV_SAVE|CV_ALLOWLUA, clipping_cons_t, NULL);
-consvar_t cv_cam2_clipping = CVAR_INIT ("cam2_clipping", "Vanilla", CV_SAVE|CV_ALLOWLUA, clipping_cons_t, NULL);
+consvar_t cv_cam_clipping = CVAR_INIT ("cam_clipping", "Vanilla", CV_SAVE|CV_ALLOWLUA|CV_CLIENT, clipping_cons_t, NULL);
+consvar_t cv_cam2_clipping = CVAR_INIT ("cam2_clipping", "Vanilla", CV_SAVE|CV_ALLOWLUA|CV_CLIENT, clipping_cons_t, NULL);
 
 // romoney5: exact camera aiming
-consvar_t cv_cam_exact = CVAR_INIT ("cam_exact", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
-consvar_t cv_cam2_exact = CVAR_INIT ("cam2_exact", "Off", CV_SAVE|CV_ALLOWLUA, CV_OnOff, NULL);
+consvar_t cv_cam_exact = CVAR_INIT ("cam_exact", "Off", CV_SAVE|CV_ALLOWLUA|CV_CLIENT, CV_OnOff, NULL);
+consvar_t cv_cam2_exact = CVAR_INIT ("cam2_exact", "Off", CV_SAVE|CV_ALLOWLUA|CV_CLIENT, CV_OnOff, NULL);
 
 // [standard vs simple][p1 or p2]
 consvar_t cv_cam_savedist[2][2] = {
