@@ -337,40 +337,37 @@ static void CL_DrawDownloadAddonList(void)
 
 #define charsonside 18
 #define maxcharlen (charsonside * 2) + 3 // 3 for the 3 dots
-	INT32 i;
 	INT32 count = 0;
 	INT32 x = 14;
 	INT32 y = ypos + 68;
 	INT32 height = 10;
 	INT32 totalsize = 0;
-	fileneeded_t filelist[fileneedednum];
-	INT32 filelistsize = 0;
-	for (int j = 0; j < fileneedednum; j++)
-	{
-		if ((fileneeded[j].status != FS_NOTFOUND) && (fileneeded[j].status != FS_MD5SUMBAD))
-			continue;
+	INT32 addons = 0;
 
-		filelist[filelistsize] = fileneeded[j];
-		filelistsize++;
-		totalsize += fileneeded[j].totalsize;
-	}
-	totalsize = (float)totalsize;
-
-	if (filelistsize > 0)
+	if (fileneedednum > 0)
 	{
-		for (i = viewfiles; i < filelistsize; i++)
+		for (INT32 i = viewfiles; i < fileneedednum; i++)
 		{
-			if (i & 1)
+			if ((fileneeded[i].status != FS_NOTFOUND) && (fileneeded[i].status != FS_MD5SUMBAD))
+				continue;
+
+			addons++;
+			totalsize += fileneeded[i].totalsize;
+
+			if (count == MAXLISTADDONS || count == MAXLISTADDONS * 2)
+				continue; // continue here so that addons/totalsize are updated but nothing else is drawn
+
+			if (addons & 1)
 				V_DrawFill(x - 2, y - 1, 290, height, (cv_menubgcolor.value - 3));
 			else
 				V_DrawFill(x - 2, y - 1, 290, height, (cv_menubgcolor.value - 2));
 			
 			INT32 color = 0; // new addon
-			if (filelist[i].status == FS_MD5SUMBAD)
+			if (fileneeded[i].status == FS_MD5SUMBAD)
 				color = V_SKYMAP; // addon update
 
 			char tempname[28];
-			char *filename = filelist[i].filename;
+			char *filename = fileneeded[i].filename;
 			filename += strlen(filename) - nameonlylength(filename);
 			if (strlen(filename) > (sizeof(tempname) - 1)) // too long to display fully
 			{
@@ -388,7 +385,7 @@ static void CL_DrawDownloadAddonList(void)
 
 			V_DrawThinString(x + 6 * 3, y + 1, V_ALLOWLOWERCASE|V_6WIDTHSPACE|color, filename);
 
-			float file_size = ((float)filelist[i].totalsize);
+			float file_size = ((float)fileneeded[i].totalsize);
 			const char *size_mode = "B";
 			if (file_size >= (1024.0f * 1024.0f))
 			{
@@ -404,11 +401,9 @@ static void CL_DrawDownloadAddonList(void)
 
 			y += height;
 			count++;
-			if (count == MAXLISTADDONS)
-				break;
-			if (count == MAXLISTADDONS * 2)
-				break;
 		}
+
+		totalsize = (float)totalsize;
 
 		const char *size_mode = "B";
 		if (totalsize >= (1024.0f * 1024.0f))
@@ -423,15 +418,15 @@ static void CL_DrawDownloadAddonList(void)
 		}
 
 		V_DrawString(12, ypos + 58, V_ALLOWLOWERCASE|MENUCOLOR,
-			va("Download %i addons?", filelistsize));
+			va("Download %i addons?", addons));
 		V_DrawRightAlignedString(BASEVIDWIDTH - x - 3, ypos + 58, V_ALLOWLOWERCASE|MENUCOLOR, va("%.1f%s total", (float)totalsize, size_mode));
 
-		if (filelistsize >= MAXLISTADDONS)
+		if (addons >= MAXLISTADDONS)
 		{
 			if (viewfiles)
 				V_DrawRightAlignedThinString(BASEVIDWIDTH - 10, (ypos + 58 + 10) - ((ccstime % 8) / 5), MENUCOLOR, "\x1A");
 
-			if (viewfiles != (filelistsize - ADDONSCROLLLIMIT))
+			if (viewfiles != (addons - ADDONSCROLLLIMIT))
 				V_DrawRightAlignedThinString(BASEVIDWIDTH - 10, (y - 10) + ((ccstime % 8) / 5), MENUCOLOR, "\x1B");
 		}
 	}
@@ -453,7 +448,7 @@ static void CL_DrawDownloadAddonList(void)
 		V_ALLOWLOWERCASE, va("%sESC%s - Cancel", GetChatColorFromVideoFlag(MENUCOLOR), "\x80")
 	);
 
-	if (filelistsize >= MAXLISTADDONS)
+	if (addons >= MAXLISTADDONS)
 	{
 		V_DrawCenteredThinString(
 			BASEVIDWIDTH/2, BASEVIDHEIGHT - (ypos + 15),
