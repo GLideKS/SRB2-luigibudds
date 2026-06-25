@@ -993,7 +993,7 @@ static void COM_Help_f(void)
 		isitallfalse = (!parmv && !parmc && !parma);
 
 		// slightly less ternary spam
-		const char* helpheaders[] = {"Vanilla:", "Client:", "Addon:"};
+		const char* helpheaders[] = {"Vanilla:", "Banpyura:", "Addon:"};
 
 		while (oi <= 2)
 		{
