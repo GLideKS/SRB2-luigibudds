@@ -1551,6 +1551,10 @@ static menuitem_t OP_P1BanpyuraOptionsMenu[] =
 	{IT_HEADER, 				NULL, "Camera", 								NULL,		   16},
 	{IT_STRING | IT_CVAR, 		NULL, "Exact Aiming", 				   &cv_cam_exact,		   22},
 	{IT_STRING | IT_CVAR, 		NULL, "Clipping Style", 			&cv_cam_clipping,		   27},
+
+	{IT_HEADER, 				NULL, "Gamepad Options",						NULL,		   37},
+	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Camera X Sensitivity", &cv_cam_gamepadxsensitivity, 43},
+	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Camera Y Sensitivity", &cv_cam_gamepadysensitivity, 48}
 };
 
 static menuitem_t OP_P2BanpyuraOptionsMenu[] =
@@ -1561,6 +1565,10 @@ static menuitem_t OP_P2BanpyuraOptionsMenu[] =
 	{IT_HEADER, 				NULL, "Camera", 								NULL,		   16},
 	{IT_STRING | IT_CVAR, 		NULL, "Exact Aiming", 				   &cv_cam2_exact,		   22},
 	{IT_STRING | IT_CVAR, 		NULL, "Clipping Style", 			&cv_cam2_clipping,		   27},
+
+	{IT_HEADER, 				NULL, "Gamepad Options",						NULL,		   37},
+	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Camera X Sensitivity", &cv_cam2_gamepadxsensitivity, 43},
+	{IT_STRING | IT_CVAR | IT_CV_FLOATSLIDER, NULL, "Camera Y Sensitivity", &cv_cam2_gamepadysensitivity, 48}
 };
 
 //End of Banpyura Options
