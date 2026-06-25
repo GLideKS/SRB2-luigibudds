@@ -187,7 +187,7 @@ consvar_t cv_homremoval = CVAR_INIT ("homremoval", "No", CV_SAVE, homremoval_con
 
 consvar_t cv_renderstats = CVAR_INIT ("renderstats", "Off", 0, CV_OnOff, NULL);
 
-consvar_t cv_flashes = CVAR_INIT ("flashes", "On", CV_SAVE, CV_OnOff, NULL);
+consvar_t cv_flashes = CVAR_INIT ("flashes", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
 
 void SplitScreen_OnChange(void)
 {
