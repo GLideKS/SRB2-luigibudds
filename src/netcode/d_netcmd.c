@@ -405,6 +405,9 @@ consvar_t cv_freedemocamera = CVAR_INIT("freedemocamera", "Off", CV_SAVE, CV_OnO
 // NOTE: this should be in hw_main.c, but we can't put it there as it breaks dedicated build
 consvar_t cv_glallowshaders = CVAR_INIT ("gr_allowcustomshaders", "On", CV_NETVAR, CV_OnOff, NULL);
 
+static CV_PossibleValue_t cvarinfo_const_t[] = {{0, "Show All"}, {1, "Hide Origin"}, {2, "Hide Flags"}, {3, "Only Show Values"}, {0, NULL}};
+consvar_t cv_cvarinformation = CVAR_INIT ("cvarinfo", "Show All", CV_SAVE|CV_CLIENT, cvarinfo_const_t, NULL);
+
 char timedemo_name[256];
 boolean timedemo_csv;
 char timedemo_csv_id[256];
@@ -512,7 +515,7 @@ void D_RegisterServerCommands(void)
 
 	COM_AddCommand("addfolder", Command_Addfolder, COM_LUA);
 	COM_AddCommand("addfile", Command_Addfile, COM_LUA);
-	COM_AddCommand("addfilelocal", Command_Addfilelocal, COM_LUA);
+	COM_AddCommand("addfilelocal", Command_Addfilelocal, COM_LUA|COM_CLIENT);
 	COM_AddCommand("listwad", Command_ListWADS_f, COM_LUA);
 
 	COM_AddCommand("runsoc", Command_RunSOC, COM_LUA);
@@ -638,6 +641,8 @@ void D_RegisterServerCommands(void)
 	CV_RegisterVar(&cv_pingtimeout);
 	CV_RegisterVar(&cv_showping);
 
+	CV_RegisterVar(&cv_cvarinformation);
+
 	CV_RegisterVar(&cv_allowseenames);
 
 	// Other filesrch.c consvars are defined in D_RegisterClientCommands
@@ -709,7 +714,7 @@ void D_RegisterClientCommands(void)
 	COM_AddCommand("stopmovie", Command_StopMovie_f, COM_LUA);
 
 	// romoney5
-	COM_AddCommand("saveaddons", Command_SaveAddons_f, 0);
+	COM_AddCommand("saveaddons", Command_SaveAddons_f, COM_CLIENT);
 
 	CV_RegisterVar(&cv_screenshot_option);
 	CV_RegisterVar(&cv_screenshot_folder);
