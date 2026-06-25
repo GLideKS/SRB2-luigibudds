@@ -1518,23 +1518,26 @@ static menuitem_t OP_BanpyuraOptionsMenu[] =
 {
 	{IT_HEADER, 				NULL, "Heads-Up Display", 			            NULL,		   0},
 	{IT_STRING | IT_CVAR,		NULL, "Screen Fades",       			   &cv_wipes,          6},
-	{IT_STRING | IT_CVAR,		NULL, "Uppercase Menus",       			&cv_menucaps,          11},
-	{IT_STRING | IT_CVAR,		NULL, "Menu Text Color",       	       &cv_menucolor,          16},
-	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          21},
+	{IT_STRING | IT_CVAR,		NULL, "Screen Flashes",       			 &cv_flashes,          11},
+	{IT_STRING | IT_CVAR,		NULL, "Uppercase Menus",       			&cv_menucaps,          16},
+	{IT_STRING | IT_CVAR,		NULL, "Menu Text Color",       	       &cv_menucolor,          21},
+	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          26},
 
-	{IT_HEADER, 				NULL, "Chat Tweaks", 			            	NULL,		   31},
-	{IT_STRING | IT_CVAR,		NULL, "Horizontal Position",       		   &cv_chatx,          37},
-	{IT_STRING | IT_CVAR,		NULL, "Vertical Position",       	  	   &cv_chaty,          42},
-	{IT_STRING | IT_CVAR,		NULL, "Show Char. Limit",         &cv_chat_showlimit,          47},
-	{IT_STRING | IT_CVAR,		NULL, "Clear Input text on Exit",&cv_chat_clearonexit,         52},
-	{IT_STRING | IT_CVAR,		NULL, "Chat Cursor",                  &cv_chatcursor,          57},
+	{IT_HEADER, 				NULL, "Chat Tweaks", 			            	NULL,		   36},
+	{IT_STRING | IT_CVAR,		NULL, "Horizontal Snap",       	  	   &cv_chatsnapy,          42},
+	{IT_STRING | IT_CVAR,		NULL, "Vertical Snap",       	  	   &cv_chatsnapx,          47},
+	{IT_STRING | IT_CVAR,		NULL, "Horizontal Position",       		   &cv_chatx,          52},
+	{IT_STRING | IT_CVAR,		NULL, "Vertical Position",       	  	   &cv_chaty,          57},
+	{IT_STRING | IT_CVAR,		NULL, "Show Char. Limit",         &cv_chat_showlimit,          62},
+	{IT_STRING | IT_CVAR,		NULL, "Clear Input text on Exit",&cv_chat_clearonexit,         67},
+	{IT_STRING | IT_CVAR,		NULL, "Chat Cursor",                  &cv_chatcursor,          72},
 
-	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   67},
-	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          73},
-	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's Delay",       	  &cv_gentlemens,          78},
+	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   82},
+	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          88},
+	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's Delay",       	  &cv_gentlemens,          93},
 
-	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			        NULL,		   88},
-	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,          94},
+	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			        NULL,		   103},
+	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,          109},
 };
 
 static menuitem_t OP_P1BanpyuraOptionsMenu[] =
