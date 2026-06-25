@@ -322,18 +322,18 @@ static CV_PossibleValue_t chatx_cons_t[] = {{-BASEVIDWIDTH/2, "MIN"}, {BASEVIDWI
 static CV_PossibleValue_t chaty_cons_t[] = {{-BASEVIDHEIGHT/2, "MIN"}, {BASEVIDHEIGHT, "MAX"}, {0, NULL}};
 static CV_PossibleValue_t chatsnapx_cons_t[] = {{V_SNAPTOLEFT, "Left"}, {V_SNAPTORIGHT, "Right"}, {0, NULL}};
 static CV_PossibleValue_t chatsnapy_cons_t[] = {{V_SNAPTOTOP, "Top"}, {V_SNAPTOBOTTOM, "Bottom"}, {0, NULL}};
-consvar_t cv_chatx = CVAR_INIT ("chatx", "13", CV_SAVE, chatx_cons_t, NULL);
-consvar_t cv_chaty = CVAR_INIT ("chaty", "169", CV_SAVE, chaty_cons_t, NULL);
-consvar_t cv_chatsnapx = CVAR_INIT ("chatsnapx", "Left", CV_SAVE, chatsnapx_cons_t, NULL);
-consvar_t cv_chatsnapy = CVAR_INIT ("chatsnapy", "Bottom", CV_SAVE, chatsnapy_cons_t, NULL);
+consvar_t cv_chatx = CVAR_INIT ("chatx", "13", CV_SAVE|CV_CLIENT, chatx_cons_t, NULL);
+consvar_t cv_chaty = CVAR_INIT ("chaty", "169", CV_SAVE|CV_CLIENT, chaty_cons_t, NULL);
+consvar_t cv_chatsnapx = CVAR_INIT ("chatsnapx", "Left", CV_SAVE|CV_CLIENT, chatsnapx_cons_t, NULL);
+consvar_t cv_chatsnapy = CVAR_INIT ("chatsnapy", "Bottom", CV_SAVE|CV_CLIENT, chatsnapy_cons_t, NULL);
 
 // MORE chat stuff!!! YUM!!!!
-consvar_t cv_chat_showlimit = CVAR_INIT ("chat_showlimit", "On", CV_SAVE, CV_OnOff, NULL);
-consvar_t cv_chat_clearonexit = CVAR_INIT ("chat_clearonexit", "On", CV_SAVE, CV_OnOff, NULL);
+consvar_t cv_chat_showlimit = CVAR_INIT ("chat_showlimit", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
+consvar_t cv_chat_clearonexit = CVAR_INIT ("chat_clearonexit", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
 
 // romoney5: make the chat cursor a pipe like every other text box made after the 2000s
 static CV_PossibleValue_t chatcursor_cons_t[] = {{1, "_"}, {2, "|"}, {0, NULL}};
-consvar_t cv_chatcursor = CVAR_INIT ("chatcursor", "|", CV_SAVE, chatcursor_cons_t, NULL);
+consvar_t cv_chatcursor = CVAR_INIT ("chatcursor", "|", CV_SAVE|CV_CLIENT, chatcursor_cons_t, NULL);
 
 // Pause game upon window losing focus
 consvar_t cv_pauseifunfocused = CVAR_INIT ("pauseifunfocused", "Yes", CV_SAVE, CV_YesNo, NULL);
@@ -342,8 +342,8 @@ consvar_t cv_instantretry = CVAR_INIT ("instantretry", "No", CV_SAVE, CV_YesNo, 
 
 consvar_t cv_crosshair = CVAR_INIT ("crosshair", "Cross", CV_SAVE, crosshair_cons_t, NULL);
 consvar_t cv_crosshair2 = CVAR_INIT ("crosshair2", "Cross", CV_SAVE, crosshair_cons_t, NULL);
-consvar_t cv_crosshair_invert = CVAR_INIT ("crosshair_invert", "No", CV_SAVE, CV_YesNo, NULL);
-consvar_t cv_crosshair2_invert = CVAR_INIT ("crosshair2_invert", "No", CV_SAVE, CV_YesNo, NULL);
+consvar_t cv_crosshair_invert = CVAR_INIT ("crosshair_invert", "No", CV_SAVE|CV_CLIENT, CV_YesNo, NULL);
+consvar_t cv_crosshair2_invert = CVAR_INIT ("crosshair2_invert", "No", CV_SAVE|CV_CLIENT, CV_YesNo, NULL);
 consvar_t cv_invertmouse = CVAR_INIT ("invertmouse", "Off", CV_SAVE, CV_OnOff, NULL);
 consvar_t cv_alwaysfreelook = CVAR_INIT ("alwaysmlook", "On", CV_SAVE, CV_OnOff, NULL);
 consvar_t cv_invertmouse2 = CVAR_INIT ("invertmouse2", "Off", CV_SAVE, CV_OnOff, NULL);
@@ -444,7 +444,7 @@ consvar_t cv_deadzone2 = CVAR_INIT ("joy_deadzone2", "0.125", CV_FLOAT|CV_SAVE, 
 consvar_t cv_digitaldeadzone2 = CVAR_INIT ("joy_digdeadzone2", "0.25", CV_FLOAT|CV_SAVE, zerotoone_cons_t, NULL);
 
 // disable wipes entirely
-consvar_t cv_wipes = CVAR_INIT ("wipes", "On", CV_SAVE, CV_OnOff, NULL);
+consvar_t cv_wipes = CVAR_INIT ("wipes", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
 
 player_t *seenplayer; // player we're aiming at right now
 
