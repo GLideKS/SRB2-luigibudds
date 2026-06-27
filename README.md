@@ -72,7 +72,6 @@ Icon credits goes to ClovesCloestarSRB2 and his addon [New Springs](https://mb.s
 <img width="320" height="200" alt="srb20226" src="https://github.com/user-attachments/assets/d49162f1-b5d9-4339-b92c-f1cfc147a304" />
 <img width="320" height="256" alt="srb20225" src="https://github.com/user-attachments/assets/13dfa657-d72a-463f-87b5-c832e663fdad" />
 <img width="320" height="256" alt="srb20224" src="https://github.com/user-attachments/assets/c1b8e0cf-6a57-40b8-b5a9-fa04c5d953e9" />
-<img width="320" height="256" alt="srb20224" src="https://github.com/user-attachments/assets/d06d2407-04ec-461e-81d3-3b9979320bd2" />
 
 ## Dependencies
 - SDL2 (Linux/OS X only)
