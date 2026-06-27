@@ -267,9 +267,6 @@
     <ClInclude Include="..\i_joy.h">
       <Filter>I_Interface</Filter>
     </ClInclude>
-    <ClInclude Include="..\i_net.h">
-      <Filter>I_Interface</Filter>
-    </ClInclude>
     <ClInclude Include="..\i_sound.h">
       <Filter>I_Interface</Filter>
     </ClInclude>
@@ -1067,9 +1064,6 @@
       <Filter>SDLApp</Filter>
     </ClCompile>
     <ClCompile Include="i_main.c">
-      <Filter>SDLApp</Filter>
-    </ClCompile>
-    <ClCompile Include="i_net.c">
       <Filter>SDLApp</Filter>
     </ClCompile>
     <ClCompile Include="i_system.c">

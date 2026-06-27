@@ -2045,7 +2045,7 @@ tic_t GetLag(INT32 node)
 	return gametic - netnodes[node].tic;
 }
 
-void D_SHA256PasswordPass(const UINT8 *buffer, size_t len, const char *salt, UINT8 dest[static 32])
+void D_SHA256PasswordPass(const UINT8 *buffer, size_t len, const char *salt, UINT8 dest[32])
 {
 	UINT8 *tmpbuf;
 	const size_t sl = strlen(salt);

@@ -322,7 +322,6 @@
     <ClInclude Include="..\hu_stuff.h" />
     <ClInclude Include="..\info.h" />
     <ClInclude Include="..\i_joy.h" />
-    <ClInclude Include="..\i_net.h" />
     <ClInclude Include="..\i_sound.h" />
     <ClInclude Include="..\i_system.h" />
     <ClInclude Include="..\i_tcp.h" />
@@ -637,7 +636,6 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="i_main.c" />
-    <ClCompile Include="i_net.c" />
     <ClCompile Include="i_system.c" />
     <ClCompile Include="i_threads.c" />
     <ClCompile Include="i_ttf.c" />
