@@ -48,6 +48,10 @@ Icon credits goes to ClovesCloestarSRB2 and his addon [New Springs](https://mb.s
 - Fixed chats not being saved on the logs in Linux systems
 - Removed 5-second delay upon disconnecting from servers
 - Fixed "All" Room not fetching properly.
+- The `help` command is now sorted by origin (Vanilla, Banpyura, Addon). You can use `-v`, `-c`, and `-a` respectively to only print out only those sections. (You can use more than one flag at once).
+- Doing merely `<cvar>` has the same effect as `help <cvar>`.
+- Console variable information is more in-depth.
+- - You can choose to hide certain sections via `cvarinfo` ("Show All" by default).
 
 **Most of these options can be found in the menu under Banpyura Options....**
 

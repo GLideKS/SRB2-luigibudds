@@ -5753,7 +5753,7 @@ static CV_PossibleValue_t glpalettedepth_cons_t[] = {{16, "16 bits"}, {24, "24 b
 
 consvar_t cv_glpaletterendering = CVAR_INIT ("gr_paletterendering", "On", CV_SAVE|CV_CALL, CV_OnOff, CV_glpaletterendering_OnChange);
 consvar_t cv_glpalettedepth = CVAR_INIT ("gr_palettedepth", "16 bits", CV_SAVE|CV_CALL, glpalettedepth_cons_t, CV_glpalettedepth_OnChange);
-consvar_t cv_gllightdither = CVAR_INIT ("gr_lightdithering", "Off", CV_SAVE|CV_CALL, CV_OnOff, CV_gllightdithering_OnChange);
+consvar_t cv_gllightdither = CVAR_INIT ("gr_lightdithering", "Off", CV_SAVE|CV_CALL|CV_CLIENT, CV_OnOff, CV_gllightdithering_OnChange);
 
 #define ONLY_IF_GL_LOADED if (vid.glstate != VID_GL_LIBRARY_LOADED) return;
 consvar_t cv_glwireframe = CVAR_INIT ("gr_wireframe", "Off", 0, CV_OnOff, NULL);
