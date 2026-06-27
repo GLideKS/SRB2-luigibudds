@@ -124,6 +124,7 @@ static void Command_Stopdemo_f(void);
 static void Command_StartMovie_f(void);
 static void Command_StopMovie_f(void);
 static void Command_SaveAddons_f(void);
+static void Command_Freeslots_f(void);
 static void Command_Map_f(void);
 static void Command_ResetCamera_f(void);
 
@@ -715,6 +716,7 @@ void D_RegisterClientCommands(void)
 
 	// romoney5
 	COM_AddCommand("saveaddons", Command_SaveAddons_f, COM_CLIENT);
+	COM_AddCommand("freeslots", Command_Freeslots_f, COM_CLIENT);
 
 	CV_RegisterVar(&cv_screenshot_option);
 	CV_RegisterVar(&cv_screenshot_folder);
@@ -1762,6 +1764,27 @@ static void Command_SaveAddons_f(void)
 	fclose(file);
 
 	CONS_Printf("Saved addon list (%d addons) to %s\n", savedaddons, filename);
+}
+
+// romoney5: print the amount of freeslots from lua and soc
+// inspired by the freeslots lua command i made
+static void Command_Freeslots_f(void)
+{
+	const INT32 max_sfx = 1600;
+	const INT32 max_spr = 1024;
+	const INT32 max_s = 8192;
+	const INT32 max_mt = 1024;
+	const INT32 max_skincolor = 1024;
+	const INT32 max_spr2 = 955;
+	const INT32 max_tol = 32 + 1; // tols are uint32 flags, so 2^32 (and 1)
+
+	CONS_Printf("\x8cSounds: %s%d/%d\x80\n", (freeslots_sfx >= max_sfx ? "\x85" : "\x80"), freeslots_sfx, max_sfx);
+	CONS_Printf("\x82Sprites: %s%d/%d\x80\n", (freeslots_spr >= max_spr ? "\x85" : "\x80"), freeslots_spr, max_spr);
+	CONS_Printf("\x8aStates: %s%d/%d\x80\n", (freeslots_s >= max_s ? "\x85" : "\x80"), freeslots_s, max_s);
+	CONS_Printf("\x83Mobj types: %s%d/%d\x80\n", (freeslots_mt >= max_mt ? "\x85" : "\x80"), freeslots_mt, max_mt);
+	CONS_Printf("\x88Skincolors: %s%d/%d\x80\n", (freeslots_skincolor >= max_skincolor ? "\x85" : "\x80"), freeslots_skincolor, max_skincolor);
+	CONS_Printf("\x8bSprite2s: %s%d/%d\x80\n", (freeslots_spr2 >= max_spr2 ? "\x85" : "\x80"), freeslots_spr2, max_spr2);
+	CONS_Printf("\x8eType of levels: %s%d/%d\x80\n", (freeslots_tol >= max_tol ? "\x85" : "\x80"), freeslots_tol, max_tol);
 }
 
 INT32 mapchangepending = 0;
