@@ -37,7 +37,7 @@ Icon credits goes to ClovesCloestarSRB2 and his addon [New Springs](https://mb.s
 - `addfilelocal` allows you to load addons locally. Can be accessed via Addons Menu and pressing Right Alt as well. (SRB2 Kart Saturn)
 - Fixed SRB2's loading time. (SRB2-Classic)
 - Minimum input delay and Gentleman's delay (Ring Racers)
-- `centertoggle` doesn't gatekeep to automatic playstyle anymore.
+- `cam_centertoggle` and `cam2_centertoggle` are not exclusive to the Automatic playstyle.
 
 ### Miscellaneous
 
@@ -47,7 +47,7 @@ Icon credits goes to ClovesCloestarSRB2 and his addon [New Springs](https://mb.s
 - Don't reset chasecam and do not run special stage wipe on resync (Jisk, Lugent)
 - Fixed chats not being saved on the logs in Linux systems
 - Removed 5-second delay upon disconnecting from servers
-- Fixed "All" Room not fetching properly.
+- Fixed nameless servers causing other servers to not display.
 - The `help` command is now sorted by origin (Vanilla, Banpyura, Addon). You can use `-v`, `-c`, and `-a` respectively to only print out only those sections. (You can use more than one flag at once).
 - Doing merely `<cvar>` has the same effect as `help <cvar>`.
 - Console variable information is more in-depth.
