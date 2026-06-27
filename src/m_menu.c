@@ -1524,8 +1524,8 @@ static menuitem_t OP_BanpyuraOptionsMenu[] =
 	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          26},
 
 	{IT_HEADER, 				NULL, "Chat Tweaks", 			            	NULL,		   36},
-	{IT_STRING | IT_CVAR,		NULL, "Horizontal Snap",       	  	   &cv_chatsnapy,          42},
-	{IT_STRING | IT_CVAR,		NULL, "Vertical Snap",       	  	   &cv_chatsnapx,          47},
+	{IT_STRING | IT_CVAR,		NULL, "Horizontal Snap",       	  	   &cv_chatsnapx,          42},
+	{IT_STRING | IT_CVAR,		NULL, "Vertical Snap",       	  	   &cv_chatsnapy,          47},
 	{IT_STRING | IT_CVAR | IT_CV_SLIDER, NULL, "Horizontal Position",      &cv_chatx,          52},
 	{IT_STRING | IT_CVAR | IT_CV_SLIDER, NULL, "Vertical Position",    	   &cv_chaty,          57},
 	{IT_STRING | IT_CVAR,		NULL, "Show Char. Limit",         &cv_chat_showlimit,          62},
