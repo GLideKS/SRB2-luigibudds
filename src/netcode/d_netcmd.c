@@ -1710,9 +1710,9 @@ static void Command_SaveAddons_f(void)
 {
 	char pathname[MAX_WADPATH * 2];
 	char timename[48];
-	char filename[MAX_WADPATH];
+	char filename[MAX_WADPATH * 2];
     time_t timer;
-    struct tm* tm_info;
+    struct tm *tm_info;
 	FILE *file;
 
 	INT32 savedaddons = 0; // amount of written addons
@@ -1727,12 +1727,21 @@ static void Command_SaveAddons_f(void)
     timer = time(NULL);
     tm_info = localtime(&timer);
 
-    strftime(timename, 48, "%m-%d-%Y %H:%M:%S", tm_info);
+	// ntfs doesn't support colons..
+    strftime(timename, 48, "%m-%d-%Y %H-%M-%S", tm_info);
 
     // save as a cfg to be recognized properly in the addons menu
-	strcpy(filename, va("%s-%s.cfg", cv_servername.string, timename));
-	// open the file (e.g. heystinky-06-20-2026 18:29:49.cfg)
-	file = fopen(va("%s%s", pathname, filename), "w");
+	strcpy(filename, va("%s%s-%s.cfg", pathname, cv_servername.string, timename));
+
+	// open the file (e.g. heystinky-06-20-2026 18-29-49.cfg)
+	file = fopen(filename, "w");
+
+	if (!file)
+	{
+		CONS_Alert(CONS_WARNING, M_GetText("Could not open file \"%s\" for writing\n"), filename);
+
+		return;
+	}
 
 	// check which addons are worthy of being put into the file
 	for (INT32 i = 0; i < numwadfiles; i++)
@@ -1752,7 +1761,7 @@ static void Command_SaveAddons_f(void)
 	// we made it!
 	fclose(file);
 
-	CONS_Printf("Saved addon list (%d addons) to %s%s\n", savedaddons, pathname, filename);
+	CONS_Printf("Saved addon list (%d addons) to %s\n", savedaddons, filename);
 }
 
 INT32 mapchangepending = 0;
