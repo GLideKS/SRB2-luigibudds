@@ -84,6 +84,7 @@ static void CV_constextsize_OnChange(void);
 consvar_t cv_constextsize = CVAR_INIT ("con_textsize", "Medium", CV_SAVE|CV_CALL, constextsize_cons_t, CV_constextsize_OnChange);
 
 consvar_t cv_menucaps = CVAR_INIT ("menucaps", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
+consvar_t cv_uselevelpalette = CVAR_INIT ("uselevelpalette", "On", CV_SAVE|CV_CLIENT|CV_CALL|CV_NOINIT, CV_OnOff, CV_palette_OnChange); // nikoberry: Pretty sure this is a necessary use of CV_NOINIT?
 
 static CV_PossibleValue_t menucolor_cons_t[] = {
 	{0, "White"},
@@ -409,7 +410,7 @@ const char *R_GetPalname(UINT16 num)
 
 const char *GetPalette(void)
 {
-	if (gamestate == GS_LEVEL)
+	if (gamestate == GS_LEVEL && cv_uselevelpalette.value)
 		return R_GetPalname(mapheaderinfo[gamemap-1]->palette);
 	return "PLAYPAL";
 }

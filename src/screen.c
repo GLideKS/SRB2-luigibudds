@@ -214,6 +214,7 @@ void SCR_Startup(void)
 	CV_RegisterVar(&cv_ticrate);
 	CV_RegisterVar(&cv_constextsize);
 	CV_RegisterVar(&cv_menucaps);
+	CV_RegisterVar(&cv_uselevelpalette);
 	CV_RegisterVar(&cv_menucolor);
 
 	V_SetPalette(0);
