@@ -73,6 +73,7 @@ automatically.
 	X (PlayerHeight),/* override player height */\
 	X (PlayerCanEnterSpinGaps),\
 	X (AddonLoaded),\
+	X (CameraThinker),/* P_MoveChaseCamera */\
 	X (KeyDown),\
 	X (KeyUp),\
 
@@ -151,6 +152,7 @@ int  LUA_HookPlayerMsg(int source, int target, int flags, char *msg);
 int  LUA_HookHurtMsg(player_t *, mobj_t *inflictor, mobj_t *source, UINT8 damagetype);
 int  LUA_HookMapThingSpawn(mobj_t *, mapthing_t *);
 int  LUA_HookFollowMobj(player_t *, mobj_t *);
+int  LUA_HookCameraThinker(player_t *, camera_t *);
 int  LUA_HookPlayerCanDamage(player_t *, mobj_t *);
 void LUA_HookPlayerQuit(player_t *, kickreason_t);
 int  LUA_HookTeamSwitch(player_t *, int newteam, boolean fromspectators, boolean tryingautobalance, boolean tryingscramble);

@@ -39,6 +39,11 @@ Icon credits goes to ClovesCloestarSRB2 and his addon [New Springs](https://mb.s
 - Minimum input delay and Gentleman's delay (Ring Racers)
 - `cam_centertoggle` and `cam2_centertoggle` are not exclusive to the Automatic playstyle.
 
+### Lua
+
+- Added `CameraThinker` hook to alter the camera's behavior.
+- - `player` and `camera` are passed in as arguments. Return `true` to override vanilla camera movement.
+
 ### Miscellaneous
 
 - Improved GIF recording.
