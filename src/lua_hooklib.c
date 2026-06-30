@@ -1054,13 +1054,13 @@ int LUA_HookFollowMobj(player_t *player, mobj_t *mobj)
 	return hook.status;
 }
 
-int LUA_HookCameraThinker(player_t *player, camera_t *camera)
+int LUA_HookCameraThinker(player_t *player, camera_t *thiscam)
 {
 	Hook_State hook;
 	if (prepare_hook(&hook, false, HOOK(CameraThinker)))
 	{
 		LUA_PushUserdata(gL, player, META_PLAYER);
-		LUA_PushUserdata(gL, camera, META_CAMERA);
+		LUA_PushUserdata(gL, thiscam, META_CAMERA);
 		call_hooks(&hook, 1, res_true);
 	}
 	return hook.status;
