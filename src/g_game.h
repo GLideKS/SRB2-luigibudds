@@ -57,7 +57,7 @@ extern consvar_t cv_chatwidth, cv_chatnotifications, cv_chatheight, cv_chattime,
 	cv_chatbacktint, cv_chatspamprotection, cv_chatspamspeed, cv_chatspamburst, cv_compactscoreboard,
 	cv_chatcursor;
 //				 x         y         horiz snap    vert snap
-extern consvar_t cv_chatx, cv_chaty, cv_chatsnapx, cv_chatsnapy, cv_chat_showlimit, cv_chat_clearonexit;
+extern consvar_t cv_chatx, cv_chaty, cv_chatsnapx, cv_chatsnapy, cv_chat_showlimit, cv_chat_clearonexit, cv_chatopacity;
 extern consvar_t cv_crosshair, cv_crosshair2;
 extern consvar_t cv_crosshair_invert, cv_crosshair2_invert;
 extern consvar_t cv_invertmouse, cv_alwaysfreelook, cv_chasefreelook, cv_mousemove;

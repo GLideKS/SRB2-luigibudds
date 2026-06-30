@@ -11,7 +11,7 @@ Icon credits goes to ClovesCloestarSRB2 and his addon [New Springs](https://mb.s
 ### HUD/Menus
 
 - Toggle screen fades (`wipes`). Not effective in Marathon Run.
-- Lots of chat tweaks! Window positioning, snapping, copy-paste, selection, and more.
+- Lots of chat tweaks! Window positioning, snapping, copy-paste, selection, customizable opacity, and more.
 - Menu tweaks! background color, text case switching, selection color.
 - Extra camera options: Exact aiming, Clipping style, Gamepad Camera sensitivity
 - Addons menu has it's background translucent and their text on thin font.
