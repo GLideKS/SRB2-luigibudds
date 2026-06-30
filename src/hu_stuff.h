@@ -80,7 +80,7 @@ typedef struct
 
 // literally altered USERHUDTRANS.
 // I don't think it fits in v_video.h, though.
-#define CHATLUCENCY ((10-cv_chatlucency.value)<<V_ALPHASHIFT)
+#define CHATOPACITY ((10-cv_chatopacity.value)<<V_ALPHASHIFT)
 
 // some functions
 void HU_AddChatText(const char *text, boolean playsound);

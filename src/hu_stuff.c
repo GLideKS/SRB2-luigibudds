@@ -1529,7 +1529,7 @@ static void HU_drawMiniChat(void)
 				prev_linereturn = false;
 
 				if (cv_chatbacktint.value) // on request of wolfy
-					V_DrawFill(x + dx + 2, y+dy, charwidth, charheight, CHATLUCENCY|cv_menubgcolor.value|chatsnap);
+					V_DrawFill(x + dx + 2, y+dy, charwidth, charheight, CHATOPACITY|cv_menubgcolor.value|chatsnap);
 
 				V_DrawChatCharacter(x + dx + 2, y+dy, msg[j] |chatsnap|V_MONOSPACE|transflag, true, colormap);
 				dx += charwidth;
@@ -1593,7 +1593,7 @@ static void HU_drawChatLog(INT32 offset)
 	chat_bottomy = chat_topy + boxh*charheight;
 
 	if (cv_chatbacktint.value)
-		V_DrawFill(chatx, chat_topy, boxw, boxh*charheight +2, CHATLUCENCY|cv_menubgcolor.value|chatsnap); // log box
+		V_DrawFill(chatx, chat_topy, boxw, boxh*charheight +2, CHATOPACITY|cv_menubgcolor.value|chatsnap); // log box
 
 	for (i=0; i<chat_nummsg_log; i++) // iterate through our chatlog
 	{
@@ -1705,7 +1705,7 @@ static void HU_DrawChat(void)
 	}
 
 	if (cv_chatbacktint.value)
-		V_DrawFill(chatx, y-1, boxw, (typelines*charheight), CHATLUCENCY|cv_menubgcolor.value|chatsnap);
+		V_DrawFill(chatx, y-1, boxw, (typelines*charheight), CHATOPACITY|cv_menubgcolor.value|chatsnap);
 
 	for (i = 0; talk[i]; i++)
 	{
@@ -1823,14 +1823,14 @@ static void HU_DrawChat(void)
 			{
 				char name[MAXPLAYERNAME+1];
 				strlcpy(name, player_names[i], 7); // shorten name to 7 characters.
-				V_DrawFill(chatx+ boxw + 2, p_dispy- (6*count), 48, 6, CHATLUCENCY|cv_menubgcolor.value|chatsnap); // fill it like the chat so the text doesn't become hard to read because of the hud.
+				V_DrawFill(chatx+ boxw + 2, p_dispy- (6*count), 48, 6, CHATOPACITY|cv_menubgcolor.value|chatsnap); // fill it like the chat so the text doesn't become hard to read because of the hud.
 				V_DrawSmallString(chatx+ boxw + 4, p_dispy- (6*count), chatsnap|V_ALLOWLOWERCASE, va("\x82%d\x80 - %s", i, name));
 				count++;
 			}
 		}
 		if (count == 0) // no results.
 		{
-			V_DrawFill(chatx+boxw+2, p_dispy- (6*count), 48, 6, CHATLUCENCY|cv_menubgcolor.value|chatsnap); // fill it like the chat so the text doesn't become hard to read because of the hud.
+			V_DrawFill(chatx+boxw+2, p_dispy- (6*count), 48, 6, CHATOPACITY|cv_menubgcolor.value|chatsnap); // fill it like the chat so the text doesn't become hard to read because of the hud.
 			V_DrawSmallString(chatx+boxw+4, p_dispy- (6*count), chatsnap|V_ALLOWLOWERCASE, "NO RESULT.");
 		}
 	}
