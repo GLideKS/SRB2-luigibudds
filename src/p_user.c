@@ -9997,7 +9997,7 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 
 	mo = player->mo;
 
-	if (player->playerstate == PST_REBORN)
+	if (LUA_HookCameraThinker(player, thiscam) || player->playerstate == PST_REBORN)
 	{
 		P_CalcChasePostImg(player, thiscam);
 		return true;

@@ -78,6 +78,10 @@ typedef struct
 // if it's over this amount, then you get a notice and DoSayCommand() will bail instead.
 #define DEDI_MAXMSGLEN 200
 
+// literally altered USERHUDTRANS.
+// I don't think it fits in v_video.h, though.
+#define CHATOPACITY ((10-cv_chatopacity.value)<<V_ALPHASHIFT)
+
 // some functions
 void HU_AddChatText(const char *text, boolean playsound);
 

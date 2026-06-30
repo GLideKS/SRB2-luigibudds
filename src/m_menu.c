@@ -1537,13 +1537,14 @@ static menuitem_t OP_BanpyuraOptionsMenu[] =
 	{IT_STRING | IT_CVAR,		NULL, "Show Char. Limit",         &cv_chat_showlimit,          62},
 	{IT_STRING | IT_CVAR,		NULL, "Clear Input text on Exit",&cv_chat_clearonexit,         67},
 	{IT_STRING | IT_CVAR,		NULL, "Chat Cursor",                  &cv_chatcursor,          72},
+	{IT_STRING | IT_CVAR,		 NULL, "Chat Opacity",			&cv_chatopacity,	77},
 
-	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   82},
-	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          88},
-	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's Delay",       	  &cv_gentlemens,          93},
+	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   87},
+	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          93},
+	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's Delay",       	  &cv_gentlemens,          98},
 
-	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			        NULL,		   103},
-	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,          109},
+	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			        NULL,		   108},
+	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,          114},
 };
 
 static menuitem_t OP_P1BanpyuraOptionsMenu[] =
