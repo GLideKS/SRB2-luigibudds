@@ -52,6 +52,7 @@ Icon credits goes to ClovesCloestarSRB2 and his addon [New Springs](https://mb.s
 - Doing merely `<cvar>` has the same effect as `help <cvar>`.
 - Console variable information is more in-depth.
 - - You can choose to hide certain sections via `cvarinfo` ("Show All" by default).
+- See the amount of freeslots using `freeslots`.
 
 **Most of these options can be found in the menu under Banpyura Options....**
 
