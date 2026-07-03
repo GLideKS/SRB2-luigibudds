@@ -14,6 +14,7 @@
 #include "d_player.h"
 #include "s_sound.h"
 #include "d_event.h"
+#include "p_local.h"
 #include "lua_hudlib_drawlist.h"
 
 /*
