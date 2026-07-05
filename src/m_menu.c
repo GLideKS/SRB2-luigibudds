@@ -349,6 +349,7 @@ static void M_EraseData(INT32 choice);
 
 //Banpyura Options
 menu_t OP_BanpyuraOptionsDef, OP_P1BanpyuraOptionsDef, OP_P2BanpyuraOptionsDef;
+static void M_BanpyuraReportIssue();
 
 static void M_Addons(INT32 choice);
 static void M_AddonsOptions(INT32 choice);
@@ -1043,7 +1044,8 @@ static menuitem_t OP_MainMenu[] =
 
 	{IT_SUBMENU | IT_STRING, NULL, "Data Options...",      &OP_DataOptionsDef, 100},
 
-	{IT_SUBMENU | IT_STRING, NULL, "\x81""Banpyura Options...",   &OP_BanpyuraOptionsDef,120}
+	{IT_SUBMENU | IT_STRING, NULL, "\x81""Banpyura Options...",   &OP_BanpyuraOptionsDef,120},
+	{IT_STRING|IT_CALL,      NULL, "Report an Issue",   M_BanpyuraReportIssue, 130}
 };
 
 static menuitem_t OP_P1ControlsMenu[] =
@@ -13265,6 +13267,21 @@ static void M_SetupScreenshotMenu(void)
 	else
 #endif
 		item->status = (IT_STRING | IT_CVAR);
+}
+
+// =============
+// BANPYURA MENU
+// =============
+
+static void M_BanpyuraReportIssue()
+{
+#if defined(HAVE_SDL)
+#if SDL_VERSION_ATLEAST(2,0,14)
+	SDL_OpenURL("https://github.com/GLideKS/SRB2-Banpyura/issues");
+#else
+	M_StartMessage(M_GetText("Open the following in your web browser:\ngithub.com/GLideKS/SRB2-Banpyura/issues\n\n(Press a key)\n"), NULL, MM_NOTHING);
+#endif
+#endif
 }
 
 // =============
