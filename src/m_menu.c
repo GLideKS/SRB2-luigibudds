@@ -353,6 +353,7 @@ static void M_EraseData(INT32 choice);
 
 //Banpyura Options
 menu_t OP_BanpyuraOptionsDef, OP_P1BanpyuraOptionsDef, OP_P2BanpyuraOptionsDef;
+static void M_BanpyuraReportIssue();
 
 static void M_Addons(INT32 choice);
 static void M_AddonsOptions(INT32 choice);
@@ -1049,7 +1050,9 @@ static menuitem_t OP_MainMenu[] =
 
 	{IT_SUBMENU | IT_STRING, NULL, "Data Options...",      &OP_DataOptionsDef, 100},
 	{IT_CALL	| IT_STRING, NULL, "Custom Options...",	   M_AddonsCvarOptions,110},
-	{IT_SUBMENU | IT_STRING, NULL, "\x81""Banpyura Options...",   &OP_BanpyuraOptionsDef,120}
+
+	{IT_SUBMENU	| IT_STRING, NULL, "\x81""Banpyura Options...", &OP_BanpyuraOptionsDef,130}
+	{IT_STRING	| IT_CALL,   NULL, "Report an Issue",      M_BanpyuraReportIssue,140}
 };
 
 static menuitem_t OP_P1ControlsMenu[] =
@@ -5956,7 +5959,7 @@ static void M_DrawLevelPlatterRow(UINT8 row, INT32 y)
 		V_DrawFill(lsbasex,     y+50, 141, 8, gametypedesc[cv_newgametype.value].col[0]);
 		V_DrawFill(lsbasex+141, y+50, 141, 8, gametypedesc[cv_newgametype.value].col[1]);
 
-		V_DrawString(lsbasex, y+50, 0, gametype_cons_t[cv_newgametype.value].strvalue);
+		V_DrawString(lsbasex, y+50, MENUCAPS, gametype_cons_t[cv_newgametype.value].strvalue);
 
 		if (!lsrow)
 		{
@@ -9872,8 +9875,8 @@ static void M_DrawStatsMaps(int location)
 		}
 		else if (dotopname)
 		{
-			V_DrawString(20,  y, V_GREENMAP, "LEVEL NAME");
-			V_DrawString(248, y, V_GREENMAP, "EMBLEMS");
+			V_DrawString(20,  y, V_GREENMAP|MENUCAPS, "Level Name");
+			V_DrawString(248, y, V_GREENMAP|MENUCAPS, "Emblems");
 			y += 8;
 			dotopname = false;
 		}
@@ -9893,8 +9896,8 @@ static void M_DrawStatsMaps(int location)
 	}
 	if (dotopname && !location)
 	{
-		V_DrawString(20,  y, V_GREENMAP, "LEVEL NAME");
-		V_DrawString(248, y, V_GREENMAP, "EMBLEMS");
+		V_DrawString(20,  y, V_GREENMAP|MENUCAPS, "Level Name");
+		V_DrawString(248, y, V_GREENMAP|MENUCAPS, "Emblems");
 		y += 8;
 	}
 	else if (location)
@@ -9905,7 +9908,7 @@ static void M_DrawStatsMaps(int location)
 	{
 		if (i == -1)
 		{
-			V_DrawString(20, y, V_GREENMAP, "EXTRA EMBLEMS");
+			V_DrawString(20, y, V_GREENMAP|MENUCAPS, "Extra Emblems");
 			if (location)
 			{
 				y += 8;
@@ -9959,8 +9962,8 @@ static void M_DrawLevelStats(void)
 
 	M_DrawMenuTitle();
 
-	V_DrawString(20, 24, MENUCOLOR, "Total Play Time:");
-	V_DrawCenteredString(BASEVIDWIDTH/2, 32, 0, va("%i hours, %i minutes, %i seconds",
+	V_DrawString(20, 24, MENUCOLOR|MENUCAPS, "Total Play Time:");
+	V_DrawCenteredString(BASEVIDWIDTH/2, 32, MENUCAPS, va("%i hours, %i minutes, %i seconds",
 	                         G_TicsToHours(data->totalplaytime),
 	                         G_TicsToMinutes(data->totalplaytime, false),
 	                         G_TicsToSeconds(data->totalplaytime)));
@@ -9998,26 +10001,26 @@ static void M_DrawLevelStats(void)
 			mapsunfinished++;
 	}
 
-	V_DrawString(20, 48, 0, "Combined records:");
+	V_DrawString(20, 48, MENUCAPS, "Combined records:");
 
 	if (mapsunfinished)
-		V_DrawString(20, 56, V_REDMAP, va("(%d unfinished)", mapsunfinished));
+		V_DrawString(20, 56, V_REDMAP|MENUCAPS, va("(%d unfinished)", mapsunfinished));
 	else
-		V_DrawString(20, 56, V_GREENMAP, "(complete)");
+		V_DrawString(20, 56, V_GREENMAP|MENUCAPS, "(complete)");
 
-	V_DrawString(36, 64, 0, va("x %d/%d", M_CountEmblems(data), numemblems+numextraemblems));
+	V_DrawString(36, 64, MENUCAPS, va("x %d/%d", M_CountEmblems(data), numemblems+numextraemblems));
 	V_DrawSmallScaledPatch(20, 64, 0, W_CachePatchName("EMBLICON", PU_PATCH));
 
 	sprintf(beststr, "%u", bestscore);
-	V_DrawString(BASEVIDWIDTH/2, 48, MENUCOLOR, "SCORE:");
+	V_DrawString(BASEVIDWIDTH/2, 48, MENUCOLOR|MENUCAPS, "Score:");
 	V_DrawRightAlignedString(BASEVIDWIDTH-16, 48, (bestunfinished[0] ? V_REDMAP : 0), beststr);
 
 	sprintf(beststr, "%i:%02i:%02i.%02i", G_TicsToHours(besttime), G_TicsToMinutes(besttime, false), G_TicsToSeconds(besttime), G_TicsToCentiseconds(besttime));
-	V_DrawString(BASEVIDWIDTH/2, 56, MENUCOLOR, "TIME:");
+	V_DrawString(BASEVIDWIDTH/2, 56, MENUCOLOR|MENUCAPS, "Time:");
 	V_DrawRightAlignedString(BASEVIDWIDTH-16, 56, (bestunfinished[1] ? V_REDMAP : 0), beststr);
 
 	sprintf(beststr, "%u", bestrings);
-	V_DrawString(BASEVIDWIDTH/2, 64, MENUCOLOR, "RINGS:");
+	V_DrawString(BASEVIDWIDTH/2, 64, MENUCOLOR|MENUCAPS, "Rings:");
 	V_DrawRightAlignedString(BASEVIDWIDTH-16, 64, (bestunfinished[2] ? V_REDMAP : 0), beststr);
 
 	M_DrawStatsMaps(statsLocation);
@@ -10199,7 +10202,7 @@ void M_DrawTimeAttackMenu(void)
 						'\x1D' | MENUCOLOR, false);
 			}
 			// Draw press ESC to exit string on main record attack menu
-			V_DrawString(104-72, 180, V_TRANSLUCENT, M_GetText("Press ESC to exit"));
+			V_DrawString(104-72, 180, V_TRANSLUCENT|MENUCAPS, M_GetText("Press ESC to exit"));
 		}
 
 		em = M_GetLevelEmblems(cv_nextmap.value);
@@ -10249,7 +10252,7 @@ void M_DrawTimeAttackMenu(void)
 		else
 			sprintf(beststr, "%u", data->mainrecords[cv_nextmap.value-1]->score);
 
-		V_DrawString(104-72, 33+lsheadingheight/2, MENUCOLOR, "SCORE:");
+		V_DrawString(104-72, 33+lsheadingheight/2, MENUCOLOR|MENUCAPS, "Score:");
 		V_DrawRightAlignedString(104+64, 33+lsheadingheight/2, V_ALLOWLOWERCASE, beststr);
 		V_DrawRightAlignedString(104+72, 43+lsheadingheight/2, V_ALLOWLOWERCASE, reqscore);
 
@@ -10260,7 +10263,7 @@ void M_DrawTimeAttackMenu(void)
 			                                 G_TicsToSeconds(data->mainrecords[cv_nextmap.value-1]->time),
 			                                 G_TicsToCentiseconds(data->mainrecords[cv_nextmap.value-1]->time));
 
-		V_DrawString(104-72, 53+lsheadingheight/2, MENUCOLOR, "TIME:");
+		V_DrawString(104-72, 53+lsheadingheight/2, MENUCOLOR|MENUCAPS, "Time:");
 		V_DrawRightAlignedString(104+64, 53+lsheadingheight/2, V_ALLOWLOWERCASE, beststr);
 		V_DrawRightAlignedString(104+72, 63+lsheadingheight/2, V_ALLOWLOWERCASE, reqtime);
 
@@ -10269,7 +10272,7 @@ void M_DrawTimeAttackMenu(void)
 		else
 			sprintf(beststr, "%hu", data->mainrecords[cv_nextmap.value-1]->rings);
 
-		V_DrawString(104-72, 73+lsheadingheight/2, MENUCOLOR, "RINGS:");
+		V_DrawString(104-72, 73+lsheadingheight/2, MENUCOLOR|MENUCAPS, "Rings:");
 
 		V_DrawRightAlignedString(104+64, 73+lsheadingheight/2, V_ALLOWLOWERCASE|((data->mapvisited[cv_nextmap.value-1] & MV_PERFECTRA) ? MENUCOLOR : 0), beststr);
 
@@ -10284,10 +10287,10 @@ void M_DrawTimeAttackMenu(void)
 		x = SP_TimeAttackDef.x;
 		y = SP_TimeAttackDef.y;
 
-		V_DrawString(x, y + SP_TimeAttackMenu[talevel].alphaKey, V_TRANSLUCENT, SP_TimeAttackMenu[talevel].text);
+		V_DrawString(x, y + SP_TimeAttackMenu[talevel].alphaKey, V_TRANSLUCENT|MENUCAPS, SP_TimeAttackMenu[talevel].text);
 
 		ncv = (consvar_t *)SP_TimeAttackMenu[taplayer].itemaction;
-		V_DrawString(x, y + SP_TimeAttackMenu[taplayer].alphaKey, V_TRANSLUCENT, SP_TimeAttackMenu[taplayer].text);
+		V_DrawString(x, y + SP_TimeAttackMenu[taplayer].alphaKey, V_TRANSLUCENT|MENUCAPS, SP_TimeAttackMenu[taplayer].text);
 		V_DrawString(BASEVIDWIDTH - x - V_StringWidth(ncv->string, 0), y + SP_TimeAttackMenu[taplayer].alphaKey, MENUCOLOR|V_TRANSLUCENT|MENUCAPS, ncv->string);
 	}
 }
@@ -10464,7 +10467,7 @@ void M_DrawNightsAttackMenu(void)
 						'\x1D' | MENUCOLOR, false);
 			}
 			// Draw press ESC to exit string on main record attack menu
-			V_DrawString(104-72, 180, V_TRANSLUCENT, M_GetText("Press ESC to exit"));
+			V_DrawString(104-72, 180, V_TRANSLUCENT|MENUCAPS, M_GetText("Press ESC to exit"));
 		}
 
 		// Draw selected character's NiGHTS sprite
@@ -10507,7 +10510,7 @@ void M_DrawNightsAttackMenu(void)
 
 		if (P_HasGrades(cv_nextmap.value, cv_dummymares.value))
 			{//make bigger again
-			V_DrawString(104 - 72, 48+lsheadingheight/2, MENUCOLOR, "BEST GRADE:");
+			V_DrawString(104 - 72, 48+lsheadingheight/2, MENUCOLOR|MENUCAPS, "Best Grade:");
 			V_DrawSmallScaledPatch(104 + 72 - (ngradeletters[bestgrade]->width/2),
 				48+lsheadingheight/2 + 8 - (ngradeletters[bestgrade]->height/2),
 				0, ngradeletters[bestgrade]);
@@ -10518,7 +10521,7 @@ void M_DrawNightsAttackMenu(void)
 		else
 			sprintf(beststr, "%u", bestscore);
 
-		V_DrawString(104 - 72, 58+lsheadingheight/2, MENUCOLOR, "BEST SCORE:");
+		V_DrawString(104 - 72, 58+lsheadingheight/2, MENUCOLOR|MENUCAPS, "Best Score:");
 		V_DrawRightAlignedString(104 + 72, 58+lsheadingheight/2, V_ALLOWLOWERCASE, beststr);
 
 		if (besttime == UINT32_MAX)
@@ -10528,7 +10531,7 @@ void M_DrawNightsAttackMenu(void)
 																			 G_TicsToSeconds(besttime),
 																			 G_TicsToCentiseconds(besttime));
 
-		V_DrawString(104 - 72, 68+lsheadingheight/2, MENUCOLOR, "BEST TIME:");
+		V_DrawString(104 - 72, 68+lsheadingheight/2, MENUCOLOR|MENUCAPS, "Best Time:");
 		V_DrawRightAlignedString(104 + 72, 68+lsheadingheight/2, V_ALLOWLOWERCASE, beststr);
 
 		if (cv_dummymares.value == 0) {
@@ -10567,7 +10570,7 @@ void M_DrawNightsAttackMenu(void)
 
 	// ALWAYS DRAW level even when not on this menu!
 	if (currentMenu != &SP_NightsAttackDef)
-		V_DrawString(SP_NightsAttackDef.x, SP_NightsAttackDef.y + SP_TimeAttackMenu[nalevel].alphaKey, V_TRANSLUCENT, SP_NightsAttackMenu[nalevel].text);
+		V_DrawString(SP_NightsAttackDef.x, SP_NightsAttackDef.y + SP_TimeAttackMenu[nalevel].alphaKey, V_TRANSLUCENT|MENUCAPS, SP_NightsAttackMenu[nalevel].text);
 }
 
 static void M_NightsAttackLevelSelect(INT32 choice)
@@ -11872,10 +11875,10 @@ static void M_DrawServerMenu(void)
 		M_DrawLevelPlatterHeader(currentMenu->y - lsheadingheight/2, "Server settings", true, false);
 		if (cv_masterserver_room_id.value < 0)
 			V_DrawRightAlignedString(BASEVIDWIDTH - currentMenu->x, currentMenu->y + MP_ServerMenu[mp_server_room].alphaKey,
-			                         MENUCOLOR, (itemOn == mp_server_room) ? "<Select to change>" : "<Unlisted Mode>");
+			                         MENUCOLOR|MENUCAPS, (itemOn == mp_server_room) ? "<Select to change>" : "<Unlisted Mode>");
 		else
 			V_DrawRightAlignedString(BASEVIDWIDTH - currentMenu->x, currentMenu->y + MP_ServerMenu[mp_server_room].alphaKey,
-			                         MENUCOLOR, room_list[menuRoomIndex].name);
+			                         MENUCOLOR|MENUCAPS, room_list[menuRoomIndex].name);
 	}
 
 	if (cv_nextmap.value)
@@ -12772,7 +12775,7 @@ colordraw:
 		|| setupm_cvdefaultcolor->value != setupm_fakecolor->color)
 			? 0
 			: V_TRANSLUCENT)
-		| ((itemOn == 3) ? MENUCOLOR : 0),
+		| ((itemOn == 3) ? MENUCOLOR : 0)|MENUCAPS,
 		"Save as default");
 	if (itemOn == 3)
 		cursory = y;
@@ -13390,6 +13393,21 @@ static void M_SetupScreenshotMenu(void)
 	else
 #endif
 		item->status = (IT_STRING | IT_CVAR);
+}
+
+// =============
+// BANPYURA MENU
+// =============
+
+static void M_BanpyuraReportIssue()
+{
+#if defined(HAVE_SDL)
+#if SDL_VERSION_ATLEAST(2,0,14)
+	SDL_OpenURL("https://github.com/GLideKS/SRB2-Banpyura/issues");
+#else
+	M_StartMessage(M_GetText("Open the following in your web browser:\ngithub.com/GLideKS/SRB2-Banpyura/issues\n\n(Press a key)\n"), NULL, MM_NOTHING);
+#endif
+#endif
 }
 
 // =============
@@ -14046,7 +14064,7 @@ static void M_DrawMainVideoMenu(void)
 		if (itemOn == 7)
 			y -= 10;
 		V_DrawRightAlignedString(BASEVIDWIDTH - currentMenu->x, y,
-		(SCR_IsAspectCorrect(vid.width, vid.height) ? V_GREENMAP : MENUCOLOR),
+		(SCR_IsAspectCorrect(vid.width, vid.height) ? V_GREENMAP : MENUCOLOR)|MENUCAPS,
 			va("%dx%d", vid.width, vid.height));
 	}
 }
@@ -14067,10 +14085,10 @@ static void M_DrawVideoMode(void)
 	for (i = 0; i < vidm_nummodes; i++)
 	{
 		if (i == vidm_selected)
-			V_DrawString(row, col, MENUCOLOR, modedescs[i].desc);
+			V_DrawString(row, col, MENUCOLOR|MENUCAPS, modedescs[i].desc);
 		// Show multiples of 320x200 as green.
 		else
-			V_DrawString(row, col, (modedescs[i].goodratio) ? V_GREENMAP : 0, modedescs[i].desc);
+			V_DrawString(row, col, ((modedescs[i].goodratio) ? V_GREENMAP : 0)|MENUCAPS, modedescs[i].desc);
 
 		col += 8;
 		if ((i % vidm_column_size) == (vidm_column_size-1))
@@ -14363,7 +14381,7 @@ static void M_DrawScreenshotMenu(void)
 		INT32 y = currentMenu->y+currentMenu->menuitems[op_screenshot_colorprofile].alphaKey*2;
 		if (itemOn == 6)
 			y -= 10;
-		V_DrawRightAlignedString(BASEVIDWIDTH - currentMenu->x, y, V_REDMAP, "Yes");
+		V_DrawRightAlignedString(BASEVIDWIDTH - currentMenu->x, y, V_REDMAP|MENUCAPS, "Yes");
 	}
 #endif
 }
