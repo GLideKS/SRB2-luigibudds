@@ -1574,6 +1574,8 @@ void readlevelheader(MYFILE *f, INT32 num)
 			// Strings that can be truncated
 			else if (fastcmp(word, "SELECTHEADING"))
 			{
+				// romoney5: word2 should be lowercase here for menucaps, but it could break
+				// lua scripts that rely on the uppercase names (they can access selectheading)
 				deh_strlcpy(mapheaderinfo[num-1]->selectheading, word2,
 					sizeof(mapheaderinfo[num-1]->selectheading), va("Level header %d: selectheading", num));
 			}
