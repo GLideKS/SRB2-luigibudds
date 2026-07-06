@@ -1051,7 +1051,7 @@ static menuitem_t OP_MainMenu[] =
 	{IT_SUBMENU | IT_STRING, NULL, "Data Options...",      &OP_DataOptionsDef, 100},
 	{IT_CALL	| IT_STRING, NULL, "Custom Options...",	   M_AddonsCvarOptions,110},
 
-	{IT_SUBMENU	| IT_STRING, NULL, "\x81""Banpyura Options...", &OP_BanpyuraOptionsDef,130}
+	{IT_SUBMENU	| IT_STRING, NULL, "\x81""Banpyura Options...", &OP_BanpyuraOptionsDef,130},
 	{IT_STRING	| IT_CALL,   NULL, "Report an Issue",      M_BanpyuraReportIssue,140}
 };
 
