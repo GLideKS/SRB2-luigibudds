@@ -91,6 +91,8 @@ FUNCNORETURN static int LUA_Panic(lua_State *L)
 #define LEVELS1 12 // size of the first part of the stack
 #define LEVELS2 10 // size of the second part of the stack
 
+boolean gks_luamenu = false;
+
 // Error handler used with pcall() when loading scripts or calling hooks
 // Takes a string with the original error message,
 // appends the traceback to it, and return the result
@@ -437,6 +439,12 @@ int LUA_PushGlobals(lua_State *L, const char *word)
 	} else if (fastcmp(word, "chatactive")) {
 		lua_pushboolean(L, chat_on);
 		return 1;
+	} else if (fastcmp(word, "gks_luamenu_supported")) {
+		lua_pushboolean(L, true);
+		return 1;
+	} else if (fastcmp(word, "gks_luamenu")) {
+		lua_pushboolean(L, gks_luamenu);
+		return 1;
 	}
 	return 0;
 }
@@ -488,6 +496,10 @@ int LUA_CheckGlobals(lua_State *L, const char *word)
 		mapmusflags = (UINT16)luaL_checkinteger(L, 2);
 	else if (fastcmp(word, "stagefailed"))
 		stagefailed = luaL_checkboolean(L, 2);
+	else if (fastcmp(word, "menuactive"))
+		menuactive = luaL_checkboolean(L, 2);
+	else if (fastcmp(word, "gks_luamenu"))
+		gks_luamenu = luaL_checkboolean(L, 2);
 	else
 		return 0;
 

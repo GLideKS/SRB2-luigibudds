@@ -1364,6 +1364,23 @@ static int libd_getusertransflag(lua_State *L)
 	return 1;
 }
 
+// return renderdeltatics
+static int libd_renderdeltatics(lua_State *L)
+{
+	HUDONLY
+	lua_pushfixed(L, renderdeltatics);
+	return 1;
+}
+
+// return renderisnewtic
+static int libd_renderisnewtic(lua_State *L)
+{
+	HUDONLY
+	lua_pushboolean(L, renderisnewtic);
+	return 1;
+}
+
+
 static luaL_Reg lib_draw[] = {
 	// cache
 	{"patchExists", libd_patchExists},
@@ -1406,6 +1423,9 @@ static luaL_Reg lib_draw[] = {
 	{"renderer", libd_renderer},
 	{"localTransFlag", libd_getlocaltransflag},
 	{"userTransFlag", libd_getusertransflag},
+
+	{"renderdeltatics", libd_renderdeltatics},
+	{"renderisnewtic", libd_renderisnewtic},
 	{NULL, NULL}
 };
 
@@ -1497,7 +1517,8 @@ void LUA_SetHudHook(int hook, huddrawlist_h list)
 
 	switch (hook)
 	{
-		case HUD_HOOK(game): {
+		case HUD_HOOK(game):
+		case HUD_HOOK(menu): {
 			camera_t *cam = (splitscreen && stplyr ==
 					&players[secondarydisplayplayer])
 				? &camera2 : &camera;

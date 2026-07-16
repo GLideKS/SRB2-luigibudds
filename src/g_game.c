@@ -2284,7 +2284,7 @@ boolean G_Responder(event_t *ev)
 
 //
 // G_LuaResponder
-// Let Lua handle key events.
+// Let Lua cook.
 //
 boolean G_LuaResponder(event_t *ev)
 {
