@@ -82,7 +82,7 @@ automatically.
 	X (AddonLoaded),\
 	X (KeyDown),\
 	X (KeyUp),\
-	X (PlayerHitFloor), /* P_PlayerHitFloor */
+	X (PlayerHitFloor), /* P_PlayerHitFloor */ \
 	X (TextInput),\
 
 #define STRING_HOOK_LIST(X) \
