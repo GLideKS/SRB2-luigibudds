@@ -743,6 +743,31 @@ static void P_ReleaseBlockNode(blocknode_t *node)
 //
 // P_UnsetThingPosition
 // Unlinks a thing from block map and sectors.
+//
+void P_UnsetBlockmapEntry(mobj_t *thing)
+{
+	if (!(thing->flags & MF_NOBLOCKMAP))
+	{
+		// [RH] Unlink from all blocks this actor uses
+		blocknode_t *block = thing->blocknode;
+
+		while (block != NULL)
+		{
+			if (block->mnext != NULL)
+				block->mnext->mprev = block->mprev;
+			*(block->mprev) = block->mnext;
+			blocknode_t *next = block->bnext;
+			P_ReleaseBlockNode(block);
+			block = next;
+		}
+
+		thing->blocknode = NULL;
+	}
+}
+
+//
+// P_UnsetThingPosition
+// Unlinks a thing from block map and sectors.
 // On each position change, BLOCKMAP and other
 // lookups maintaining lists ot things inside
 // these structures need to be updated.
@@ -783,23 +808,7 @@ void P_UnsetThingPosition(mobj_t *thing)
 		thing->touching_sectorlist = NULL; //to be restored by P_SetThingPosition
 	}
 
-	if (!(thing->flags & MF_NOBLOCKMAP))
-	{
-		// [RH] Unlink from all blocks this actor uses
-		blocknode_t *block = thing->blocknode;
-
-		while (block != NULL)
-		{
-			if (block->mnext != NULL)
-				block->mnext->mprev = block->mprev;
-			*(block->mprev) = block->mnext;
-			blocknode_t *next = block->bnext;
-			P_ReleaseBlockNode(block);
-			block = next;
-		}
-
-		thing->blocknode = NULL;
-	}
+	P_UnsetBlockmapEntry(thing);
 }
 
 void P_UnsetPrecipThingPosition(precipmobj_t *thing)
@@ -814,9 +823,62 @@ void P_UnsetPrecipThingPosition(precipmobj_t *thing)
 }
 
 //
+// P_SetBlockmapEntry
+// Links a thing into a block based on its x y.
+// Used when objects are scaled to ensure they are in the right blocknode
+//
+void P_SetBlockmapEntry(mobj_t *thing)
+{
+	// link into blockmap
+	if (!(thing->flags & MF_NOBLOCKMAP))
+	{
+		// inert things don't need to be in blockmap
+		INT32 x1 = (unsigned)(thing->x - thing->radius - bmaporgx)>>MAPBLOCKSHIFT;
+		INT32 y1 = (unsigned)(thing->y - thing->radius - bmaporgy)>>MAPBLOCKSHIFT;
+		INT32 x2 = (unsigned)(thing->x + thing->radius - bmaporgx)>>MAPBLOCKSHIFT;
+		INT32 y2 = (unsigned)(thing->y + thing->radius - bmaporgy)>>MAPBLOCKSHIFT;
+
+		thing->blocknode = NULL;
+
+		blocknode_t **alink = &thing->blocknode;
+
+		if (!(x1 >= bmapwidth || x2 < 0 || y1 >= bmapheight || y2 < 0))
+		{
+			// [RH] Link into every block this actor touches, not just the center one
+			x1 = max(0, x1);
+			y1 = max(0, y1);
+			x2 = min(bmapwidth - 1, x2);
+			y2 = min(bmapheight - 1, y2);
+			for (int y = y1; y <= y2; ++y)
+			{
+				for (int x = x1; x <= x2; ++x)
+				{
+					blocknode_t **link = &blocklinks[y*bmapwidth + x];
+					blocknode_t *node = P_CreateBlockNode(thing, x, y);
+
+					// Link in to block
+					if ((node->mnext = *link) != NULL)
+					{
+						(*link)->mprev = &node->mnext;
+					}
+					node->mprev = link;
+					*link = node;
+
+					// Link in to actor
+					node->bprev = alink;
+					node->bnext = NULL;
+					(*alink) = node;
+					alink = &node->bnext;
+				}
+			}
+		}
+	}
+}
+
+//
 // P_SetThingPosition
 // Links a thing into both a block and a subsector
-// based on it's x y.
+// based on its x y.
 // Sets thing->subsector properly
 //
 void P_SetThingPosition(mobj_t *thing)
@@ -865,50 +927,7 @@ void P_SetThingPosition(mobj_t *thing)
 		sector_list = NULL; // clear for next time
 	}
 
-	// link into blockmap
-	if (!(thing->flags & MF_NOBLOCKMAP))
-	{
-		// inert things don't need to be in blockmap
-		INT32 x1 = (unsigned)(thing->x - thing->radius - bmaporgx)>>MAPBLOCKSHIFT;
-		INT32 y1 = (unsigned)(thing->y - thing->radius - bmaporgy)>>MAPBLOCKSHIFT;
-		INT32 x2 = (unsigned)(thing->x + thing->radius - bmaporgx)>>MAPBLOCKSHIFT;
-		INT32 y2 = (unsigned)(thing->y + thing->radius - bmaporgy)>>MAPBLOCKSHIFT;
-
-		thing->blocknode = NULL;
-
-		blocknode_t **alink = &thing->blocknode;
-
-		if (!(x1 >= bmapwidth || x2 < 0 || y1 >= bmapheight || y2 < 0))
-		{
-			// [RH] Link into every block this actor touches, not just the center one
-			x1 = max(0, x1);
-			y1 = max(0, y1);
-			x2 = min(bmapwidth - 1, x2);
-			y2 = min(bmapheight - 1, y2);
-			for (int y = y1; y <= y2; ++y)
-			{
-				for (int x = x1; x <= x2; ++x)
-				{
-					blocknode_t **link = &blocklinks[y*bmapwidth + x];
-					blocknode_t *node = P_CreateBlockNode(thing, x, y);
-
-					// Link in to block
-					if ((node->mnext = *link) != NULL)
-					{
-						(*link)->mprev = &node->mnext;
-					}
-					node->mprev = link;
-					*link = node;
-
-					// Link in to actor
-					node->bprev = alink;
-					node->bnext = NULL;
-					(*alink) = node;
-					alink = &node->bnext;
-				}
-			}
-		}
-	}
+	P_SetBlockmapEntry(thing);
 
 	// Allows you to 'step' on a new linedef exec when the previous
 	// sector's floor is the same height.

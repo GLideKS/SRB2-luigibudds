@@ -1013,6 +1013,11 @@ static int lib_setState(lua_State *L)
 			if (value < S_NULL || value >= NUMSTATES)
 				return luaL_error(L, "nextstate number %d is invalid.", value);
 			state->nextstate = (statenum_t)value;
+		} else if (i == 8 || (str && fastcmp(str, "sprite2"))) {
+			value = luaL_checkinteger(L, 3);
+			if (value < SPR2_STND || value >= NUMPLAYERSPRITES)
+				return luaL_error(L, "sprite2 number %d is invalid.", value);
+			state->sprite2 = (playersprite_t)value;
 		}
 		lua_pop(L, 1);
 	}
@@ -1185,6 +1190,8 @@ static int state_get(lua_State *L)
 		number = st->var2;
 	else if (fastcmp(field,"nextstate"))
 		number = st->nextstate;
+	else if (fastcmp(field,"sprite2"))
+		number = st->sprite2;
 	else if (devparm)
 		return luaL_error(L, LUA_QL("state_t") " has no field named " LUA_QS, field);
 	else
@@ -1255,6 +1262,11 @@ static int state_set(lua_State *L)
 		if (value < S_NULL || value >= NUMSTATES)
 			return luaL_error(L, "nextstate number %d is invalid.", value);
 		st->nextstate = (statenum_t)value;
+	} else if (fastcmp(field,"sprite2")) {
+		value = luaL_checknumber(L, 3);
+		if (value < SPR2_STND || value >= NUMPLAYERSPRITES)
+			return luaL_error(L, "sprite2 number %d is invalid.", value);
+		st->sprite2 = (playersprite_t)value;
 	} else
 		return luaL_error(L, LUA_QL("state_t") " has no field named " LUA_QS, field);
 
@@ -2166,6 +2178,168 @@ static int colorramp_len(lua_State *L)
 	return 1;
 }
 
+//////////////////////
+// UNLOCKABLES INFO //
+//////////////////////
+
+enum emblem_e
+{
+	emblem_type,
+	emblem_tag,
+	emblem_level,
+	emblem_sprite,
+	emblem_color,
+	emblem_var,
+	emblem_stringvar,
+	emblem_hint,
+};
+
+const char* const emblem_opt[] = {
+	"type",
+	"tag",
+	"level",
+	"sprite",
+	"color",
+	"var",
+	"stringvar",
+	"hint",
+	NULL,
+};
+
+static int emblem_get(lua_State* L)
+{
+	emblem_t* emblem = *((emblem_t**)luaL_checkudata(L, 1, META_EMBLEM));
+	enum emblem_e field = luaL_checkoption(L, 2, NULL, emblem_opt);
+
+	I_Assert(emblem != NULL);
+
+	switch (field)
+	{
+	case emblem_type:
+		lua_pushinteger(L, emblem->type);
+		return 1;
+	case emblem_tag:
+		lua_pushinteger(L, emblem->tag);
+		return 1;
+	case emblem_level:
+		lua_pushinteger(L, emblem->level);
+		return 1;
+	case emblem_sprite:
+		lua_pushinteger(L, emblem->sprite);
+		return 1;
+	case emblem_color:
+		lua_pushinteger(L, emblem->color);
+		return 1;
+	case emblem_var:
+		lua_pushinteger(L, emblem->var);
+		return 1;
+	case emblem_stringvar:
+		lua_pushstring(L, emblem->stringVar);
+		return 1;
+	case emblem_hint:
+		lua_pushstring(L, emblem->hint);
+		return 1;
+	default:
+		return luaL_error(L, "Field does not exist in emblem_t");
+	}
+
+	return 0;
+}
+
+// Arbitrary emblemslocations[] table index -> emblem_t *
+static int lib_getEmblems(lua_State* L)
+{
+	INT32 i;
+	lua_remove(L, 1);
+
+	i = luaL_checkinteger(L, 1);
+	if (i >= numemblems || i < 0)
+		return luaL_error(L, "emblemslocations[] index %d out of range (0 - %d)", i, numemblems - 1);
+	LUA_PushUserdata(L, &emblemlocations[i], META_EMBLEM);
+	return 1;
+}
+
+// #emblemslocations -> numemblems
+static int lib_lenEmblems(lua_State* L)
+{
+	lua_pushinteger(L, numemblems);
+	return 1;
+}
+
+enum extraemblem_e
+{
+	extraemblem_name,
+	extraemblem_description,
+	extraemblem_conditionset,
+	extraemblem_showconditionset,
+	extraemblem_sprite,
+	extraemblem_color,
+};
+
+const char* const extraemblem_opt[] = {
+	"name",
+	"description",
+	"conditionset",
+	"showconditionset",
+	"sprite",
+	"color",
+	NULL,
+};
+
+static int extraemblem_get(lua_State* L)
+{
+	extraemblem_t* extraemblem = *((extraemblem_t**)luaL_checkudata(L, 1, META_EXTRAEMBLEM));
+	enum extraemblem_e field = luaL_checkoption(L, 2, NULL, extraemblem_opt);
+
+	I_Assert(extraemblem != NULL);
+
+	switch (field)
+	{
+	case extraemblem_name:
+		lua_pushstring(L, extraemblem->name);
+		return 1;
+	case extraemblem_description:
+		lua_pushstring(L, extraemblem->description);
+		return 1;
+	case extraemblem_conditionset:
+		lua_pushinteger(L, extraemblem->conditionset);
+		return 1;
+	case extraemblem_showconditionset:
+		lua_pushinteger(L, extraemblem->showconditionset);
+		return 1;
+	case extraemblem_sprite:
+		lua_pushinteger(L, extraemblem->sprite);
+		return 1;
+	case extraemblem_color:
+		lua_pushinteger(L, extraemblem->color);
+		return 1;
+	default:
+		return luaL_error(L, "Field does not exist in extraemblem_t");
+	}
+
+	return 0;
+}
+
+// Arbitrary extraemblems[] table index -> extraemblem_t *
+static int lib_getExtraEmblems(lua_State* L)
+{
+	INT32 i;
+	lua_remove(L, 1);
+
+	i = luaL_checkinteger(L, 1);
+	if (i >= numextraemblems || i < 0)
+		return luaL_error(L, "extraemblems[] index %d out of range (0 - %d)", i, numextraemblems - 1);
+	LUA_PushUserdata(L, &extraemblems[i], META_EXTRAEMBLEM);
+	return 1;
+}
+
+// #extraemblems -> numextraemblems
+static int lib_lenExtraEmblems(lua_State* L)
+{
+	lua_pushinteger(L, numextraemblems);
+	return 1;
+}
+
 //////////////////////////////
 //
 // Now push all these functions into the Lua state!
@@ -2192,9 +2366,13 @@ int LUA_InfoLib(lua_State *L)
 	LUA_RegisterUserdataMetatable(L, META_PIVOTLIST, pivotlist_get, pivotlist_set, pivotlist_num);
 	LUA_RegisterUserdataMetatable(L, META_FRAMEPIVOT, framepivot_get, framepivot_set, framepivot_num);
 	LUA_RegisterUserdataMetatable(L, META_LUABANKS, lib_getluabanks, lib_setluabanks, lib_luabankslen);
+	LUA_RegisterUserdataMetatable(L, META_EMBLEM, emblem_get, NULL, NULL);
+	LUA_RegisterUserdataMetatable(L, META_EXTRAEMBLEM, extraemblem_get, NULL, NULL);
 
 	mobjinfo_fields_ref = Lua_CreateFieldTable(L, mobjinfo_opt);
 
+	LUA_RegisterGlobalUserdata(L, "emblemslocations", lib_getEmblems, NULL, lib_lenEmblems);
+	LUA_RegisterGlobalUserdata(L, "extraemblems", lib_getExtraEmblems, NULL, lib_lenExtraEmblems);
 	LUA_RegisterGlobalUserdata(L, "sprnames", lib_getSprname, NULL, lib_sprnamelen);
 	LUA_RegisterGlobalUserdata(L, "spr2names", lib_getSpr2name, NULL, lib_spr2namelen);
 	LUA_RegisterGlobalUserdata(L, "spr2defaults", lib_getSpr2default, lib_setSpr2default, lib_spr2namelen);

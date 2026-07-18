@@ -61,7 +61,7 @@ static int vector2d_get(lua_State *L)
 // VECTOR3 //
 /////////////
 
-static vector3_t *NewVector3(lua_State *L)
+vector3_t *LUA_NewVector3(lua_State *L)
 {
 	vector3_t *vec = lua_newuserdata(L, sizeof(*vec));
 	luaL_getmetatable(L, META_VECTOR3);
@@ -79,7 +79,7 @@ static int vector3d_new(lua_State *L)
 	fixed_t y = luaL_checkfixed(L, 2);
 	fixed_t z = luaL_optfixed(L, 3, 0);
 
-	Vector3D_Set(NewVector3(L), x, y, z);
+	Vector3D_Set(LUA_NewVector3(L), x, y, z);
 	return 1;
 }
 
@@ -95,14 +95,14 @@ static luaL_Reg vector3d[] = {
 static int vector3d_clone(lua_State *L)
 {
 	vector3_t *vec = luaL_checkudata(L, 1, META_VECTOR3);
-	Vector3D_Copy(NewVector3(L), vec);
+	Vector3D_Copy(LUA_NewVector3(L), vec);
 	return 1;
 }
 
 static int vector3d_opposite(lua_State *L)
 {
 	vector3_t *vec = luaL_checkudata(L, 1, META_VECTOR3);
-	Vector3D_Opposite(NewVector3(L), vec);
+	Vector3D_Opposite(LUA_NewVector3(L), vec);
 	return 1;
 }
 
@@ -123,7 +123,7 @@ static int vector3d_get(lua_State *L)
 		case vectorfield_y: lua_pushfixed(L, vec->y); return 1;
 		case vectorfield_z: lua_pushfixed(L, vec->z); return 1;
 		case vectorfield_length: lua_pushfixed(L, Vector3D_Length(vec)); return 1;
-		case vectorfield_normalized: Vector3D_Normalize(NewVector3(L), vec); return 1;
+		case vectorfield_normalized: Vector3D_Normalize(LUA_NewVector3(L), vec); return 1;
 
 		default: break;
 	}
@@ -153,19 +153,19 @@ static int vector3d_op(
 	{
 		fixed_t n1 = lua_tofixed(L, 1);
 		vector3_t *vec2 = luaL_checkudata(L, 2, META_VECTOR3);
-		opfixed(NewVector3(L), vec2, n1);
+		opfixed(LUA_NewVector3(L), vec2, n1);
 	}
 	else if (lua_isnumber(L, 2))
 	{
 		vector3_t *vec1 = luaL_checkudata(L, 1, META_VECTOR3);
 		fixed_t n2 = lua_tofixed(L, 2);
-		opfixed(NewVector3(L), vec1, n2);
+		opfixed(LUA_NewVector3(L), vec1, n2);
 	}
 	else
 	{
 		vector3_t *vec1 = luaL_checkudata(L, 1, META_VECTOR3);
 		vector3_t *vec2 = luaL_checkudata(L, 2, META_VECTOR3);
-		opvector(NewVector3(L), vec1, vec2);
+		opvector(LUA_NewVector3(L), vec1, vec2);
 	}
 
 	return 1;
@@ -194,7 +194,7 @@ static int vector3d_div(lua_State *L)
 static int vector3d_unm(lua_State *L)
 {
 	vector3_t *vec = luaL_checkudata(L, 1, META_VECTOR3);
-	Vector3D_Opposite(NewVector3(L), vec);
+	Vector3D_Opposite(LUA_NewVector3(L), vec);
 	return 1;
 }
 

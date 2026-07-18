@@ -1596,19 +1596,39 @@ void P_PlayLivesJingle(player_t *player)
 	}
 }
 
+/** Plays one of four random per-skin ring loss sounds
+  * \param source The mobj to play the sound from, and to pick the skin from
+  * \param player Optional filter for who can hear the sound; does not affect the skin selection
+  */
+void P_PlayRinglossSound(mobj_t *source, player_t *player)
+{
+	UINT8 random = P_RandomKey(4); // Call P_RandomKey regardless of player
+	if (!player || P_IsLocalPlayer(player))
+		S_StartSoundFromMobj(source, (mariomode) ? sfx_mario8 : sfx_altow1 + random);
+}
+
+void P_PlayDeathSound(mobj_t *source, player_t *player)
+{
+	UINT8 random = P_RandomKey(4); // Call P_RandomKey regardless of player
+	if (!player || P_IsLocalPlayer(player))
+		S_StartSoundFromMobj(source, sfx_altdi1 + random);
+}
+
+void P_PlayVictorySound(mobj_t *source, player_t *player)
+{
+	UINT8 random = P_RandomKey(4); // Call P_RandomKey regardless of player
+	if (!player || P_IsLocalPlayer(player))
+		S_StartSoundFromMobj(source, sfx_victr1 + random);
+}
+
 void P_PlayJingle(player_t *player, jingletype_t jingletype)
 {
 	const char *musname = jingleinfo[jingletype].musname;
 	UINT16 musflags = 0;
 	boolean looping = jingleinfo[jingletype].looping;
 
-	char newmusic[7];
-	strncpy(newmusic, musname, 7);
-#ifdef HAVE_LUA_MUSICPLUS
-	if(LUAh_MusicJingle(jingletype, newmusic, &musflags, &looping))
-		return;
-#endif
-	newmusic[6] = 0;
+	char newmusic[MAX_MUSIC_NAME];
+	strlcpy(newmusic, musname, MAX_MUSIC_NAME);
 
 	P_PlayJingleMusic(player, newmusic, musflags, looping, jingletype);
 }

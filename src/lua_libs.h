@@ -35,6 +35,9 @@ extern boolean ignoregameinputs;
 #define META_PIVOTLIST "SPRITEFRAMEPIVOT_T[]"
 #define META_FRAMEPIVOT "SPRITEFRAMEPIVOT_T*"
 
+#define META_EMBLEM "EMBLEM_T*"
+#define META_EXTRAEMBLEM "EXTRAEMBLEM_T*"
+
 #define META_TAGLIST "TAGLIST"
 
 #define META_MOBJ "MOBJ_T*"

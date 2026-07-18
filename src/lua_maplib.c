@@ -18,6 +18,7 @@
 #include "p_slopes.h"
 #include "p_polyobj.h"
 #include "r_main.h"
+#include "vector3d.h"
 
 #include "lua_script.h"
 #include "lua_libs.h"
@@ -55,6 +56,7 @@ enum sector_e {
 	sector_tag,
 	sector_taglist,
 	sector_thinglist,
+	sector_mobjs,
 	sector_heightsec,
 	sector_camsec,
 	sector_lines,
@@ -99,6 +101,7 @@ static const char *const sector_opt[] = {
 	"tag",
 	"taglist",
 	"thinglist",
+	"mobjs",
 	"heightsec",
 	"camsec",
 	"lines",
@@ -444,6 +447,46 @@ static int lib_iterateSectorThinglist(lua_State *L)
 	return 0;
 }
 
+// iterates through a sector's 'touching' thinglist!
+static int lib_iterateSectorMobjs(lua_State *L)
+{
+	mobj_t *state = NULL;
+	mobj_t *thing = NULL;
+	INLEVEL
+
+	if (lua_gettop(L) < 2)
+		return luaL_error(L, "Don't call sector.mobjs() directly, use it as 'for rover in sector.mobjs do <block> end'.");
+
+	msecnode_t *node = (msecnode_t *)lua_touserdata(L, lua_upvalueindex(1));
+	if (node == NULL)
+		return 0; // no touching_thinglist to iterate through sorry!
+
+	state = *((mobj_t **)luaL_checkudata(L, 1, META_MOBJ));
+
+	lua_settop(L, 2);
+	lua_remove(L, 1); // remove state now.
+
+	if (!lua_isnil(L, 1))
+	{
+		thing = *((mobj_t **)luaL_checkudata(L, 1, META_MOBJ));
+		if (P_MobjWasRemoved(thing))
+			return luaL_error(L, "current entry in mobj list was removed; avoid calling P_RemoveMobj on entries!");
+		thing = node->m_thing;
+	}
+	else
+		thing = state; // state is used as the "start" of the thinglist
+
+	if (thing)
+	{
+		node = node->m_thinglist_next;
+		lua_pushlightuserdata(L, node);
+		lua_replace(L, lua_upvalueindex(1));
+		LUA_PushUserdata(L, thing, META_MOBJ);
+		return 1;
+	}
+	return 0;
+}
+
 // iterates through the ffloors list in a sector!
 static int lib_iterateSectorFFloors(lua_State *L)
 {
@@ -780,6 +823,12 @@ static int sector_get(lua_State *L)
 		lua_pushcfunction(L, lib_iterateSectorThinglist);
 		LUA_PushUserdata(L, sector->thinglist, META_MOBJ);
 		lua_pushcclosure(L, sector_iterate, 2); // push lib_iterateSectorThinglist and sector->thinglist as upvalues for the function
+		return 1;
+	case sector_mobjs: // touching_thinglist
+		lua_pushlightuserdata(gL, sector->touching_thinglist);
+		lua_pushcclosure(L, lib_iterateSectorMobjs, 1);
+		LUA_PushUserdata(L, sector->touching_thinglist ? sector->touching_thinglist->m_thing : NULL, META_MOBJ);
+		lua_pushcclosure(L, sector_iterate, 2);
 		return 1;
 	case sector_heightsec: // heightsec - fake floor heights
 		if (sector->heightsec < 0)
@@ -2249,7 +2298,7 @@ static int slope_get(lua_State *L)
 		lua_pushboolean(L, 1);
 		return 1;
 	case slope_o: // o
-		LUA_PushUserdata(L, &slope->o, META_VECTOR3);
+		Vector3D_Set(LUA_NewVector3(L), slope->o.x, slope->o.y, slope->o.z);
 		return 1;
 	case slope_d: // d
 		LUA_PushUserdata(L, &slope->d, META_VECTOR2);
@@ -2258,7 +2307,7 @@ static int slope_get(lua_State *L)
 		lua_pushfixed(L, slope->zdelta);
 		return 1;
 	case slope_normal: // normal
-		LUA_PushUserdata(L, &slope->normal, META_VECTOR3);
+		Vector3D_Set(LUA_NewVector3(L), slope->normal.x, slope->normal.y, slope->normal.z);
 		return 1;
 	case slope_zangle: // zangle
 		lua_pushangle(L, slope->zangle);
@@ -2376,32 +2425,22 @@ static int slope_set(lua_State *L)
 static int lib_getMapheaderinfo(lua_State *L)
 {
 	// i -> mapheaderinfo[i-1]
-
-	//int field;
 	lua_settop(L, 2);
 	lua_remove(L, 1); // dummy userdata table is unused.
 	if (lua_isnumber(L, 1))
 	{
 		size_t i = lua_tointeger(L, 1)-1;
-		if (i >= NUMMAPS)
+		if (i >= numgamemaps)
 			return 0;
 		LUA_PushUserdata(L, mapheaderinfo[i], META_MAPHEADER);
-		//CONS_Printf(mapheaderinfo[i]->lvlttl);
 		return 1;
-	}/*
-	field = luaL_checkoption(L, 1, NULL, array_opt);
-	switch(field)
-	{
-	case 0: // iterate
-		lua_pushcfunction(L, lib_iterateSubsectors);
-		return 1;
-	}*/
+	}
 	return 0;
 }
 
 static int lib_nummapheaders(lua_State *L)
 {
-	lua_pushinteger(L, NUMMAPS);
+	lua_pushinteger(L, numgamemaps);
 	return 1;
 }
 

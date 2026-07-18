@@ -1207,12 +1207,16 @@ static texpatch_t *R_ParsePatch(boolean actuallyLoadPatch)
 	texturesToken = M_GetToken(NULL);
 	if (texturesToken == NULL)
 	{
-		I_Error("Error parsing TEXTURES lump: Unexpected end of file where patch name should be");
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where patch name should be\n");
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	texturesTokenLength = strlen(texturesToken);
 	if (texturesTokenLength>8)
 	{
-		I_Error("Error parsing TEXTURES lump: Patch name \"%s\" exceeds 8 characters",texturesToken);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Patch name \"%s\" exceeds 8 characters\n",texturesToken);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	else
 	{
@@ -1230,11 +1234,15 @@ static texpatch_t *R_ParsePatch(boolean actuallyLoadPatch)
 	texturesToken = M_GetToken(NULL);
 	if (texturesToken == NULL)
 	{
-		I_Error("Error parsing TEXTURES lump: Unexpected end of file where comma after \"%s\"'s patch name should be",patchName);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where comma after \"%s\"'s patch name should be\n",patchName);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	if (strcmp(texturesToken,",")!=0)
 	{
-		I_Error("Error parsing TEXTURES lump: Expected \",\" after %s's patch name, got \"%s\"",patchName,texturesToken);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Expected \",\" after %s's patch name, got \"%s\"\n",patchName,texturesToken);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 
 	// XPos
@@ -1242,7 +1250,9 @@ static texpatch_t *R_ParsePatch(boolean actuallyLoadPatch)
 	texturesToken = M_GetToken(NULL);
 	if (texturesToken == NULL)
 	{
-		I_Error("Error parsing TEXTURES lump: Unexpected end of file where patch \"%s\"'s x coordinate should be",patchName);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where patch \"%s\"'s x coordinate should be\n",patchName);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	endPos = NULL;
 #ifndef AVOID_ERRNO
@@ -1257,7 +1267,9 @@ static texpatch_t *R_ParsePatch(boolean actuallyLoadPatch)
 #endif
 		)
 	{
-		I_Error("Error parsing TEXTURES lump: Expected an integer for patch \"%s\"'s x coordinate, got \"%s\"",patchName,texturesToken);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Expected an integer for patch \"%s\"'s x coordinate, got \"%s\"\n",patchName,texturesToken);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 
 	// Comma 2
@@ -1265,11 +1277,15 @@ static texpatch_t *R_ParsePatch(boolean actuallyLoadPatch)
 	texturesToken = M_GetToken(NULL);
 	if (texturesToken == NULL)
 	{
-		I_Error("Error parsing TEXTURES lump: Unexpected end of file where comma after patch \"%s\"'s x coordinate should be",patchName);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where comma after patch \"%s\"'s x coordinate should be\n",patchName);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	if (strcmp(texturesToken,",")!=0)
 	{
-		I_Error("Error parsing TEXTURES lump: Expected \",\" after patch \"%s\"'s x coordinate, got \"%s\"",patchName,texturesToken);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Expected \",\" after patch \"%s\"'s x coordinate, got \"%s\"\n",patchName,texturesToken);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 
 	// YPos
@@ -1277,7 +1293,9 @@ static texpatch_t *R_ParsePatch(boolean actuallyLoadPatch)
 	texturesToken = M_GetToken(NULL);
 	if (texturesToken == NULL)
 	{
-		I_Error("Error parsing TEXTURES lump: Unexpected end of file where patch \"%s\"'s y coordinate should be",patchName);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where patch \"%s\"'s y coordinate should be\n",patchName);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	endPos = NULL;
 #ifndef AVOID_ERRNO
@@ -1292,7 +1310,9 @@ static texpatch_t *R_ParsePatch(boolean actuallyLoadPatch)
 #endif
 		)
 	{
-		I_Error("Error parsing TEXTURES lump: Expected an integer for patch \"%s\"'s y coordinate, got \"%s\"",patchName,texturesToken);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Expected an integer for patch \"%s\"'s y coordinate, got \"%s\"\n",patchName,texturesToken);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	Z_Free(texturesToken);
 
@@ -1311,7 +1331,9 @@ static texpatch_t *R_ParsePatch(boolean actuallyLoadPatch)
 			texturesToken = M_GetToken(NULL);
 			if (texturesToken == NULL)
 			{
-				I_Error("Error parsing TEXTURES lump: Unexpected end of file where patch \"%s\"'s parameters should be",patchName);
+				CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where patch \"%s\"'s parameters should be\n",patchName);
+				Z_Free(texturesToken);
+				return NULL;
 			}
 			while (strcmp(texturesToken,"}")!=0)
 			{
@@ -1345,7 +1367,9 @@ static texpatch_t *R_ParsePatch(boolean actuallyLoadPatch)
 				texturesToken = M_GetToken(NULL);
 				if (texturesToken == NULL)
 				{
-					I_Error("Error parsing TEXTURES lump: Unexpected end of file where patch \"%s\"'s parameters or right curly brace should be",patchName);
+					CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where patch \"%s\"'s parameters or right curly brace should be\n",patchName);
+					Z_Free(texturesToken);
+					return NULL;
 				}
 			}
 		}
@@ -1362,6 +1386,12 @@ static texpatch_t *R_ParsePatch(boolean actuallyLoadPatch)
 	{
 		// Check lump exists
 		patchLumpNum = W_GetTexPatchLumpNum(patchName);
+		if (patchLumpNum == LUMPERROR)
+		{
+			CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Patch \"%s\" cannot be found\n", patchName);
+			Z_Free(patchName);
+			return NULL;
+		}
 		// If so, allocate memory for texpatch_t and fill 'er up
 		resultPatch = (texpatch_t *)Z_Malloc(sizeof(texpatch_t),PU_STATIC,NULL);
 		resultPatch->originx = patchXPos;
@@ -1398,12 +1428,16 @@ static texture_t *R_ParseTexture(boolean actuallyLoadTexture)
 	texturesToken = M_GetToken(NULL);
 	if (texturesToken == NULL)
 	{
-		I_Error("Error parsing TEXTURES lump: Unexpected end of file where texture name should be");
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where texture name should be\n");
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	texturesTokenLength = strlen(texturesToken);
 	if (texturesTokenLength>8)
 	{
-		I_Error("Error parsing TEXTURES lump: Texture name \"%s\" exceeds 8 characters",texturesToken);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Texture name \"%s\" exceeds 8 characters\n",texturesToken);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	else
 	{
@@ -1418,11 +1452,15 @@ static texture_t *R_ParseTexture(boolean actuallyLoadTexture)
 	texturesToken = M_GetToken(NULL);
 	if (texturesToken == NULL)
 	{
-		I_Error("Error parsing TEXTURES lump: Unexpected end of file where comma after texture \"%s\"'s name should be",newTextureName);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where comma after texture \"%s\"'s name should be\n",newTextureName);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	else if (strcmp(texturesToken,",")!=0)
 	{
-		I_Error("Error parsing TEXTURES lump: Expected \",\" after texture \"%s\"'s name, got \"%s\"",newTextureName,texturesToken);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Expected \",\" after texture \"%s\"'s name, got \"%s\"\n",newTextureName,texturesToken);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	Z_Free(texturesToken);
 
@@ -1430,7 +1468,9 @@ static texture_t *R_ParseTexture(boolean actuallyLoadTexture)
 	texturesToken = M_GetToken(NULL);
 	if (texturesToken == NULL)
 	{
-		I_Error("Error parsing TEXTURES lump: Unexpected end of file where texture \"%s\"'s width should be",newTextureName);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where texture \"%s\"'s width should be\n",newTextureName);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	endPos = NULL;
 #ifndef AVOID_ERRNO
@@ -1444,7 +1484,9 @@ static texture_t *R_ParseTexture(boolean actuallyLoadTexture)
 #endif
 		|| newTextureWidth < 0) // Number is not positive
 	{
-		I_Error("Error parsing TEXTURES lump: Expected a positive integer for texture \"%s\"'s width, got \"%s\"",newTextureName,texturesToken);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Expected a positive integer for texture \"%s\"'s width, got \"%s\"\n",newTextureName,texturesToken);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	Z_Free(texturesToken);
 
@@ -1452,11 +1494,15 @@ static texture_t *R_ParseTexture(boolean actuallyLoadTexture)
 	texturesToken = M_GetToken(NULL);
 	if (texturesToken == NULL)
 	{
-		I_Error("Error parsing TEXTURES lump: Unexpected end of file where comma after texture \"%s\"'s width should be",newTextureName);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where comma after texture \"%s\"'s width should be\n",newTextureName);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	if (strcmp(texturesToken,",")!=0)
 	{
-		I_Error("Error parsing TEXTURES lump: Expected \",\" after texture \"%s\"'s width, got \"%s\"",newTextureName,texturesToken);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Expected \",\" after texture \"%s\"'s width, got \"%s\"\n",newTextureName,texturesToken);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	Z_Free(texturesToken);
 
@@ -1464,7 +1510,9 @@ static texture_t *R_ParseTexture(boolean actuallyLoadTexture)
 	texturesToken = M_GetToken(NULL);
 	if (texturesToken == NULL)
 	{
-		I_Error("Error parsing TEXTURES lump: Unexpected end of file where texture \"%s\"'s height should be",newTextureName);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where texture \"%s\"'s height should be\n",newTextureName);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	endPos = NULL;
 #ifndef AVOID_ERRNO
@@ -1478,7 +1526,9 @@ static texture_t *R_ParseTexture(boolean actuallyLoadTexture)
 #endif
 		|| newTextureHeight < 0) // Number is not positive
 	{
-		I_Error("Error parsing TEXTURES lump: Expected a positive integer for texture \"%s\"'s height, got \"%s\"",newTextureName,texturesToken);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Expected a positive integer for texture \"%s\"'s height, got \"%s\"\n",newTextureName,texturesToken);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	Z_Free(texturesToken);
 
@@ -1486,7 +1536,9 @@ static texture_t *R_ParseTexture(boolean actuallyLoadTexture)
 	texturesToken = M_GetToken(NULL);
 	if (texturesToken == NULL)
 	{
-		I_Error("Error parsing TEXTURES lump: Unexpected end of file where open curly brace for texture \"%s\" should be",newTextureName);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where open curly brace for texture \"%s\" should be\n",newTextureName);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	if (strcmp(texturesToken,"{")==0)
 	{
@@ -1504,7 +1556,9 @@ static texture_t *R_ParseTexture(boolean actuallyLoadTexture)
 		texturesToken = M_GetToken(NULL);
 		if (texturesToken == NULL)
 		{
-			I_Error("Error parsing TEXTURES lump: Unexpected end of file where patch definition for texture \"%s\" should be",newTextureName);
+			CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where patch definition for texture \"%s\" should be\n",newTextureName);
+			Z_Free(texturesToken);
+			return NULL;
 		}
 		while (strcmp(texturesToken,"}")!=0)
 		{
@@ -1515,14 +1569,17 @@ static texture_t *R_ParseTexture(boolean actuallyLoadTexture)
 				{
 					// Get that new patch
 					newPatch = R_ParsePatch(true);
-					// Make room for the new patch
-					resultTexture = Z_Realloc(resultTexture, sizeof(texture_t) + (resultTexture->patchcount+1)*sizeof(texpatch_t), PU_STATIC, NULL);
-					// Populate the uninitialized values in the new patch entry of our array
-					M_Memcpy(&resultTexture->patches[resultTexture->patchcount], newPatch, sizeof(texpatch_t));
-					// Account for the new number of patches in the texture
-					resultTexture->patchcount++;
-					// Then free up the memory assigned to R_ParsePatch, as it's unneeded now
-					Z_Free(newPatch);
+					if (newPatch != NULL)
+					{
+						// Make room for the new patch
+						resultTexture = Z_Realloc(resultTexture, sizeof(texture_t) + (resultTexture->patchcount+1)*sizeof(texpatch_t), PU_STATIC, NULL);
+						// Populate the uninitialized values in the new patch entry of our array
+						M_Memcpy(&resultTexture->patches[resultTexture->patchcount], newPatch, sizeof(texpatch_t));
+						// Account for the new number of patches in the texture
+						resultTexture->patchcount++;
+						// Then free up the memory assigned to R_ParsePatch, as it's unneeded now
+						Z_Free(newPatch);
+					}
 				}
 				else
 				{
@@ -1531,23 +1588,31 @@ static texture_t *R_ParseTexture(boolean actuallyLoadTexture)
 			}
 			else
 			{
-				I_Error("Error parsing TEXTURES lump: Expected \"PATCH\" in texture \"%s\", got \"%s\"",newTextureName,texturesToken);
+				CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Expected \"PATCH\" in texture \"%s\", got \"%s\"\n",newTextureName,texturesToken);
+				Z_Free(texturesToken);
+				return NULL;
 			}
 
 			texturesToken = M_GetToken(NULL);
 			if (texturesToken == NULL)
 			{
-				I_Error("Error parsing TEXTURES lump: Unexpected end of file where patch declaration or right curly brace for texture \"%s\" should be",newTextureName);
+				CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Unexpected end of file where patch declaration or right curly brace for texture \"%s\" should be\n",newTextureName);
+				Z_Free(texturesToken);
+				return NULL;
 			}
 		}
 		if (resultTexture && resultTexture->patchcount == 0)
 		{
-			I_Error("Error parsing TEXTURES lump: Texture \"%s\" must have at least one patch",newTextureName);
+			CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Texture \"%s\" must have at least one patch\n",newTextureName);
+			Z_Free(texturesToken);
+			return NULL;
 		}
 	}
 	else
 	{
-		I_Error("Error parsing TEXTURES lump: Expected \"{\" for texture \"%s\", got \"%s\"",newTextureName,texturesToken);
+		CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Expected \"{\" for texture \"%s\", got \"%s\"\n",newTextureName,texturesToken);
+		Z_Free(texturesToken);
+		return NULL;
 	}
 	Z_Free(texturesToken);
 
@@ -1592,7 +1657,7 @@ int R_CountTexturesInTEXTURESLump(UINT16 wadNum, UINT16 lumpNum)
 		}
 		else
 		{
-			I_Error("Error parsing TEXTURES lump: Expected \"WALLTEXTURE\" or \"TEXTURE\", got \"%s\"",texturesToken);
+			CONS_Alert(CONS_ERROR, "Error parsing TEXTURES lump: Expected \"WALLTEXTURE\" or \"TEXTURE\", got \"%s\"\n",texturesToken);
 		}
 		texturesToken = M_GetToken(NULL);
 	}
@@ -1638,12 +1703,19 @@ void R_ParseTEXTURESLump(UINT16 wadNum, UINT16 lumpNum, INT32 *texindex)
 			Z_Free(texturesToken);
 			// Get the new texture
 			newTexture = R_ParseTexture(true);
-			// Store the new texture
-			textures[*texindex] = newTexture;
-			texturewidth[*texindex] = newTexture->width;
-			textureheight[*texindex] = newTexture->height << FRACBITS;
-			// Increment i back in R_LoadTextures()
-			(*texindex)++;
+			if (newTexture != NULL)
+			{
+				// Store the new texture
+				textures[*texindex] = newTexture;
+				texturewidth[*texindex] = newTexture->width;
+				textureheight[*texindex] = newTexture->height << FRACBITS;
+				// Increment i back in R_LoadTextures()
+				(*texindex)++;
+			}
+			else
+			{
+				numtextures--;
+			}
 		}
 		else
 		{

@@ -48,7 +48,7 @@ static void GetVectorOrXYZ(lua_State *L, int index, vector3_t *result)
 	}
 }
 
-static matrix_t *NewMatrix(lua_State *L)
+matrix_t *LUA_NewMatrix(lua_State *L)
 {
 	matrix_t *mat = lua_newuserdata(L, sizeof(*mat));
 	luaL_getmetatable(L, META_MATRIX);
@@ -62,7 +62,7 @@ static matrix_t *NewMatrix(lua_State *L)
 
 static int matrix_new(lua_State *L)
 {
-	Matrix_SetIdentity(NewMatrix(L));
+	Matrix_SetIdentity(LUA_NewMatrix(L));
 	return 1;
 }
 
@@ -70,7 +70,7 @@ static int matrix_translation(lua_State *L)
 {
 	vector3_t translation;
 	GetVectorOrXYZ(L, 1, &translation);
-	Matrix_SetTranslation(NewMatrix(L), translation.x, translation.y, translation.z);
+	Matrix_SetTranslation(LUA_NewMatrix(L), translation.x, translation.y, translation.z);
 	return 1;
 }
 
@@ -78,7 +78,7 @@ static int matrix_scaling(lua_State *L)
 {
 	vector3_t scaling;
 	GetVectorOrXYZ(L, 1, &scaling);
-	Matrix_SetScaling(NewMatrix(L), scaling.x, scaling.y, scaling.z);
+	Matrix_SetScaling(LUA_NewMatrix(L), scaling.x, scaling.y, scaling.z);
 	return 1;
 }
 
@@ -110,7 +110,7 @@ static const char *const matrixfield_opt[] = {
 static int matrix_clone(lua_State *L)
 {
 	matrix_t *mat = luaL_checkudata(L, 1, META_MATRIX);
-	Matrix_Copy(NewMatrix(L), mat);
+	Matrix_Copy(LUA_NewMatrix(L), mat);
 	return 1;
 }
 
@@ -200,7 +200,7 @@ static int matrix_mul(lua_State *L)
 	else
 	{
 		matrix_t *mat2 = luaL_checkudata(L, 2, META_MATRIX);
-		Matrix_Mul(NewMatrix(L), mat1, mat2);
+		Matrix_Mul(LUA_NewMatrix(L), mat1, mat2);
 	}
 
 	return 1;

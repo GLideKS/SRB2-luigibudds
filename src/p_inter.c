@@ -2782,7 +2782,7 @@ void P_KillMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source, UINT8 damaget
 	}
 
 	if (source && target && target->player && source->player)
-		P_PlayVictorySound(source); // Killer laughs at you. LAUGHS! BWAHAHAHA!
+		P_PlayVictorySound(source, NULL); // Killer laughs at you. LAUGHS! BWAHAHAHA!
 
 	// Other death animation effects
 	switch(target->type)
@@ -2955,7 +2955,7 @@ void P_KillMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source, UINT8 damaget
 					if (damagetype == DMG_SPIKE) // Spikes
 						S_StartSoundFromMobj(target, sfx_spkdth);
 					else
-						P_PlayDeathSound(target);
+						P_PlayDeathSound(target, NULL);
 				}
 			}
 			break;
@@ -3296,21 +3296,21 @@ static boolean P_TagDamage(mobj_t *target, mobj_t *inflictor, mobj_t *source, IN
 	{
 		if (player->spheres > 0)
 		{
-			P_PlayRinglossSound(target);
+			P_PlayRinglossSound(target, NULL);
 			P_PlayerRingBurst(player, player->spheres);
 			player->spheres = 0;
 		}
 	}
 	else if (player->rings > 0) // Ring loss
 	{
-		P_PlayRinglossSound(target);
+		P_PlayRinglossSound(target, NULL);
 		P_PlayerRingBurst(player, player->rings);
 		player->rings = 0;
 	}
 	else // Death
 	{
-		P_PlayDeathSound(target);
-		P_PlayVictorySound(source); // Killer laughs at you! LAUGHS! BWAHAHAHHAHAA!!
+		P_PlayDeathSound(target, NULL);
+		P_PlayVictorySound(source, NULL); // Killer laughs at you! LAUGHS! BWAHAHAHHAHAA!!
 	}
 	return true;
 }
@@ -3582,7 +3582,7 @@ static void P_RingDamage(player_t *player, mobj_t *inflictor, mobj_t *source, IN
 	}
 
 	// Ring loss sound plays despite hitting spikes
-	P_PlayRinglossSound(player->mo); // Ringledingle!
+	P_PlayRinglossSound(player->mo, NULL); // Ringledingle!
 	P_PlayerRingBurst(player, damage);
 
 	if (dospheres)

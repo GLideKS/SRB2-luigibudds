@@ -220,9 +220,9 @@ void P_DoMetalJetFume(player_t *player, mobj_t *fume);
 void P_DoFollowMobj(player_t *player, mobj_t *followmobj);
 
 void P_PlayLivesJingle(player_t *player);
-#define P_PlayRinglossSound(s)	S_StartSoundFromMobj(s, (mariomode) ? sfx_mario8 : sfx_altow1 + P_RandomKey(4));
-#define P_PlayDeathSound(s)		S_StartSoundFromMobj(s, sfx_altdi1 + P_RandomKey(4));
-#define P_PlayVictorySound(s)	S_StartSoundFromMobj(s, sfx_victr1 + P_RandomKey(4));
+void P_PlayRinglossSound(mobj_t *source, player_t *player);
+void P_PlayDeathSound(mobj_t *source, player_t *player);
+void P_PlayVictorySound(mobj_t *source, player_t *player);
 
 boolean P_GetLives(player_t *player);
 boolean P_SpectatorJoinGame(player_t *player);
@@ -257,7 +257,7 @@ typedef enum
 
 typedef struct
 {
-	char musname[7];
+	char musname[MAX_MUSIC_NAME+1];
 	boolean looping;
 } jingle_t;
 
@@ -414,6 +414,8 @@ extern msecnode_t *sector_list;
 
 extern mprecipsecnode_t *precipsector_list;
 
+void P_UnsetBlockmapEntry(mobj_t *thing);
+void P_SetBlockmapEntry(mobj_t *thing);
 void P_UnsetThingPosition(mobj_t *thing);
 void P_SetThingPosition(mobj_t *thing);
 void P_SetUnderlayPosition(mobj_t *thing);

@@ -1321,7 +1321,7 @@ fixed_t P_GetMobjGravity(mobj_t *mo)
 	if (!gravsector) // If there is no 3D floor gravity, check sector's gravity
 		gravsector = mo->subsector->sector;
 
-	gravityadd = -FixedMul(gravity, P_GetSectorGravityFactor(gravsector));
+	gravityadd = -FixedMul(FixedMul(gravity, mo->gravity), P_GetSectorGravityFactor(gravsector));
 
 	if ((gravsector->flags & MSF_GRAVITYFLIP) && gravityadd > 0)
 	{
@@ -6336,6 +6336,8 @@ void P_SetScale(mobj_t *mobj, fixed_t newscale, boolean instant)
 	if (!mobj)
 		return;
 
+	P_UnsetBlockmapEntry(mobj);
+
 	if (mobj->player)
 	{
 		G_GhostAddScale(newscale);
@@ -6349,6 +6351,7 @@ void P_SetScale(mobj_t *mobj, fixed_t newscale, boolean instant)
 	mobj->scale = newscale;
 	if (instant)
 		mobj->destscale = mobj->old_scale = newscale;
+	P_SetBlockmapEntry(mobj);
 }
 
 void P_Attract(mobj_t *source, mobj_t *dest, boolean nightsgrab) // Home in on your target
@@ -10738,6 +10741,7 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type, ...)
 	mobj->friction = ORIG_FRICTION;
 
 	mobj->movefactor = FRACUNIT;
+	mobj->gravity = FRACUNIT;
 
 	// All mobjs are created at 100% scale.
 	mobj->scale = FRACUNIT;
@@ -11593,8 +11597,8 @@ void P_PrecipitationEffects(void)
  */
 mobjtype_t P_GetMobjtype(UINT16 mthingtype)
 {
-	mobjtype_t i;
-	for (i = 0; i < NUMMOBJTYPES; i++)
+	INT32 i;
+	for (i = NUMMOBJTYPES-1; i >= 0; i--)
 		if (mthingtype == mobjinfo[i].doomednum)
 			return i;
 	return MT_UNKNOWN;

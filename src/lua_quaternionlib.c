@@ -13,7 +13,7 @@
 #include "lua_script.h"
 #include "lua_libs.h"
 
-static quaternion_t *NewQuaternion(lua_State *L)
+quaternion_t *LUA_NewQuaternion(lua_State *L)
 {
 	quaternion_t *quat = lua_newuserdata(L, sizeof(*quat));
 	luaL_getmetatable(L, META_QUATERNION);
@@ -27,7 +27,7 @@ static quaternion_t *NewQuaternion(lua_State *L)
 
 static int quaternion_new(lua_State *L)
 {
-	Quaternion_SetIdentity(NewQuaternion(L));
+	Quaternion_SetIdentity(LUA_NewQuaternion(L));
 	return 1;
 }
 
@@ -35,7 +35,7 @@ static int quaternion_fromAxisRotation(lua_State *L)
 {
 	vector3_t *axis = luaL_checkudata(L, 1, META_VECTOR3);
 	fixed_t angle = luaL_checkfixed(L, 2);
-	Quaternion_SetAxisRotation(NewQuaternion(L), axis, angle);
+	Quaternion_SetAxisRotation(LUA_NewQuaternion(L), axis, angle);
 	return 1;
 }
 
@@ -52,7 +52,7 @@ static luaL_Reg quaternion[] = {
 static int quaternion_clone(lua_State *L)
 {
 	quaternion_t *quat = luaL_checkudata(L, 1, META_QUATERNION);
-	Quaternion_Copy(NewQuaternion(L), quat);
+	Quaternion_Copy(LUA_NewQuaternion(L), quat);
 	return 1;
 }
 
@@ -115,7 +115,7 @@ static int quaternion_mul(lua_State *L)
 {
 	quaternion_t *quat1 = luaL_checkudata(L, 1, META_QUATERNION);
 	quaternion_t *quat2 = luaL_checkudata(L, 2, META_QUATERNION);
-	Quaternion_Mul(NewQuaternion(L), quat1, quat2);
+	Quaternion_Mul(LUA_NewQuaternion(L), quat1, quat2);
 	return 1;
 }
 

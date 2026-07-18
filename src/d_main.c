@@ -991,13 +991,7 @@ void D_StartTitle(void)
 
 			if (server)
 			{
-				char mapname[6];
-
-				strlcpy(mapname, G_BuildMapName(spstage_start), sizeof (mapname));
-				strlwr(mapname);
-				mapname[5] = '\0';
-
-				COM_BufAddText(va("map %s\n", mapname));
+				COM_BufAddText(va("map %s\n", G_BuildMapName(spstage_start)));
 			}
 		}
 
@@ -1410,6 +1404,7 @@ void D_SRB2Main(void)
 
 	if (M_CheckParm("-password") && M_IsNextParm())
 		D_SetPassword(M_GetNextParm());
+	G_InitMaps();
 
 	clientGamedata = M_NewGameDataStruct();
 	serverGamedata = M_NewGameDataStruct();
@@ -1461,9 +1456,6 @@ void D_SRB2Main(void)
 
 	CONS_Printf("I_InitializeTime()...\n");
 	I_InitializeTime();
-
-	// Make backups of some SOCcable tables.
-	P_BackupTables();
 
 	mainwads = 3; // doesn't include music.pk3
 #ifdef USE_PATCH_DTA
@@ -1724,7 +1716,7 @@ void D_SRB2Main(void)
 	{
 		pstartmap = bootmap;
 
-		if (pstartmap < 1 || pstartmap > NUMMAPS)
+		if (pstartmap < 1 || pstartmap > numgamemaps)
 			I_Error("Cannot warp to map %d (out of range)\n", pstartmap);
 		else
 		{
@@ -1771,7 +1763,7 @@ void D_SRB2Main(void)
 		if (server && !M_CheckParm("+map"))
 		{
 			// Prevent warping to nonexistent levels
-			if (W_CheckNumForName(G_BuildMapName(pstartmap)) == LUMPERROR)
+			if (!G_MapFileExists(G_BuildMapName(pstartmap)))
 				I_Error("Could not warp to %s (map not found)\n", G_BuildMapName(pstartmap));
 			else
 			{

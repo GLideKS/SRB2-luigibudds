@@ -1530,7 +1530,7 @@ static int lib_pPlayJingleMusic(lua_State *L)
 {
 	player_t *player = NULL;
 	const char *musnamearg = luaL_checkstring(L, 2);
-	char musname[7], *p = musname;
+	char musname[MAX_MUSIC_NAME+1], *p = musname;
 	UINT16 musflags = luaL_optinteger(L, 3, 0);
 	boolean looping = lua_opttrueboolean(L, 4);
 	jingletype_t jingletype = luaL_optinteger(L, 5, JT_OTHER);
@@ -1545,8 +1545,7 @@ static int lib_pPlayJingleMusic(lua_State *L)
 	if (jingletype >= NUMJINGLES)
 		return luaL_error(L, "jingletype %d out of range (0 - %d)", jingletype, NUMJINGLES-1);
 
-	musname[6] = '\0';
-	strncpy(musname, musnamearg, 6);
+	strlcpy(musname, musnamearg, MAX_MUSIC_NAME+1);
 
 	while (*p) {
 		*p = tolower(*p);
@@ -2462,8 +2461,7 @@ static int lib_pPlayRinglossSound(lua_State *L)
 		if (!player)
 			return LUA_ErrInvalid(L, "player_t");
 	}
-	if (!player || P_IsLocalPlayer(player))
-		P_PlayRinglossSound(source);
+	P_PlayRinglossSound(source, player);
 	return 0;
 }
 
@@ -2481,8 +2479,7 @@ static int lib_pPlayDeathSound(lua_State *L)
 		if (!player)
 			return LUA_ErrInvalid(L, "player_t");
 	}
-	if (!player || P_IsLocalPlayer(player))
-		P_PlayDeathSound(source);
+	P_PlayDeathSound(source, player);
 	return 0;
 }
 
@@ -2500,8 +2497,7 @@ static int lib_pPlayVictorySound(lua_State *L)
 		if (!player)
 			return LUA_ErrInvalid(L, "player_t");
 	}
-	if (!player || P_IsLocalPlayer(player))
-		P_PlayVictorySound(source);
+	P_PlayVictorySound(source, player);
 	return 0;
 }
 
@@ -4256,7 +4252,7 @@ static int lib_gUnlockCondition(lua_State* L)
 	int id = luaL_checkinteger(L, 1) - 1;
 	boolean global = luaL_checkboolean(L, 2);
 
-	if (id <= 0 || id > MAXLUACONDITIONS)
+	if (id < 0 || id >= MAXLUACONDITIONS)
 	{
 		luaL_error(L, "Lua condition %d out of range (1 - %d)", id + 1, MAXLUACONDITIONS);
 		return 0;
@@ -4395,10 +4391,76 @@ static int lib_gSetUsedCheats(lua_State *L)
 	return 0;
 }
 
+static int GetMapNameOrNumber(lua_State *L, int idx)
+{
+	if (lua_type(L, idx) == LUA_TSTRING)
+	{
+		const char *mapname = luaL_checkstring(L, idx);
+		INT16 mapnum = G_GetMapNumber(mapname);
+		if (mapnum == 0)
+		{
+			return luaL_error(L,
+					"%s is not a valid game map.",
+					mapname
+			);
+		}
+		return mapnum;
+	}
+	else
+		return luaL_checkinteger(L, idx);
+}
+
+static int GetNextMapNameOrNumber(lua_State *L, int idx)
+{
+	if (lua_type(L, idx) == LUA_TSTRING)
+	{
+		const char *mapname = luaL_checkstring(L, idx);
+		INT16 mapnum = G_GetNextMapNumber(mapname);
+		if (mapnum == 0)
+		{
+			return luaL_error(L,
+					"%s is not a valid game map.",
+					mapname
+			);
+		}
+		return mapnum;
+	}
+	else
+	{
+		lua_Integer val = luaL_checkinteger(L, idx);
+		if (val == 1100)
+		{
+			LUA_Deprecated(L, "1100", "SCENE_TITLE");
+			return NEXTMAP_TITLE;
+		}
+		else if (val == 1101)
+		{
+			LUA_Deprecated(L, "1101", "SCENE_EVALUATION");
+			return NEXTMAP_EVALUATION;
+		}
+		else if (val == 1102)
+		{
+			LUA_Deprecated(L, "1102", "SCENE_CREDITS");
+			return NEXTMAP_CREDITS;
+		}
+		else if (val == 1103)
+		{
+			LUA_Deprecated(L, "1103", "SCENE_ENDING");
+			return NEXTMAP_ENDING;
+		}
+		return val;
+	}
+}
+
 static int Lcheckmapnumber (lua_State *L, int idx, const char *fun)
 {
 	if (ISINLEVEL)
-		return luaL_optinteger(L, idx, gamemap);
+	{
+		if (!lua_isnoneornil(L, idx))
+			return GetMapNameOrNumber(L, idx);
+		else
+			return gamemap;
+	}
 	else
 	{
 		if (lua_isnoneornil(L, idx))
@@ -4409,14 +4471,21 @@ static int Lcheckmapnumber (lua_State *L, int idx, const char *fun)
 			);
 		}
 		else
-			return luaL_checkinteger(L, idx);
+			return GetMapNameOrNumber(L, idx);
 	}
 }
 
 static int lib_gBuildMapName(lua_State *L)
 {
 	INT32 map = Lcheckmapnumber(L, 1, "G_BuildMapName");
-	//HUDSAFE
+	if (map < 1 || map > numgamemaps)
+	{
+		return luaL_error(L,
+				"map number %d out of range (1 - %d)",
+				map,
+				numgamemaps
+		);
+	}
 	lua_pushstring(L, G_BuildMapName(map));
 	return 1;
 }
@@ -4425,17 +4494,23 @@ static int lib_gBuildMapTitle(lua_State *L)
 {
 	INT32 map = Lcheckmapnumber(L, 1, "G_BuildMapTitle");
 	char *name;
-	if (map < 1 || map > NUMMAPS)
+	if (map < 1 || map > numgamemaps)
 	{
 		return luaL_error(L,
 				"map number %d out of range (1 - %d)",
 				map,
-				NUMMAPS
+				numgamemaps
 		);
 	}
 	name = G_BuildMapTitle(map);
 	lua_pushstring(L, name);
 	Z_Free(name);
+	return 1;
+}
+
+static int lib_gIsGameEndMap(lua_State *L)
+{
+	lua_pushboolean(L, G_IsGameEndMap(luaL_checkinteger(L, 1)));
 	return 1;
 }
 
@@ -4550,6 +4625,36 @@ static int lib_gFindMapByNameOrCode(lua_State *L)
 		return 1;
 }
 
+static int lib_gGetMapThumbnail(lua_State *L)
+{
+	INT32 map = Lcheckmapnumber(L, 1, "G_GetMapThumbnail");
+	if (map < 1 || map > numgamemaps)
+	{
+		return luaL_error(L,
+				"map number %d out of range (1 - %d)",
+				map,
+				numgamemaps
+		);
+	}
+	lua_pushstring(L, G_GetMapThumbnail(map));
+	return 1;
+}
+
+static int lib_gGetMapThumbnailWide(lua_State *L)
+{
+	INT32 map = Lcheckmapnumber(L, 1, "G_GetMapThumbnailWide");
+	if (map < 1 || map > numgamemaps)
+	{
+		return luaL_error(L,
+				"map number %d out of range (1 - %d)",
+				map,
+				numgamemaps
+		);
+	}
+	lua_pushstring(L, G_GetMapThumbnailWide(map));
+	return 1;
+}
+
 static int lib_gDoReborn(lua_State *L)
 {
 	INT32 playernum = luaL_checkinteger(L, 1);
@@ -4563,11 +4668,13 @@ static int lib_gDoReborn(lua_State *L)
 
 // Another Lua function that doesn't actually exist!
 // Sets nextmapoverride, skipstats and nextgametype without instantly ending the level, for instances where other sources should be exiting the level, like normal signposts.
+// TODO: 2.3: Delete
 static int lib_gSetCustomExitVars(lua_State *L)
 {
 	int n = lua_gettop(L); // Num arguments
 	NOHUD
 	INLEVEL
+	LUA_Deprecated(L, "G_SetCustomExitVars", "G_SetNextLevel")
 
 	// LUA EXTENSION: Custom exit like support
 	// Supported:
@@ -4576,21 +4683,77 @@ static int lib_gSetCustomExitVars(lua_State *L)
 	//	G_SetCustomExitVars(nil, int)			[skipstats only]
 	//	G_SetCustomExitVars(int, int)			[both of the above]
 	//	G_SetCustomExitVars(int, int, int)		[nextmapoverride, skipstats and nextgametype]
-	//	G_SetCustomExitVars(int, int, int, int) [nextmapoverride, skipstats, nextgametype and keepcutscenes]
 
+	mapexitflags = 0;
 	nextmapoverride = 0;
-	skipstats = 0;
 	nextgametype = -1;
-	keepcutscene = false;
 
 	if (n >= 1)
 	{
-		nextmapoverride = (INT16)luaL_optinteger(L, 1, 0);
-		skipstats = (INT16)luaL_optinteger(L, 2, 0);
+		if (!lua_isnoneornil(L, 1))
+		{
+			INT16 mapnum = GetNextMapNameOrNumber(L, 1);
+			if (mapnum < 1 || (mapnum > numgamemaps && !G_IsGameEndMap(mapnum)))
+			{
+				return luaL_error(L,
+						"map number %d out of range (1 - %d)",
+						mapnum,
+						numgamemaps
+				);
+			}
+			nextmapoverride = mapnum;
+		}
+
+		int options = luaL_optinteger(L, 2, 0);
+
+		if (options > 0)
+			mapexitflags |= EXITMAP_SKIPSTATS;
+
+		if (options > 1)
+			mapexitflags |= EXITMAP_SKIPCUTSCENE;
+
 		nextgametype = (INT16)luaL_optinteger(L, 3, -1);
-		
-		if (!lua_isnil(L, 4))
-			keepcutscene = luaL_checkboolean(L, 4);
+	}
+
+	return 0;
+}
+
+// Another Lua function that doesn't actually exist!
+// Sets mapexitflags, nextmapoverride and nextgametype without instantly ending the level, for instances where other sources should be exiting the level, like normal signposts.
+static int lib_gSetNextLevel(lua_State * L)
+{
+	int n = lua_gettop(L); // Num arguments
+	NOHUD
+	INLEVEL
+
+	// Supported:
+	//	G_SetNextLevel();				[reset to defaults]
+	//	G_SetNextLevel(int)				[sets mapexitflags]
+	//	G_SetNextLevel(nil, int)		[nextmap override only]
+	//	G_SetNextLevel(int, int)		[both of the above]
+	//	G_SetNextLevel(int, int, int)	[mapexitflags, nextmapoverride and nextgametype]
+
+	mapexitflags = 0;
+	nextmapoverride = 0;
+	nextgametype = -1;
+
+	if (n >= 1)
+	{
+		mapexitflags =        (UINT8)luaL_optinteger(L, 1, 0);
+		if (!lua_isnoneornil(L, 2))
+		{
+			INT16 mapnum = GetNextMapNameOrNumber(L, 2);
+			if (mapnum < 1 || (mapnum > numgamemaps && !G_IsGameEndMap(mapnum)))
+			{
+				return luaL_error(L,
+						"map number %d out of range (1 - %d)",
+						mapnum,
+						numgamemaps
+				);
+			}
+			nextmapoverride = mapnum;
+		}
+		nextgametype =        (INT16)luaL_optinteger(L, 3, -1);
 	}
 
 	return 0;
@@ -4603,10 +4766,12 @@ static int lib_gEnoughPlayersFinished(lua_State *L)
 	return 1;
 }
 
+// TODO: 2.3: Make it use lib_gSetNextLevel instead
 static int lib_gExitLevel(lua_State *L)
 {
 	int n = lua_gettop(L); // Num arguments
 	NOHUD
+	INLEVEL
 	// Moved this bit to G_SetCustomExitVars
 	if (n >= 1) // Don't run the reset to defaults option
 		lib_gSetCustomExitVars(L);
@@ -4616,9 +4781,22 @@ static int lib_gExitLevel(lua_State *L)
 
 static int lib_gIsSpecialStage(lua_State *L)
 {
-	INT32 mapnum = luaL_optinteger(L, 1, gamemap);
-	//HUDSAFE
+	INT32 mapnum;
 	INLEVEL
+	if (!lua_isnoneornil(L, 1))
+	{
+		mapnum = GetMapNameOrNumber(L, 1);
+		if (mapnum < 1 || mapnum > numgamemaps)
+		{
+			return luaL_error(L,
+					"map number %d out of range (1 - %d)",
+					mapnum,
+					numgamemaps
+			);
+		}
+	}
+	else
+		mapnum = gamemap;
 	lua_pushboolean(L, G_IsSpecialStage(mapnum));
 	return 1;
 }
@@ -5052,11 +5230,15 @@ static luaL_Reg lib[] = {
 	{"G_SetUsedCheats", lib_gSetUsedCheats},
 	{"G_BuildMapName",lib_gBuildMapName},
 	{"G_BuildMapTitle",lib_gBuildMapTitle},
+	{"G_IsGameEndMap",lib_gIsGameEndMap},
 	{"G_FindMap",lib_gFindMap},
 	{"G_FindMapByNameOrCode",lib_gFindMapByNameOrCode},
+	{"G_GetMapThumbnail",lib_gGetMapThumbnail},
+	{"G_GetMapThumbnailWide",lib_gGetMapThumbnailWide},
 	{"G_DoReborn",lib_gDoReborn},
-	{"G_SetCustomExitVars",lib_gSetCustomExitVars},
+	{"G_SetCustomExitVars",lib_gSetCustomExitVars}, // TODO: 2.3: Delete
 	{"G_EnoughPlayersFinished",lib_gEnoughPlayersFinished},
+	{"G_SetNextLevel",lib_gSetNextLevel},
 	{"G_ExitLevel",lib_gExitLevel},
 	{"G_IsSpecialStage",lib_gIsSpecialStage},
 	{"G_GametypeUsesLives",lib_gGametypeUsesLives},

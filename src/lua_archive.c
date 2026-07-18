@@ -622,7 +622,11 @@ static void ArchiveTables(save_t *save_p)
 			if (e == 1)
 				n++; // the table contained a new table we'll have to archive. :(
 			else if (e == 2) // invalid key type (function, thread, lightuserdata, or anything we don't recognise)
+			{
 				CONS_Alert(CONS_ERROR, "Index '%s' (%s) of table %d could not be archived!\n", lua_tostring(gL, -2), luaL_typename(gL, -2), i);
+				lua_pop(gL, 1);
+				continue;
+			}
 			else if (e == 3) // nil key due to invalid userdata. NOT an error.
 			{
 				lua_pop(gL, 1);
@@ -914,16 +918,16 @@ static void UnArchiveTables(save_t *save_p)
 			else if (e == 2) // Key contains a new table
 				n++;
 
+			if (lua_isnil(gL, -1)) // If key is nil, skip this entry
+			{
+				lua_pop(gL, 1);
+				continue;
+			}
+
 			if (UnArchiveValue(save_p, TABLESINDEX, USERDATAINDEX) == 2) // read value
 				n++;
 
-			if (lua_isnil(gL, -2)) // if key is nil (if a function etc was accidentally saved)
-			{
-				CONS_Alert(CONS_ERROR, "A nil key in table %d was found! (Invalid key type or corrupted save?)\n", i);
-				lua_pop(gL, 2); // pop key and value instead of setting them in the table, to prevent Lua panic errors
-			}
-			else
-				lua_rawset(gL, -3);
+			lua_rawset(gL, -3);
 		}
 
 		metatableid = P_ReadUINT16(save_p);
