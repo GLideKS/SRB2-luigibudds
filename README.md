@@ -4,6 +4,9 @@
 
 SRB2 Banpyura is a custom netgame compatible Sonic Robo Blast 2 build that includes a plethora of fixes, improvements, and new features fully based on contributions and other changes the community made, but still holding modding accuracy with SRB2 Vanilla.
 
+> [!CAUTION]
+> I (GLide KS) do not assume any responsibility for add-ons loaded locally (feature introduced in SRB2 Kart Saturn, ported to SRB2-Banpyura). If you choose to load or use add-ons for malicious or harmful purposes, you're completely on your own responsibility.
+
 Icon credits goes to ClovesCloestarSRB2 and his addon [New Springs](https://mb.srb2.org/addons/new-springs.8942/) from the base spring.
 
 ## Features
