@@ -3454,7 +3454,7 @@ static void PTR_GlideClimbTraverse(line_t *li)
 	if (!(checkline->flags & ML_NOCLIMB) && checkline->special != SPECIAL_HORIZON_LINE)
 	{
 		boolean canclimb;
-		angle_t climbangle, climbline;
+		angle_t climbangle, climbline, climbdiffangle;
 		INT32 whichside = P_PointOnLineSide(slidemo->x, slidemo->y, li);
 
 		climbangle = climbline = R_PointToAngle2(li->v1->x, li->v1->y, li->v2->x, li->v2->y);
@@ -3463,11 +3463,12 @@ static void PTR_GlideClimbTraverse(line_t *li)
 			climbline += ANGLE_180;
 
 		climbangle += (ANGLE_90 * (whichside ? -1 : 1));
+		climbdiffangle = slidemo->angle - climbline;
 
 		canclimb = (li->backsector ? P_IsClimbingValid(slidemo->player, climbangle) : true);
 
-		if (((!slidemo->player->climbing && abs((signed)(slidemo->angle - ANGLE_90 - climbline)) < ANGLE_45)
-			|| (slidemo->player->climbing == 1 && abs((signed)(slidemo->angle - climbline)) < ANGLE_135))
+		if (((!slidemo->player->climbing && !(climbdiffangle - ANGLE_90 >= ANGLE_45 && climbdiffangle - ANGLE_90 <= ANGLE_315))
+			|| (slidemo->player->climbing == 1 && !(climbdiffangle >= ANGLE_135 && climbdiffangle <= ANGLE_225)))
 			&& canclimb)
 		{
 			slidemo->angle = climbangle;
