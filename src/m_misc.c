@@ -1000,14 +1000,38 @@ static void M_PNGFrame(png_structp png_ptr, png_infop png_info_ptr, png_bytep pn
 	png_uint_32 x, y;
 	png_uint_16 framedelay = (png_uint_16)cv_apng_delay.value;
 
+	// romoney5: fixed apng support for both renderers (probably for the last time)
+	PNG_CONST png_uint_32 row_multiplier = pitch / width; // in opengl this should return 3 because of the three channels
+
+	png_uint_32 real_x = 0; // the amount of written columns
+
+	// size of each row:
+	// the regular row size reported by apng multiplied by the downscale factor twice (for x and y scale)
+	png_uint_32 row_increment = pitch * (downscale * downscale);
+	// i actually have no idea why this works
+	// take the difference between the divided width and regular width, multiply it like before,
+	// and divide by 3 in software
+	row_increment += ((vid.width - (width * downscale)) * (downscale * downscale)) * row_multiplier / 3;
+
 	apng_frames++;
 
 	for (y = 0; y < height; y++)
 	{
-		row_pointers[y] = malloc(pitch * sizeof(png_byte));
-		for (x = 0; x < width; x++)
-			row_pointers[y][x] = png_buf[x * downscale];
-		png_buf += pitch * (downscale * downscale);
+		real_x = 0;
+		row_pointers[y] = png_malloc(png_ptr, pitch * sizeof(png_byte));
+		if (row_pointers[y])
+		{
+			for (x = 0; x < pitch * downscale; x++)
+			{
+				row_pointers[y][real_x] = png_buf[x];
+				real_x++;
+
+				// after all channels are written, skip the next downscaled pixels if applicable
+				if (x % row_multiplier == row_multiplier - 1)
+					x += (downscale - 1) * row_multiplier;
+			}
+			png_buf += row_increment; // move to the next row
+		}
 	}
 		//for (x = 0; x < width; x++)
 		//{
@@ -1037,6 +1061,11 @@ static void M_PNGFrame(png_structp png_ptr, png_infop png_info_ptr, png_bytep pn
 	if (aPNG_write_frame_tail)
 #endif
 		aPNG_write_frame_tail(apng_ptr, apng_info_ptr);
+
+	// free the pointers
+	for (y = 0; y < height; y++)
+		if (row_pointers[y])
+			png_free(png_ptr, row_pointers[y]);
 
 	png_free(png_ptr, (png_voidp)row_pointers);
 }
