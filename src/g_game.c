@@ -78,7 +78,7 @@ static void G_DoStartContinue(void);
 static void G_DoContinued(void);
 static void G_DoWorldDone(void);
 
-char   mapmusname[7]; // Music name
+char   mapmusname[MAX_MUSIC_NAME+1]; // Music name
 UINT16 mapmusflags; // Track and reset bit
 UINT32 mapmusposition; // Position to jump to
 
@@ -105,6 +105,7 @@ UINT8 paused;
 UINT8 modeattacking = ATTACKING_NONE;
 boolean disableSpeedAdjust = false;
 boolean imcontinuing = false;
+boolean replacedcurrentmap = false;
 boolean runemeraldmanager = false;
 UINT16 emeraldspawndelay = 60*TICRATE;
 
@@ -171,7 +172,13 @@ mapthing_t *bflagpoint;
 struct quake quake;
 
 // Map Header Information
-mapheader_t* mapheaderinfo[NUMMAPS] = {NULL};
+mapheader_t* mapheaderinfo[MAXMAPS] = {NULL};
+
+gamemap_t gamemaps[MAXMAPS];
+UINT16 numgamemaps = 0;
+
+static mapname_t nextmapnames[NUM_NEXTMAPS];
+static INT16 nextmapids[NUM_NEXTMAPS] = { NEXTMAP_TITLE, NEXTMAP_EVALUATION, NEXTMAP_CREDITS, NEXTMAP_ENDING };
 
 static boolean exitgame = false;
 static boolean retrying = false;
@@ -460,7 +467,7 @@ void G_AllocNightsRecordData(INT16 i, gamedata_t *data)
 void G_ClearRecords(gamedata_t *data)
 {
 	INT16 i;
-	for (i = 0; i < NUMMAPS; ++i)
+	for (i = 0; i < numgamemaps; ++i)
 	{
 		if (data->mainrecords[i])
 		{
@@ -570,7 +577,8 @@ static void G_SetMainRecords(gamedata_t *data, player_t *player)
 
 		if (modeattacking)
 		{
-			const size_t glen = strlen(srb2home)+1+strlen("replay")+1+strlen(timeattackfolder)+1+strlen("MAPXX")+1;
+			const char *mapname = G_BuildMapName(gamemap);
+			const size_t glen = strlen(srb2home)+1+strlen("replay")+1+strlen(timeattackfolder)+1+strlen(mapname)+1;
 			char *gpath;
 			char lastdemo[256], bestdemo[256];
 
@@ -586,7 +594,7 @@ static void G_SetMainRecords(gamedata_t *data, player_t *player)
 			if ((gpath = malloc(glen)) == NULL)
 				I_Error("Out of memory for replay filepath\n");
 
-			sprintf(gpath,"%s"PATHSEP"replay"PATHSEP"%s"PATHSEP"%s", srb2home, timeattackfolder, G_BuildMapName(gamemap));
+			sprintf(gpath,"%s"PATHSEP"replay"PATHSEP"%s"PATHSEP"%s", srb2home, timeattackfolder, mapname);
 			snprintf(lastdemo, 255, "%s-%s-last.lmp", gpath, skins[cv_chooseskin.value-1]->name);
 
 			if (FIL_FileExists(lastdemo))
@@ -709,7 +717,8 @@ static void G_SetNightsRecords(gamedata_t *data, player_t *player)
 
 	if (modeattacking)
 	{
-		const size_t glen = strlen(srb2home)+1+strlen("replay")+1+strlen(timeattackfolder)+1+strlen("MAPXX")+1;
+		const char *mapname = G_BuildMapName(gamemap);
+		const size_t glen = strlen(srb2home)+1+strlen("replay")+1+strlen(timeattackfolder)+1+strlen(mapname)+1;
 		char *gpath;
 		char lastdemo[256], bestdemo[256];
 
@@ -725,7 +734,7 @@ static void G_SetNightsRecords(gamedata_t *data, player_t *player)
 		if ((gpath = malloc(glen)) == NULL)
 			I_Error("Out of memory for replay filepath\n");
 
-		sprintf(gpath,"%s"PATHSEP"replay"PATHSEP"%s"PATHSEP"%s", srb2home, timeattackfolder, G_BuildMapName(gamemap));
+		sprintf(gpath,"%s"PATHSEP"replay"PATHSEP"%s"PATHSEP"%s", srb2home, timeattackfolder, mapname);
 		snprintf(lastdemo, 255, "%s-%s-last.lmp", gpath, skins[cv_chooseskin.value-1]->name);
 
 		if (FIL_FileExists(lastdemo))
@@ -803,6 +812,20 @@ void G_SetUsedCheats(boolean silent)
 		Command_ExitGame_f();
 }
 
+/** Gets a game map name from a map number.
+  *
+  * \param map Map number.
+  * \return The desired map name.
+  * \sa M_MapNumber
+  */
+const char *G_BuildMapName(INT32 map)
+{
+	if (map > 0 && map <= numgamemaps)
+		return gamemaps[map - 1].name.chars;
+
+	return "UNKNOWN";
+}
+
 /** Builds an original game map name from a map number.
   * The complexity is due to MAPA0-MAPZZ.
   *
@@ -810,12 +833,12 @@ void G_SetUsedCheats(boolean silent)
   * \return Pointer to a static buffer containing the desired map name.
   * \sa M_MapNumber
   */
-const char *G_BuildMapName(INT32 map)
+const char *G_BuildClassicMapName(INT32 map)
 {
 	static char mapname[10] = "MAPXX"; // internal map name (wad resource name)
 
 	I_Assert(map > 0);
-	I_Assert(map <= NUMMAPS);
+	I_Assert(map <= NUMBASEMAPS);
 
 	if (map < 100)
 		sprintf(&mapname[3], "%.2d", map);
@@ -830,6 +853,234 @@ const char *G_BuildMapName(INT32 map)
 	}
 
 	return mapname;
+}
+
+static UINT32 G_HashMapNameString(const char *name, size_t name_length)
+{
+	UINT32 hash;
+	size_t i;
+
+	char *buffer = malloc(name_length + 1);
+	if (buffer == NULL)
+		return 0;
+
+	for (i = 0; i < name_length; i++)
+		buffer[i] = tolower(name[i]);
+	buffer[i] = '\0';
+
+	hash = FNV1a_HashString(buffer);
+
+	free(buffer);
+
+	return hash;
+}
+
+static void G_MakeMapName(mapname_t *name, const char *string)
+{
+	name->length = strlen(string);
+	name->hash = G_HashMapNameString(string, name->length);
+	name->chars = Z_StrDup(string);
+	strupr(name->chars);
+}
+
+void G_InitMaps(void)
+{
+	for (UINT16 i = 0; i < NUMBASEMAPS; i++)
+	{
+		const char *name = G_BuildClassicMapName(i + 1);
+		G_AddMap(name, LUMPERROR);
+	}
+
+	G_MakeMapName(&nextmapnames[0], "SCENE_TITLE");
+	G_MakeMapName(&nextmapnames[1], "SCENE_EVALUATION");
+	G_MakeMapName(&nextmapnames[2], "SCENE_CREDITS");
+	G_MakeMapName(&nextmapnames[3], "SCENE_ENDING");
+}
+
+static UINT16 MapIDForHashedString(const char *name, size_t name_length, UINT32 name_hash)
+{
+	// Special case
+	if (name_length == 2 && name[0] >= 'A' && name[0] <= 'Z')
+		return M_MapNumber(name[0], name[1]);
+
+	for (UINT16 i = 0; i < numgamemaps; i++)
+	{
+		if (gamemaps[i].name.length == name_length
+		&& gamemaps[i].name.hash == name_hash
+		&& stricmp(name, gamemaps[i].name.chars) == 0)
+			return i + 1;
+	}
+
+	return 0;
+}
+
+UINT16 G_GetMapNumber(const char *name)
+{
+	size_t name_length = strlen(name);
+
+	return MapIDForHashedString(name, name_length, G_HashMapNameString(name, name_length));
+}
+
+UINT16 G_GetNextMapNumber(const char *name)
+{
+	size_t name_length = strlen(name);
+	UINT32 name_hash = G_HashMapNameString(name, name_length);
+
+	for (UINT16 i = 0; i < NUM_NEXTMAPS; i++)
+	{
+		if (nextmapnames[i].length == name_length
+		&& nextmapnames[i].hash == name_hash
+		&& stricmp(name, nextmapnames[i].chars) == 0)
+			return nextmapids[i];
+	}
+
+	return MapIDForHashedString(name, name_length, name_hash);
+}
+
+UINT16 G_AddMap(const char *name, UINT32 lumpnum)
+{
+	// Too many maps loaded
+	if (numgamemaps == MAXMAPS)
+		return 0;
+
+	UINT16 mapnum = G_GetMapNumber(name);
+	if (mapnum != 0)
+	{
+		// Update that map's lumpnum
+		gamemaps[mapnum - 1].lumpnum = lumpnum;
+		return mapnum;
+	}
+
+	G_MakeMapName(&gamemaps[numgamemaps].name, name);
+	gamemaps[numgamemaps].lumpnum = lumpnum;
+
+	numgamemaps++;
+
+	CONS_Debug(DBG_SETUP, "Added map %d (%s)\n", numgamemaps, name);
+
+	return numgamemaps;
+}
+
+lumpnum_t G_GetMapLumpnum(const char *name)
+{
+	UINT16 mapnum = G_GetMapNumber(name);
+	if (mapnum == 0)
+		return LUMPERROR;
+
+	return gamemaps[mapnum - 1].lumpnum;
+}
+
+boolean G_MapFileExists(const char *name)
+{
+	UINT16 mapnum = G_GetMapNumber(name);
+	if (mapnum == 0)
+		return false;
+
+	return gamemaps[mapnum - 1].lumpnum != LUMPERROR;
+}
+
+static boolean IsValidMapNameStartChar(const char chr)
+{
+	return isalpha(chr) || chr == '_' || chr == '$';
+}
+
+boolean G_IsValidMapName(const char *name)
+{
+	// Can't be empty, and must begin with a letter, an underscore, or a dollar sign
+	if (name[0] == '\0' || !IsValidMapNameStartChar(name[0]))
+		return false;
+
+	size_t length = strlen(name);
+
+	// Middle and end of name must be a letter, a digit, an underscore, or a dollar sign
+	for (size_t i = 1; i < length; i++)
+	{
+		if (!(IsValidMapNameStartChar(name[i]) || isdigit(name[i])))
+			return false;
+	}
+
+	return true;
+}
+
+static char *BuildCombinedMapString(INT16 map, const char *newfmt, const char *oldfmt)
+{
+	const char *mapname = gamemaps[map].name.chars;
+	const char *fmt = (map < NUMBASEMAPS) ? oldfmt : newfmt;
+
+	size_t len = strlen(mapname) + strlen(fmt) + 1;
+
+	char *text = Z_Malloc(len, PU_STATIC, NULL);
+
+	snprintf(text, len, fmt, mapname);
+
+	return text;
+}
+
+const char *G_GetMapThumbnail(INT16 map)
+{
+	map--;
+
+	if (map < 0 || map >= numgamemaps)
+		return "";
+
+	// This is done lazily -- it's not created until it's needed.
+	if (gamemaps[map].thumbnail == NULL)
+		gamemaps[map].thumbnail = BuildCombinedMapString(map, "%s_PIC", "%sP");
+
+	return gamemaps[map].thumbnail;
+}
+
+const char *G_GetMapThumbnailWide(INT16 map)
+{
+	map--;
+
+	if (map < 0 || map >= numgamemaps)
+		return "";
+
+	if (gamemaps[map].thumbnail_wide == NULL)
+		gamemaps[map].thumbnail_wide = BuildCombinedMapString(map, "%s_WIDEPIC", "%sW");
+
+	return gamemaps[map].thumbnail_wide;
+}
+
+const char *G_GetDefaultMapMusic(INT16 map)
+{
+	map--;
+
+	if (map < 0 || map >= numgamemaps)
+		return "";
+
+	if (gamemaps[map].music == NULL)
+		gamemaps[map].music = BuildCombinedMapString(map, "%s", "%sM");
+
+	return gamemaps[map].music;
+}
+
+const char *G_GetMapMetalSonicReplay(INT16 map)
+{
+	map--;
+
+	if (map < 0 || map >= numgamemaps)
+		return "";
+
+	if (gamemaps[map].metal_replay == NULL)
+		gamemaps[map].metal_replay = BuildCombinedMapString(map, "%s_METALREPLAY", "%sMS");
+
+	return gamemaps[map].metal_replay;
+}
+
+boolean G_IsGameEndMap(INT16 mapnum)
+{
+	switch (mapnum)
+	{
+		case NEXTMAP_TITLE:
+		case NEXTMAP_EVALUATION:
+		case NEXTMAP_CREDITS:
+		case NEXTMAP_ENDING:
+			return true;
+		default:
+			return false;
+	}
 }
 
 /** Clips the console player's mouse aiming to the current view.
@@ -1873,7 +2124,7 @@ void G_DoLoadLevel(boolean resetplayer)
 	// cleanup
 	if (titlemapinaction == TITLEMAP_LOADING)
 	{
-		if (W_CheckNumForName(G_BuildMapName(gamemap)) == LUMPERROR)
+		if (!G_MapFileExists(G_BuildMapName(gamemap)))
 		{
 			titlemap = 0; // let's not infinite recursion ok
 			Command_ExitGame_f();
@@ -2802,8 +3053,7 @@ void G_PlayerReborn(INT32 player, boolean betweenmaps)
 	{
 		if (mapmusflags & MUSIC_RELOADRESET)
 		{
-			strncpy(mapmusname, mapheaderinfo[gamemap-1]->musname, 7);
-			mapmusname[6] = 0;
+			strlcpy(mapmusname, mapheaderinfo[gamemap-1]->musname, MAX_MUSIC_NAME+1);
 			mapmusflags = (mapheaderinfo[gamemap-1]->mustrack & MUSIC_TRACKMASK);
 			mapmusposition = mapheaderinfo[gamemap-1]->muspos;
 		}
@@ -3882,12 +4132,12 @@ UINT32 G_TOLFlag(INT32 pgametype)
   */
 static INT16 RandMap(UINT32 tolflags, INT16 pprevmap)
 {
-	INT16 *okmaps = Z_Malloc(NUMMAPS * sizeof(INT16), PU_STATIC, NULL);
+	INT16 *okmaps = Z_Malloc(numgamemaps * sizeof(INT16), PU_STATIC, NULL);
 	INT32 numokmaps = 0;
 	INT16 ix;
 
 	// Find all the maps that are ok and and put them in an array.
-	for (ix = 0; ix < NUMMAPS; ix++)
+	for (ix = 0; ix < numgamemaps; ix++)
 		if (mapheaderinfo[ix] && (mapheaderinfo[ix]->typeoflevel & tolflags) == tolflags
 		 && ix != pprevmap // Don't pick the same map.
 		 && (!M_MapLocked(ix+1, serverGamedata)) // Don't pick locked maps.
@@ -4010,7 +4260,7 @@ static void G_HandleSaveLevel(void)
 		G_UpdateAllVisited();
 
 	// do this before running the intermission or custom cutscene, mostly for the sake of marathon mode but it also massively reduces redundant file save events in f_finale.c
-	if (nextmap >= 1100-1)
+	if (nextmap >= NEXTMAP_TITLE-1)
 	{
 		if (!gamecomplete)
 			gamecomplete = 2; // special temporary mode to prevent using SP level select in pause menu until the intermission is over without restricting it in every intermission
@@ -4072,13 +4322,11 @@ INT16 G_GetNextMap(boolean ignoretokens, boolean silent)
 	// for instance).
 	if (!spec || nextmapoverride)
 	{
-		if (newmapnum >= 0 && newmapnum < NUMMAPS)
+		if (newmapnum >= 0 && newmapnum < numgamemaps)
 		{
 			INT16 cm = newmapnum;
 			UINT32 tolflag = G_TOLFlag(gametype_to_use);
-			UINT8 visitedmap[(NUMMAPS+7)/8];
-
-			memset(visitedmap, 0, sizeof (visitedmap));
+			UINT8 *visitedmap = Z_Calloc(((numgamemaps+7)/8) * sizeof(UINT8), PU_STATIC, NULL);
 
 			while (!mapheaderinfo[cm] || !(mapheaderinfo[cm]->typeoflevel & tolflag))
 			{
@@ -4090,12 +4338,12 @@ INT16 G_GetNextMap(boolean ignoretokens, boolean silent)
 				else
 					cm = (INT16)(mapheaderinfo[cm]->nextlevel-1);
 
-				if (cm >= NUMMAPS || cm < 0) // out of range (either 1100ish or error)
+				if (cm >= numgamemaps || cm < 0) // out of range (either 1100ish or error)
 				{
 					cm = newmapnum; //Start the loop again so that the error checking below is executed.
 
 					//Make sure the map actually exists before you try to go to it!
-					if ((W_CheckNumForName(G_BuildMapName(cm + 1)) == LUMPERROR))
+					if (!G_MapFileExists(G_BuildMapName(cm + 1)))
 					{
 						if (!silent)
 							CONS_Alert(CONS_ERROR, M_GetText("Next map given (MAP %d) doesn't exist! Reverting to MAP01.\n"), cm+1);
@@ -4114,14 +4362,17 @@ INT16 G_GetNextMap(boolean ignoretokens, boolean silent)
 					break;
 				}
 			}
+
+			Z_Free(visitedmap);
+
 			newmapnum = cm;
 		}
 
 		// wrap around in race
-		if (newmapnum >= 1100-1 && newmapnum <= 1102-1 && !(gametyperules & GTR_CAMPAIGN))
+		if (G_IsGameEndMap(newmapnum+1) && !(gametyperules & GTR_CAMPAIGN))
 			newmapnum = (INT16)(spstage_start-1);
 
-		if (newmapnum < 0 || (newmapnum >= NUMMAPS && newmapnum < 1100-1) || newmapnum > 1103-1)
+		if (newmapnum < 0 || (newmapnum >= numgamemaps && !G_IsGameEndMap(newmapnum+1)))
 			I_Error("Followed map %d to invalid map %d\n", prevmap + 1, newmapnum + 1);
 
 		if (!spec)
@@ -4170,6 +4421,8 @@ static void G_DoCompleted(void)
 
 	tokenlist = 0; // Reset the list
 
+	boolean spec = G_IsSpecialStage(gamemap);
+
 	if (modeattacking && pausedelay)
 		pausedelay = 0;
 
@@ -4196,12 +4449,115 @@ static void G_DoCompleted(void)
 	prevmap = (INT16)(gamemap-1);
 	nextmap = G_GetNextMap(false, false);
 
+	// go to next level
+	// nextmap is 0-based, unlike gamemap
+	if (nextmapoverride != 0)
+		nextmap = (INT16)(nextmapoverride-1);
+	else if (marathonmode && mapheaderinfo[gamemap-1]->marathonnext)
+		nextmap = (INT16)(mapheaderinfo[gamemap-1]->marathonnext-1);
+	else
+	{
+		nextmap = (INT16)(mapheaderinfo[gamemap-1]->nextlevel-1);
+		if (marathonmode && nextmap == spmarathon_start-1)
+			nextmap = NEXTMAP_TITLE-1; // No infinite loop for you
+	}
+
+	INT16 gametype_to_use;
+
+	if (nextgametype >= 0 && nextgametype < gametypecount)
+		gametype_to_use = nextgametype;
+	else
+		gametype_to_use = gametype;
+
+	// If nextmap is actually going to get used, make sure it points to
+	// a map of the proper gametype -- skip levels that don't support
+	// the current gametype. (Helps avoid playing boss levels in Race,
+	// for instance).
+	if (!spec || nextmapoverride)
+	{
+		if (nextmap >= 0 && nextmap < numgamemaps)
+		{
+			INT16 cm = nextmap;
+			UINT32 tolflag = G_TOLFlag(gametype_to_use);
+			UINT8 *visitedmap = Z_Calloc(((numgamemaps+7)/8) * sizeof(UINT8), PU_STATIC, NULL);
+
+			while (!mapheaderinfo[cm] || !(mapheaderinfo[cm]->typeoflevel & tolflag))
+			{
+				visitedmap[cm/8] |= (1<<(cm&7));
+				if (!mapheaderinfo[cm])
+					cm = -1; // guarantee error execution
+				else if (marathonmode && mapheaderinfo[cm]->marathonnext)
+					cm = (INT16)(mapheaderinfo[cm]->marathonnext-1);
+				else
+					cm = (INT16)(mapheaderinfo[cm]->nextlevel-1);
+
+				if (cm >= numgamemaps || cm < 0) // out of range (either NEXTMAP_* or error)
+				{
+					cm = nextmap; //Start the loop again so that the error checking below is executed.
+
+					//Make sure the map actually exists before you try to go to it!
+					if (!G_MapFileExists(G_BuildMapName(cm + 1)))
+					{
+						CONS_Alert(CONS_ERROR, M_GetText("Next map given (MAP %d) doesn't exist! Reverting to MAP01.\n"), cm+1);
+						cm = 0;
+						break;
+					}
+				}
+
+				if (visitedmap[cm/8] & (1<<(cm&7))) // smells familiar
+				{
+					// We got stuck in a loop, came back to the map we started on
+					// without finding one supporting the current gametype.
+					// Thus, print a warning, and just use this map anyways.
+					CONS_Alert(CONS_WARNING, M_GetText("Can't find a compatible map after map %d; using map %d anyway\n"), prevmap+1, cm+1);
+					break;
+				}
+			}
+
+			Z_Free(visitedmap);
+
+			nextmap = cm;
+		}
+
+		// wrap around in race
+		if (G_IsGameEndMap(nextmap+1) && !(gametyperules & GTR_CAMPAIGN))
+			nextmap = (INT16)(spstage_start-1);
+
+		if (nextmap < 0 || (nextmap >= numgamemaps && !G_IsGameEndMap(nextmap+1)))
+			I_Error("Followed map %d to invalid map %d\n", prevmap + 1, nextmap + 1);
+
+		if (!spec)
+			lastmap = nextmap; // Remember last map for when you come out of the special stage.
+	}
+
+	if ((gottoken = ((gametyperules & GTR_SPECIALSTAGES) && token)))
+	{
+		token--;
+
+//		if (!nextmapoverride) // Having a token should pull the player into the special stage before going to the overridden map (Issue #933)
+			for (i = 0; i < 7; i++)
+				if (!(emeralds & (1<<i)))
+				{
+					nextmap = ((netgame || multiplayer) ? smpstage_start : sstage_start) + i - 1; // to special stage!
+					break;
+				}
+
+		if (i == 7)
+		{
+			gottoken = false;
+			token = 0;
+		}
+	}
+
+	if (spec && !gottoken && !nextmapoverride)
+		nextmap = lastmap; // Exiting from a special stage? Go back to the game. Tails 08-11-2001
+
 	automapactive = false;
 
 	// We are committed to this map now.
 	// We may as well allocate its header if it doesn't exist
 	// (That is, if it's a real map)
-	if (nextmap < NUMMAPS && !mapheaderinfo[nextmap])
+	if (nextmap < numgamemaps && !mapheaderinfo[nextmap])
 		P_AllocMapHeader(nextmap);
 
 	Y_DetermineIntermissionType();
@@ -4247,7 +4603,7 @@ void G_AfterIntermission(void)
 	}
 	else
 	{
-		if (nextmap < 1100-1)
+		if (!G_IsGameEndMap(nextmap+1))
 			G_NextLevel();
 		else
 			G_EndGame();
@@ -4369,24 +4725,21 @@ void G_EndGame(void)
 	// Only do evaluation and credits in coop games.
 	if (gametyperules & GTR_CUTSCENES)
 	{
-		if (nextmap == 1103-1) // end game with ending
+		switch (nextmap+1)
 		{
+		case NEXTMAP_ENDING:
 			F_StartEnding();
 			return;
-		}
-		if (nextmap == 1102-1) // end game with credits
-		{
+		case NEXTMAP_CREDITS:
 			F_StartCredits();
 			return;
-		}
-		if (nextmap == 1101-1) // end game with evaluation
-		{
+		case NEXTMAP_EVALUATION:
 			F_StartGameEvaluation();
 			return;
 		}
 	}
 
-	// 1100 or competitive multiplayer, so go back to title screen.
+	// NEXTMAP_TITLE or competitive multiplayer, so go back to title screen.
 	D_StartTitle();
 }
 
@@ -4410,6 +4763,62 @@ void G_LoadGameSettings(void)
 
 #define GAMEDATA_ID 0x86E4A27C // Change every major version, as usual
 #define COMPAT_GAMEDATA_ID 0xFCAFE211 // TODO: 2.3: Delete
+#define EXTRA_DATA_MARKER 0x71B9F853 // TODO: 2.3: Refactor all related code, then delete this
+
+static boolean ReadMapVisited(save_t *save, gamedata_t *data, UINT16 i)
+{
+	if ((data->mapvisited[i] = P_ReadUINT8(save)) > MV_MAX)
+		return false;
+
+	return true;
+}
+
+static boolean ReadMainRecords(save_t *save, gamedata_t *data, UINT16 i)
+{
+	UINT32 recscore = P_ReadUINT32(save);
+	tic_t rectime = (tic_t)P_ReadUINT32(save);
+	UINT16 recrings = P_ReadUINT16(save);
+	P_ReadUINT8(save); // compat
+
+	if (recrings > 10000 || recscore > MAXSCORE)
+		return false;
+
+	if (recscore || rectime || recrings)
+	{
+		G_AllocMainRecordData((INT16)i, data);
+		data->mainrecords[i]->score = recscore;
+		data->mainrecords[i]->time = rectime;
+		data->mainrecords[i]->rings = recrings;
+	}
+
+	return true;
+}
+
+static boolean ReadNightsRecords(save_t *save, gamedata_t *data, UINT16 i)
+{
+	UINT8 recmares;
+
+	if ((recmares = P_ReadUINT8(save)) == 0)
+		return true;
+
+	G_AllocNightsRecordData((INT16)i, data);
+
+	for (INT32 curmare = 0; curmare < (recmares+1); ++curmare)
+	{
+		data->nightsrecords[i]->score[curmare] = P_ReadUINT32(save);
+		data->nightsrecords[i]->grade[curmare] = P_ReadUINT8(save);
+		data->nightsrecords[i]->time[curmare] = (tic_t)P_ReadUINT32(save);
+
+		if (data->nightsrecords[i]->grade[curmare] > GRADE_S)
+		{
+			return false;
+		}
+	}
+
+	data->nightsrecords[i]->nummares = recmares;
+
+	return true;
+}
 
 // G_LoadGameData
 // Loads the main data file, which stores information such as emblems found, etc.
@@ -4420,14 +4829,6 @@ void G_LoadGameData(gamedata_t *data)
 
 	UINT32 versionID;
 	UINT8 rtemp;
-
-	//For records
-	UINT32 recscore;
-	tic_t  rectime;
-	UINT16 recrings;
-
-	UINT8 recmares;
-	INT32 curmare;
 
 	// Stop saving, until we successfully load it again.
 	data->loaded = false;
@@ -4535,9 +4936,12 @@ void G_LoadGameData(gamedata_t *data)
 	}
 
 	// TODO put another cipher on these things? meh, I don't care...
-	for (i = 0; i < NUMMAPS; i++)
-		if ((data->mapvisited[i] = P_ReadUINT8(&savebuffer)) > MV_MAX)
+	// Read map visited flags
+	for (i = 0; i < NUMBASEMAPS; i++)
+	{
+		if (!ReadMapVisited(&savebuffer, data, i))
 			goto datacorrupt;
+	}
 
 	// To save space, use one bit per collected/achieved/unlocked flag
 	for (i = 0; i < max_emblems;)
@@ -4574,47 +4978,57 @@ void G_LoadGameData(gamedata_t *data)
 	data->timesBeatenUltimate = P_ReadUINT32(&savebuffer);
 
 	// Main records
-	for (i = 0; i < NUMMAPS; ++i)
+	for (i = 0; i < NUMBASEMAPS; ++i)
 	{
-		recscore = P_ReadUINT32(&savebuffer);
-		rectime  = (tic_t)P_ReadUINT32(&savebuffer);
-		recrings = P_ReadUINT16(&savebuffer);
-		P_ReadUINT8(&savebuffer); // compat
-
-		if (recrings > 10000 || recscore > MAXSCORE)
+		if (!ReadMainRecords(&savebuffer, data, i))
 			goto datacorrupt;
-
-		if (recscore || rectime || recrings)
-		{
-			G_AllocMainRecordData((INT16)i, data);
-			data->mainrecords[i]->score = recscore;
-			data->mainrecords[i]->time = rectime;
-			data->mainrecords[i]->rings = recrings;
-		}
 	}
 
 	// Nights records
-	for (i = 0; i < NUMMAPS; ++i)
+	for (i = 0; i < NUMBASEMAPS; ++i)
 	{
-		if ((recmares = P_ReadUINT8(&savebuffer)) == 0)
-			continue;
+		if (!ReadNightsRecords(&savebuffer, data, i))
+			goto datacorrupt;
+	}
 
-		G_AllocNightsRecordData((INT16)i, data);
+#ifdef EXTRA_DATA_MARKER
+	// Read extra data
+	if (savebuffer.pos < savebuffer.size && (savebuffer.size - savebuffer.pos) >= sizeof(UINT32))
+	{
+		UINT32 marker = P_ReadUINT32(&savebuffer);
+		if (marker != EXTRA_DATA_MARKER)
+			goto datacorrupt;
 
-		for (curmare = 0; curmare < (recmares+1); ++curmare)
+		UINT8 extraID = P_ReadUINT8(&savebuffer);
+		if (extraID != 0x00)
+			goto datacorrupt;
+
+		UINT16 nummaps = P_ReadUINT16(&savebuffer);
+		if (nummaps >= MAXMAPS)
+			goto datacorrupt;
+
+		// Read map visited flags
+		for (i = NUMBASEMAPS; i < nummaps; i++)
 		{
-			data->nightsrecords[i]->score[curmare] = P_ReadUINT32(&savebuffer);
-			data->nightsrecords[i]->grade[curmare] = P_ReadUINT8(&savebuffer);
-			data->nightsrecords[i]->time[curmare] = (tic_t)P_ReadUINT32(&savebuffer);
-
-			if (data->nightsrecords[i]->grade[curmare] > GRADE_S)
-			{
+			if (!ReadMapVisited(&savebuffer, data, i))
 				goto datacorrupt;
-			}
 		}
 
-		data->nightsrecords[i]->nummares = recmares;
+		// Main records
+		for (i = NUMBASEMAPS; i < nummaps; i++)
+		{
+			if (!ReadMainRecords(&savebuffer, data, i))
+				goto datacorrupt;
+		}
+
+		// Nights records
+		for (i = NUMBASEMAPS; i < nummaps; i++)
+		{
+			if (!ReadNightsRecords(&savebuffer, data, i))
+				goto datacorrupt;
+		}
 	}
+#endif
 
 	// done
 	Z_Free(savebuffer.buf);
@@ -4644,6 +5058,41 @@ void G_LoadGameData(gamedata_t *data)
 	}
 }
 
+static void WriteMainRecords(save_t *save, gamedata_t *data, UINT16 i)
+{
+	if (data->mainrecords[i])
+	{
+		P_WriteUINT32(save, data->mainrecords[i]->score);
+		P_WriteUINT32(save, data->mainrecords[i]->time);
+		P_WriteUINT16(save, data->mainrecords[i]->rings);
+	}
+	else
+	{
+		P_WriteUINT32(save, 0);
+		P_WriteUINT32(save, 0);
+		P_WriteUINT16(save, 0);
+	}
+	P_WriteUINT8(save, 0); // compat
+}
+
+static void WriteNightsRecords(save_t *save, gamedata_t *data, UINT16 i)
+{
+	if (!data->nightsrecords[i] || !data->nightsrecords[i]->nummares)
+	{
+		P_WriteUINT8(save, 0);
+		return;
+	}
+
+	P_WriteUINT8(save, data->nightsrecords[i]->nummares);
+
+	for (INT32 curmare = 0; curmare < (data->nightsrecords[i]->nummares + 1); ++curmare)
+	{
+		P_WriteUINT32(save, data->nightsrecords[i]->score[curmare]);
+		P_WriteUINT8(save, data->nightsrecords[i]->grade[curmare]);
+		P_WriteUINT32(save, data->nightsrecords[i]->time[curmare]);
+	}
+}
+
 // G_SaveGameData
 // Saves the main data file, which stores information such as emblems found, etc.
 void G_SaveGameData(gamedata_t *data)
@@ -4652,8 +5101,6 @@ void G_SaveGameData(gamedata_t *data)
 
 	INT32 i, j;
 	UINT8 btemp;
-
-	INT32 curmare;
 
 	if (!data)
 		return; // data struct not valid
@@ -4684,7 +5131,7 @@ void G_SaveGameData(gamedata_t *data)
 	P_WriteUINT32(&savebuffer, quickncasehash(timeattackfolder, sizeof timeattackfolder));
 
 	// TODO put another cipher on these things? meh, I don't care...
-	for (i = 0; i < NUMMAPS; i++)
+	for (i = 0; i < NUMBASEMAPS; i++)
 		P_WriteUINT8(&savebuffer, (data->mapvisited[i] & MV_MAX));
 
 	// To save space, use one bit per collected/achieved/unlocked flag
@@ -4726,41 +5173,35 @@ void G_SaveGameData(gamedata_t *data)
 	P_WriteUINT32(&savebuffer, data->timesBeatenUltimate);
 
 	// Main records
-	for (i = 0; i < NUMMAPS; i++)
-	{
-		if (data->mainrecords[i])
-		{
-			P_WriteUINT32(&savebuffer, data->mainrecords[i]->score);
-			P_WriteUINT32(&savebuffer, data->mainrecords[i]->time);
-			P_WriteUINT16(&savebuffer, data->mainrecords[i]->rings);
-		}
-		else
-		{
-			P_WriteUINT32(&savebuffer, 0);
-			P_WriteUINT32(&savebuffer, 0);
-			P_WriteUINT16(&savebuffer, 0);
-		}
-		P_WriteUINT8(&savebuffer, 0); // compat
-	}
+	for (i = 0; i < NUMBASEMAPS; i++)
+		WriteMainRecords(&savebuffer, data, i);
 
 	// NiGHTS records
-	for (i = 0; i < NUMMAPS; i++)
+	for (i = 0; i < NUMBASEMAPS; i++)
+		WriteNightsRecords(&savebuffer, data, i);
+
+#ifdef EXTRA_DATA_MARKER
+	if (numgamemaps > NUMBASEMAPS)
 	{
-		if (!data->nightsrecords[i] || !data->nightsrecords[i]->nummares)
-		{
-			P_WriteUINT8(&savebuffer, 0);
-			continue;
-		}
+		// Write extra data
+		P_WriteUINT32(&savebuffer, EXTRA_DATA_MARKER);
+		P_WriteUINT8(&savebuffer, 0x00);
 
-		P_WriteUINT8(&savebuffer, data->nightsrecords[i]->nummares);
+		P_WriteUINT16(&savebuffer, numgamemaps);
 
-		for (curmare = 0; curmare < (data->nightsrecords[i]->nummares + 1); ++curmare)
-		{
-			P_WriteUINT32(&savebuffer, data->nightsrecords[i]->score[curmare]);
-			P_WriteUINT8(&savebuffer, data->nightsrecords[i]->grade[curmare]);
-			P_WriteUINT32(&savebuffer, data->nightsrecords[i]->time[curmare]);
-		}
+		// Write map visited flags
+		for (i = NUMBASEMAPS; i < numgamemaps; i++)
+			P_WriteUINT8(&savebuffer, (data->mapvisited[i] & MV_MAX));
+
+		// Main records
+		for (i = NUMBASEMAPS; i < numgamemaps; i++)
+			WriteMainRecords(&savebuffer, data, i);
+
+		// NiGHTS records
+		for (i = NUMBASEMAPS; i < numgamemaps; i++)
+			WriteNightsRecords(&savebuffer, data, i);
 	}
+#endif
 
 	FIL_WriteFile(va(pandf, srb2home, gamedatafilename), savebuffer.buf, savebuffer.pos);
 	free(savebuffer.buf);
@@ -5052,7 +5493,7 @@ void G_DeferedInitNew(boolean pultmode, const char *mapname, INT32 character, bo
 	SetPlayerSkinByNum(consoleplayer, character);
 
 	if (mapname)
-		D_MapChange(M_MapNumber(mapname[3], mapname[4]), gametype, pultmode, true, 1, false, FLS);
+		D_MapChange(G_GetMapNumber(mapname), gametype, pultmode, true, 1, false, FLS);
 }
 
 //
@@ -5133,17 +5574,17 @@ void G_InitNew(UINT8 pultmode, const char *mapname, boolean resetplayer, boolean
 	// (Looks a bit silly, but it works.)
 	boolean reset_skin = netgame && mapheaderinfo[gamemap-1] && mapheaderinfo[gamemap-1]->forcecharacter[0] != '\0';
 
+	gamemap = (INT16)G_GetMapNumber(mapname); // get xx out of MAPxx
+
 	// internal game map
 	// well this check is useless because it is done before (d_netcmd.c::command_map_f)
 	// but in case of for demos....
-	if (W_CheckNumForName(mapname) == LUMPERROR)
+	if (gamemap == 0)
 	{
 		I_Error("Internal game map '%s' not found\n", mapname);
 		Command_ExitGame_f();
 		return;
 	}
-
-	gamemap = (INT16)M_MapNumber(mapname[3], mapname[4]); // get xx out of MAPxx
 
 	// gamemap changed; we assume that its map header is always valid,
 	// so make it so
@@ -5194,7 +5635,6 @@ void G_InitNew(UINT8 pultmode, const char *mapname, boolean resetplayer, boolean
 		CONS_Printf("\"\n");
 	}
 }
-
 
 char *G_BuildMapTitle(INT32 mapnum)
 {
@@ -5292,7 +5732,7 @@ INT32 G_FindMap(const char *mapname, char **foundmapnamep,
 	mapnamelen = strlen(mapname);
 
 	/* Count available maps; how ugly. */
-	for (i = 0, freqc = 0; i < NUMMAPS; ++i)
+	for (i = 0, freqc = 0; i < numgamemaps; ++i)
 	{
 		if (mapheaderinfo[i])
 			freqc++;
@@ -5303,7 +5743,7 @@ INT32 G_FindMap(const char *mapname, char **foundmapnamep,
 	wanttable = !!( freqp );
 
 	freqc = 0;
-	for (i = 0, mapnum = 1; i < NUMMAPS; ++i, ++mapnum)
+	for (i = 0, mapnum = 1; i < numgamemaps; ++i, ++mapnum)
 		if (mapheaderinfo[i])
 	{
 		if (!( realmapname = G_BuildMapTitle(mapnum) ))
@@ -5430,7 +5870,7 @@ INT32 G_FindMapByNameOrCode(const char *mapname, char **realmapnamep)
 		{
 			usemapcode = true;
 			newmapnum = mapheaderinfo[gamemap-1]->nextlevel;
-			if (newmapnum < 1 || newmapnum > NUMMAPS)
+			if (newmapnum < 1 || newmapnum > numgamemaps)
 			{
 				CONS_Alert(CONS_ERROR, M_GetText("NextLevel (%d) is not a valid map.\n"), newmapnum);
 				return 0;
@@ -5447,6 +5887,11 @@ INT32 G_FindMapByNameOrCode(const char *mapname, char **realmapnamep)
 		if (( newmapnum = M_MapNumber(mapname[3], mapname[4]) ))
 			usemapcode = true;
 	}
+	else
+	{
+		if (( newmapnum = G_GetMapNumber(mapname) ))
+			usemapcode = true;
+	}
 
 	if (!usemapcode)
 	{
@@ -5454,7 +5899,7 @@ INT32 G_FindMapByNameOrCode(const char *mapname, char **realmapnamep)
 		newmapnum = strtol(mapname, &p, 10);
 		if (*p == '\0')/* we got it */
 		{
-			if (newmapnum < 1 || newmapnum > NUMMAPS)
+			if (newmapnum < 1 || newmapnum > numgamemaps)
 			{
 				CONS_Alert(CONS_ERROR, M_GetText("Invalid map number %d.\n"), newmapnum);
 				return 0;
@@ -5470,7 +5915,7 @@ INT32 G_FindMapByNameOrCode(const char *mapname, char **realmapnamep)
 	if (usemapcode)
 	{
 		/* we can't check mapheaderinfo for this hahahaha */
-		if (W_CheckNumForName(G_BuildMapName(newmapnum)) == LUMPERROR)
+		if (!G_MapFileExists(G_BuildMapName(newmapnum)))
 			return 0;
 
 		if (realmapnamep)

@@ -192,6 +192,11 @@ void W_GetFolderLumps(const char *name, UINT32 **list, UINT16 *list_capacity, UI
 UINT32 W_CountFolderLumpsPwad(const char *name, UINT16 wad);
 UINT32 W_CountFolderLumps(const char *name);
 
+const char *W_GetFilenameFromFullname(const char *path);
+
+void W_GetFolderLumpsPwad(const char *name, UINT16 wad, UINT32 **list, UINT16 *list_capacity, UINT16 *numlumps);
+void W_GetFolderLumps(const char *name, UINT32 **list, UINT16 *list_capacity, UINT16 *numlumps);
+
 lumpnum_t W_CheckNumForMap(const char *name);
 lumpnum_t W_CheckNumForName(const char *name);
 lumpnum_t W_CheckNumForLongName(const char *name);

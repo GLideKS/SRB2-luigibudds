@@ -198,7 +198,7 @@ boolean S_SpeedMusic(float speed);
 // Music definitions
 typedef struct musicdef_s
 {
-	char name[7];
+	char name[MAX_MUSIC_NAME+1];
 	char title[32];
 	char alttitle[64];
 	char authors[256];
@@ -257,7 +257,7 @@ UINT32 S_GetMusicPosition(void);
 
 typedef struct musicstack_s
 {
-	char musname[7+1];
+	char musname[MAX_MUSIC_NAME+1];
 	UINT16 musflags;
 	boolean looping;
 	UINT32 position;
@@ -270,7 +270,7 @@ typedef struct musicstack_s
     struct musicstack_s *next;
 } musicstack_t;
 
-extern char music_stack_nextmusname[7];
+extern char music_stack_nextmusname[MAX_MUSIC_NAME+1];
 extern boolean music_stack_noposition;
 extern UINT32 music_stack_fadeout;
 extern UINT32 music_stack_fadein;

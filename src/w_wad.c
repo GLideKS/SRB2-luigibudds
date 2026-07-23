@@ -66,9 +66,7 @@
 #include "md5.h"
 #include "lua_script.h"
 #include "lua_hook.h"
-#ifdef SCANTHINGS
-#include "p_setup.h" // P_ScanThings
-#endif
+
 #include "m_misc.h" // M_MapNumber
 #include "g_game.h" // G_SetGameModified
 
@@ -283,22 +281,6 @@ static void W_LoadDehackedLumps(UINT16 wadnum, boolean mainfile)
 				DEH_LoadDehackedLumpPwad(wadnum, lump, mainfile);
 			}
 	}
-
-#ifdef SCANTHINGS
-	// Scan maps for emblems 'n shit
-	{
-		lumpinfo_t *lump_p = wadfiles[wadnum]->lumpinfo;
-		for (lump = 0; lump < wadfiles[wadnum]->numlumps; lump++, lump_p++)
-		{
-			const char *name = lump_p->name;
-			if (name[0] == 'M' && name[1] == 'A' && name[2] == 'P' && name[5]=='\0')
-			{
-				INT16 mapnum = (INT16)M_MapNumber(name[3], name[4]);
-				P_ScanThings(mapnum, wadnum, lump + ML_THINGS);
-			}
-		}
-	}
-#endif
 }
 
 /** Compute MD5 message digest for bytes read from STREAM of this filname.
@@ -987,6 +969,8 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup)
 
 	// The below hack makes me load this here.
 	W_LoadTrnslateLumps(numwadfiles - 1);
+	// Load maps from file
+	P_LoadMapsFromFile(numwadfiles - 1, !startup);
 
 	// TODO: HACK ALERT - Load Lua & SOC stuff right here. I feel like this should be out of this place, but... Let's stick with this for now.
 	switch (wadfile->type)
@@ -1173,6 +1157,7 @@ UINT16 W_InitFolder(const char *path, boolean mainfile, boolean startup)
 
 	W_ReadFileShaders(wadfile);
 	W_LoadTrnslateLumps(numwadfiles - 1);
+	P_LoadMapsFromFile(numwadfiles - 1, !startup);
 	W_LoadDehackedLumpsPK3(numwadfiles - 1, mainfile);
 
 	lua_lumploading++;
@@ -1421,6 +1406,14 @@ char *W_GetLumpFolderNamePK3(UINT16 wad, UINT16 lump)
 	strncpy(foldername, fullname + start, namelen);
 
 	return foldername;
+}
+
+const char *W_GetFilenameFromFullname(const char *path)
+{
+	const char *slash = strrchr(path, '/');
+	if (slash)
+		return slash + 1;
+	return path;
 }
 
 void W_GetFolderLumpsPwad(const char *name, UINT16 wad, UINT32 **list, UINT16 *list_capacity, UINT16 *numlumps)

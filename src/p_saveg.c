@@ -2054,7 +2054,8 @@ typedef enum
 	MD2_DRAWONLYFORPLAYER   = 1<<24,
 	MD2_DONTDRAWFORVIEWMOBJ = 1<<25,
 	MD2_TRANSLATION         = 1<<26,
-	MD2_ALPHA               = 1<<27
+	MD2_ALPHA               = 1<<27,
+	MD2_GRAVITY             = 1<<28
 } mobj_diff2_t;
 
 typedef enum
@@ -2293,6 +2294,8 @@ static void SaveMobjThinker(save_t *save_p, const thinker_t *th, const UINT8 typ
 		diff2 |= MD2_DISPOFFSET;
 	if (mobj->alpha != FRACUNIT)
 		diff2 |= MD2_ALPHA;
+	if (mobj->gravity != FRACUNIT)
+		diff2 |= MD2_GRAVITY;
 
 	if (diff2 != 0)
 		diff |= MD_MORE;
@@ -2478,6 +2481,8 @@ static void SaveMobjThinker(save_t *save_p, const thinker_t *th, const UINT8 typ
 		P_WriteUINT16(save_p, mobj->translation);
 	if (diff2 & MD2_ALPHA)
 		P_WriteFixed(save_p, mobj->alpha);
+	if (diff2 & MD2_GRAVITY)
+		P_WriteFixed(save_p, mobj->gravity);
 
 	P_WriteUINT32(save_p, mobj->mobjnum);
 }
@@ -3541,6 +3546,10 @@ static thinker_t* LoadMobjThinker(save_t *save_p, actionf_p1 thinker)
 		mobj->alpha = P_ReadFixed(save_p);
 	else
 		mobj->alpha = FRACUNIT;
+	if (diff2 & MD2_GRAVITY)
+		mobj->gravity = P_ReadFixed(save_p);
+	else
+		mobj->gravity = FRACUNIT;
 
 	if (diff & MD_REDFLAG)
 	{
@@ -4722,25 +4731,60 @@ static void P_NetUnArchiveSpecials(save_t *save_p)
 // =======================================================================
 //          Misc
 // =======================================================================
-FUNCINLINE static ATTRINLINE void P_ArchiveMisc(save_t *save_p, INT16 mapnum)
+static inline void P_ArchiveMisc(save_t *save_p, INT16 mapnum)
 {
-	//lastmapsaved = mapnum;
 	lastmaploaded = mapnum;
 
-	if (gamecomplete)
-		mapnum |= 8192;
+#ifdef NEWMAPSAVES
+	if (mapnum >= NUMBASEMAPS)
+	{
+		P_WriteINT16(save_p, NEWMAPSAVES);
+		P_WriteStringN(save_p, G_BuildMapName(mapnum), MAX_MAP_NAME_SIZE);
 
-	P_WriteINT16(save_p, mapnum);
+		UINT8 flags = 0;
+		if (gamecomplete)
+			flags |= SAVE_GAME_COMPLETE_BIT;
+
+		P_WriteUINT8(save_p, flags);
+	}
+	else
+#endif
+	{
+		if (gamecomplete)
+			mapnum |= 8192;
+
+		P_WriteINT16(save_p, mapnum);
+	}
+
 	P_WriteUINT16(save_p, emeralds+357);
 	P_WriteStringN(save_p, timeattackfolder, sizeof(timeattackfolder));
 }
 
-FUNCINLINE static ATTRINLINE void P_UnArchiveSPGame(save_t *save_p, INT16 mapoverride)
+static void P_UnArchiveSPGame(save_t *save_p, INT16 mapoverride)
 {
 	INT32 i;
 	char testname[sizeof(timeattackfolder)];
 
-	gamemap = P_ReadINT16(save_p);
+	INT16 mapnum = P_ReadINT16(save_p);
+
+#ifdef NEWMAPSAVES
+	if (mapnum == NEWMAPSAVES)
+	{
+		char mapname[MAX_MAP_NAME_SIZE+1];
+
+		P_ReadStringN(save_p, mapname, MAX_MAP_NAME_SIZE);
+		P_ReadUINT8(save_p); // flags
+
+		mapnum = G_GetMapNumber(mapname);
+		if (mapnum == 0)
+		{
+			// If not valid, just load MAP01 instead.
+			mapnum = 1;
+		}
+	}
+#endif
+
+	gamemap = mapnum;
 
 	if (mapoverride != 0)
 	{
@@ -4755,7 +4799,6 @@ FUNCINLINE static ATTRINLINE void P_UnArchiveSPGame(save_t *save_p, INT16 mapove
 	if(!mapheaderinfo[gamemap-1])
 		P_AllocMapHeader(gamemap-1);
 
-	//lastmapsaved = gamemap;
 	lastmaploaded = gamemap;
 
 	tokenlist = 0;
@@ -4997,7 +5040,8 @@ FUNCINLINE static ATTRINLINE void P_NetArchiveEmblems(save_t *save_p)
 	P_WriteUINT32(save_p, data->totalplaytime);
 
 	// TODO put another cipher on these things? meh, I don't care...
-	for (i = 0; i < NUMMAPS; i++)
+
+	for (i = 0; i < numgamemaps; i++)
 		P_WriteUINT8(save_p, (data->mapvisited[i] & MV_MAX));
 
 	// To save space, use one bit per collected/achieved/unlocked flag
@@ -5039,7 +5083,7 @@ FUNCINLINE static ATTRINLINE void P_NetArchiveEmblems(save_t *save_p)
 	P_WriteUINT32(save_p, data->timesBeatenUltimate);
 
 	// Main records
-	for (i = 0; i < NUMMAPS; i++)
+	for (i = 0; i < numgamemaps; i++)
 	{
 		if (data->mainrecords[i])
 		{
@@ -5056,7 +5100,7 @@ FUNCINLINE static ATTRINLINE void P_NetArchiveEmblems(save_t *save_p)
 	}
 
 	// NiGHTS records
-	for (i = 0; i < NUMMAPS; i++)
+	for (i = 0; i < numgamemaps; i++)
 	{
 		if (!data->nightsrecords[i] || !data->nightsrecords[i]->nummares)
 		{
@@ -5132,7 +5176,7 @@ FUNCINLINE static ATTRINLINE void P_NetUnArchiveEmblems(save_t *save_p)
 	data->totalplaytime = P_ReadUINT32(save_p);
 
 	// TODO put another cipher on these things? meh, I don't care...
-	for (i = 0; i < NUMMAPS; i++)
+	for (i = 0; i < numgamemaps; i++)
 		if ((data->mapvisited[i] = P_ReadUINT8(save_p)) > MV_MAX)
 			I_Error("Bad $$$.sav dearchiving Emblems (invalid visit flags)");
 
@@ -5171,7 +5215,7 @@ FUNCINLINE static ATTRINLINE void P_NetUnArchiveEmblems(save_t *save_p)
 	data->timesBeatenUltimate = P_ReadUINT32(save_p);
 
 	// Main records
-	for (i = 0; i < NUMMAPS; ++i)
+	for (i = 0; i < numgamemaps; ++i)
 	{
 		recscore = P_ReadUINT32(save_p);
 		rectime  = (tic_t)P_ReadUINT32(save_p);
@@ -5190,7 +5234,7 @@ FUNCINLINE static ATTRINLINE void P_NetUnArchiveEmblems(save_t *save_p)
 	}
 
 	// Nights records
-	for (i = 0; i < NUMMAPS; ++i)
+	for (i = 0; i < numgamemaps; ++i)
 	{
 		if ((recmares = P_ReadUINT8(save_p)) == 0)
 			continue;

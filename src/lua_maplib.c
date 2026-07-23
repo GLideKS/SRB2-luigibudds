@@ -18,6 +18,7 @@
 #include "p_slopes.h"
 #include "p_polyobj.h"
 #include "r_main.h"
+#include "vector3d.h"
 
 #include "lua_script.h"
 #include "lua_libs.h"
@@ -479,7 +480,7 @@ static int lib_iterateSectorMobjs(lua_State *L)
 	{
 		node = node->m_thinglist_next;
 		lua_pushlightuserdata(L, node);
-		lua_replace(L, lua_upvalueindex(1));			
+		lua_replace(L, lua_upvalueindex(1));
 		LUA_PushUserdata(L, thing, META_MOBJ);
 		return 1;
 	}
@@ -2297,7 +2298,7 @@ static int slope_get(lua_State *L)
 		lua_pushboolean(L, 1);
 		return 1;
 	case slope_o: // o
-		LUA_PushUserdata(L, &slope->o, META_VECTOR3);
+		Vector3D_Set(LUA_NewVector3(L), slope->o.x, slope->o.y, slope->o.z);
 		return 1;
 	case slope_d: // d
 		LUA_PushUserdata(L, &slope->d, META_VECTOR2);
@@ -2306,7 +2307,7 @@ static int slope_get(lua_State *L)
 		lua_pushfixed(L, slope->zdelta);
 		return 1;
 	case slope_normal: // normal
-		LUA_PushUserdata(L, &slope->normal, META_VECTOR3);
+		Vector3D_Set(LUA_NewVector3(L), slope->normal.x, slope->normal.y, slope->normal.z);
 		return 1;
 	case slope_zangle: // zangle
 		lua_pushangle(L, slope->zangle);
@@ -2424,32 +2425,22 @@ static int slope_set(lua_State *L)
 static int lib_getMapheaderinfo(lua_State *L)
 {
 	// i -> mapheaderinfo[i-1]
-
-	//int field;
 	lua_settop(L, 2);
 	lua_remove(L, 1); // dummy userdata table is unused.
 	if (lua_isnumber(L, 1))
 	{
 		size_t i = lua_tointeger(L, 1)-1;
-		if (i >= NUMMAPS)
+		if (i >= numgamemaps)
 			return 0;
 		LUA_PushUserdata(L, mapheaderinfo[i], META_MAPHEADER);
-		//CONS_Printf(mapheaderinfo[i]->lvlttl);
 		return 1;
-	}/*
-	field = luaL_checkoption(L, 1, NULL, array_opt);
-	switch(field)
-	{
-	case 0: // iterate
-		lua_pushcfunction(L, lib_iterateSubsectors);
-		return 1;
-	}*/
+	}
 	return 0;
 }
 
 static int lib_nummapheaders(lua_State *L)
 {
-	lua_pushinteger(L, NUMMAPS);
+	lua_pushinteger(L, numgamemaps);
 	return 1;
 }
 

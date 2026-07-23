@@ -423,7 +423,7 @@ consvar_t cv_showfocuslost = CVAR_INIT ("showfocuslost", "Yes", CV_SAVE, CV_YesN
 
 static CV_PossibleValue_t map_cons_t[] = {
 	{1,"MIN"},
-	{NUMMAPS, "MAX"},
+	{MAXMAPS, "MAX"},
 	{0,NULL}
 };
 consvar_t cv_nextmap = CVAR_INIT ("nextmap", "1", CV_HIDEN|CV_CALL, map_cons_t, Nextmap_OnChange);
@@ -2266,9 +2266,9 @@ void Nextmap_OnChange(void)
 {
 	gamedata_t *data = clientGamedata;
 	char *leveltitle;
-	char tabase[256];
+	char tabase[4096];
 #ifdef OLDNREPLAYNAME
-	char tabaseold[256];
+	char tabaseold[4096];
 #endif
 	short i;
 	boolean active;
@@ -2536,13 +2536,13 @@ void M_InitMenuPresTables(void)
 			menupres[i].muslooping = true;
 		}
 		if (i == MN_SP_TIMEATTACK)
-			strncpy(menupres[i].musname, "_recat", 7);
+			strlcpy(menupres[i].musname, "_recat", MAX_MUSIC_NAME+1);
 		else if (i == MN_SP_NIGHTSATTACK)
-			strncpy(menupres[i].musname, "_nitat", 7);
+			strlcpy(menupres[i].musname, "_nitat", MAX_MUSIC_NAME+1);
 		else if (i == MN_SP_MARATHON)
-			strncpy(menupres[i].musname, "spec8", 6);
+			strlcpy(menupres[i].musname, "spec8", MAX_MUSIC_NAME+1);
 		else if (i == MN_SP_PLAYER || i == MN_SR_PLAYER)
-			strncpy(menupres[i].musname, "_chsel", 7);
+			strlcpy(menupres[i].musname, "_chsel", MAX_MUSIC_NAME+1);
 		else if (i == MN_SR_SOUNDTEST)
 		{
 			*menupres[i].musname = '\0';
@@ -2568,7 +2568,7 @@ typedef boolean (*menutree_iterator)(UINT32, INT32, INT32 *, void **, boolean fr
 // a single input. Maybe someday use this struct program-wide.
 typedef struct
 {
-	char musname[7];
+	char musname[MAX_MUSIC_NAME+1];
 	UINT16 mustrack;
 	boolean muslooping;
 } menupresmusic_t;
@@ -2779,8 +2779,7 @@ void M_ChangeMenuMusic(const char *defaultmusname, boolean defaultmuslooping)
 	if (!defaultmusname)
 		defaultmusname = "";
 
-	strncpy(defaultmusic.musname, defaultmusname, 7);
-	defaultmusic.musname[6] = 0;
+	strlcpy(defaultmusic.musname, defaultmusname, MAX_MUSIC_NAME+1);
 	defaultmusic.mustrack = 0;
 	defaultmusic.muslooping = defaultmuslooping;
 
@@ -5203,7 +5202,7 @@ static INT32 M_CountLevelsToShowOnPlatter(INT32 gt)
 {
 	INT32 mapnum, count = 0;
 
-	for (mapnum = 0; mapnum < NUMMAPS; mapnum++)
+	for (mapnum = 0; mapnum < numgamemaps; mapnum++)
 		if (M_CanShowLevelOnPlatter(mapnum, gt))
 			count++;
 
@@ -5238,7 +5237,7 @@ static boolean M_GametypeHasLevels(INT32 gt)
 {
 	INT32 mapnum;
 
-	for (mapnum = 0; mapnum < NUMMAPS; mapnum++)
+	for (mapnum = 0; mapnum < numgamemaps; mapnum++)
 		if (M_CanShowLevelOnPlatter(mapnum, gt))
 			return true;
 
@@ -5250,11 +5249,9 @@ static INT32 M_CountRowsToShowOnPlatter(INT32 gt)
 	INT32 col = 0, rows = 0;
 	INT32 mapIterate = 0;
 	INT32 headingIterate = 0;
-	boolean mapAddedAlready[NUMMAPS];
+	boolean *mapAddedAlready = Z_Calloc(numgamemaps*sizeof(boolean), PU_STATIC, NULL);
 
-	memset(mapAddedAlready, 0, sizeof mapAddedAlready);
-
-	for (mapIterate = 0; mapIterate < NUMMAPS; mapIterate++)
+	for (mapIterate = 0; mapIterate < numgamemaps; mapIterate++)
 	{
 		boolean forceNewRow = true;
 
@@ -5270,7 +5267,7 @@ static INT32 M_CountRowsToShowOnPlatter(INT32 gt)
 			continue;
 		}
 
-		for (headingIterate = mapIterate; headingIterate < NUMMAPS; headingIterate++)
+		for (headingIterate = mapIterate; headingIterate < numgamemaps; headingIterate++)
 		{
 			boolean wide = false;
 
@@ -5317,6 +5314,8 @@ static INT32 M_CountRowsToShowOnPlatter(INT32 gt)
 		rows++;
 	}
 
+	Z_Free(mapAddedAlready);
+
 	return rows;
 }
 
@@ -5348,10 +5347,12 @@ static boolean M_PrepareLevelPlatter(INT32 gt, boolean nextmappick)
 	INT32 col = 0, row = 0, startrow = 0;
 	INT32 mapIterate = 0; // First level of map loop -- find starting points for select headings
 	INT32 headingIterate = 0; // Second level of map loop -- finding maps that match mapIterate's heading.
-	boolean mapAddedAlready[NUMMAPS];
+	boolean *mapAddedAlready;
 
 	if (!numrows)
 		return false;
+
+	mapAddedAlready = Z_Calloc(numgamemaps*sizeof(boolean), PU_STATIC, NULL);
 
 	if (levelselect.rows)
 		Z_Free(levelselect.rows);
@@ -5365,8 +5366,6 @@ static boolean M_PrepareLevelPlatter(INT32 gt, boolean nextmappick)
 	// done here so lsrow and lscol can be set if cv_nextmap is on the platter
 	lsrow = lscol = lshli = lsoffs[0] = lsoffs[1] = 0;
 
-	memset(mapAddedAlready, 0, sizeof mapAddedAlready);
-
 	if (levellistmode == LLM_CREATESERVER)
 	{
 		sprintf(levelselect.rows[0].header, "Gametype");
@@ -5378,7 +5377,7 @@ static boolean M_PrepareLevelPlatter(INT32 gt, boolean nextmappick)
 		char_notes = NULL;
 	}
 
-	for (mapIterate = 0; mapIterate < NUMMAPS; mapIterate++)
+	for (mapIterate = 0; mapIterate < numgamemaps; mapIterate++)
 	{
 		INT32 headerRow = -1;
 		boolean anyAvailable = false;
@@ -5396,7 +5395,7 @@ static boolean M_PrepareLevelPlatter(INT32 gt, boolean nextmappick)
 			continue;
 		}
 
-		for (headingIterate = mapIterate; headingIterate < NUMMAPS; headingIterate++)
+		for (headingIterate = mapIterate; headingIterate < numgamemaps; headingIterate++)
 		{
 			UINT8 actnum = 0;
 			boolean headingisname = false;
@@ -5546,6 +5545,8 @@ static boolean M_PrepareLevelPlatter(INT32 gt, boolean nextmappick)
 		}
 	}
 #endif
+
+	Z_Free(mapAddedAlready);
 
 	M_CacheLevelPlatter();
 
@@ -5782,8 +5783,9 @@ static void M_DrawLevelPlatterWideMap(UINT8 row, UINT8 col, INT32 x, INT32 y, bo
 	}
 	else
 	{
-		if (W_CheckNumForName(va("%sW", G_BuildMapName(map))) != LUMPERROR)
-			patch = W_CachePatchName(va("%sW", G_BuildMapName(map)), PU_PATCH);
+		const char *thumbnail = G_GetMapThumbnailWide(map);
+		if (W_CheckNumForLongName(thumbnail) != LUMPERROR)
+			patch = W_CachePatchLongName(thumbnail, PU_PATCH);
 		else
 			patch = levselp[1][2]; // don't static to indicate that it's just a normal level
 
@@ -5813,8 +5815,9 @@ static void M_DrawLevelPlatterMap(UINT8 row, UINT8 col, INT32 x, INT32 y, boolea
 	}
 	else
 	{
-		if (W_CheckNumForName(va("%sP", G_BuildMapName(map))) != LUMPERROR)
-			patch = W_CachePatchName(va("%sP", G_BuildMapName(map)), PU_PATCH);
+		const char *thumbnail = G_GetMapThumbnail(map);
+		if (W_CheckNumForLongName(thumbnail) != LUMPERROR)
+			patch = W_CachePatchLongName(thumbnail, PU_PATCH);
 		else
 			patch = levselp[0][2]; // don't static to indicate that it's just a normal level
 
@@ -6127,7 +6130,7 @@ static INT32 M_GetFirstLevelInList(INT32 gt)
 {
 	INT32 mapnum;
 
-	for (mapnum = 0; mapnum < NUMMAPS; mapnum++)
+	for (mapnum = 0; mapnum < numgamemaps; mapnum++)
 		if (M_CanShowLevelInList(mapnum, gt))
 			return mapnum + 1;
 
@@ -6883,12 +6886,9 @@ static boolean M_ExitPandorasBox(void)
 
 static void M_ChangeLevel(INT32 choice)
 {
-	char mapname[6];
-	(void)choice;
+	const char *mapname = G_BuildMapName(cv_nextmap.value);
 
-	strlcpy(mapname, G_BuildMapName(cv_nextmap.value), sizeof (mapname));
-	strlwr(mapname);
-	mapname[5] = '\0';
+	(void)choice;
 
 	M_ClearMenus(true);
 	COM_BufAddText(va("map %s -gametype \"%s\"\n", mapname, cv_newgametype.string));
@@ -7112,7 +7112,7 @@ static void M_LevelSelectWarp(INT32 choice)
 {
 	(void)choice;
 
-	if (W_CheckNumForName(G_BuildMapName(cv_nextmap.value)) == LUMPERROR)
+	if (!G_MapFileExists(G_BuildMapName(cv_nextmap.value)))
 	{
 		CONS_Alert(CONS_WARNING, "Internal game map '%s' not found\n", G_BuildMapName(cv_nextmap.value));
 		return;
@@ -8275,7 +8275,7 @@ static void M_SinglePlayerMenu(INT32 choice)
 	if (mapheaderinfo[spmarathon_start-1]
 		&& !mapheaderinfo[spmarathon_start-1]->marathonnext
 		&& (mapheaderinfo[spmarathon_start-1]->nextlevel == spmarathon_start
-			|| mapheaderinfo[spmarathon_start-1]->nextlevel >= 1100))
+			|| G_IsGameEndMap(mapheaderinfo[spmarathon_start-1]->nextlevel)))
 	{
 		SP_MainMenu[spmarathon].status = IT_NOTHING|IT_DISABLED; // Hide and disable the Marathon Run option...
 		// ...and lower the above options' display positions by 8 pixels to close the gap
@@ -8479,7 +8479,7 @@ static void M_DrawLoadGameData(void)
 #ifdef PERFECTSAVE // disabled on request
 			else if ((savegameinfo[savetodraw].skinnum == 1)
 			&& (savegameinfo[savetodraw].lives == 99)
-			&& (savegameinfo[savetodraw].gamemap & 8192)
+			&& (savegameinfo[savetodraw].flags & SAVE_GAME_COMPLETE_BIT)
 			&& (savegameinfo[savetodraw].numgameovers == 0)
 			&& (savegameinfo[savetodraw].numemeralds == ((1<<7) - 1))) // perfect save
 			{
@@ -8535,11 +8535,11 @@ static void M_DrawLoadGameData(void)
 			else
 			{
 				patch_t *patch;
-				if (savegameinfo[savetodraw].gamemap & 8192)
+				if (savegameinfo[savetodraw].flags & SAVE_GAME_COMPLETE_BIT)
 					patch = savselp[3];
 				else
 				{
-					lumpnum_t lumpnum = W_CheckNumForName(va("%sP", G_BuildMapName((savegameinfo[savetodraw].gamemap) & 8191)));
+					lumpnum_t lumpnum = W_CheckNumForLongName(G_GetMapThumbnail(savegameinfo[savetodraw].gamemap));
 					if (lumpnum != LUMPERROR)
 						patch = W_CachePatchNum(lumpnum, PU_PATCH);
 					else
@@ -8564,7 +8564,7 @@ static void M_DrawLoadGameData(void)
 					V_DrawRightAlignedThinString(x + 79, y, V_REDMAP, "CAN'T LOAD!");
 				}
 			}
-			else if (savegameinfo[savetodraw].gamemap & 8192)
+			else if (savegameinfo[savetodraw].flags & SAVE_GAME_COMPLETE_BIT)
 				V_DrawRightAlignedThinString(x + 79, y, V_GREENMAP, "CLEAR!");
 			else
 				V_DrawRightAlignedThinString(x + 79, y, V_YELLOWMAP, savegameinfo[savetodraw].levelname);
@@ -8782,8 +8782,7 @@ static void M_LoadSelect(INT32 choice)
 		// This slot is empty, so start a new game here.
 		M_NewGame();
 	}
-	else if (savegameinfo[saveSlotSelected-1].gamemap & 8192) // Completed
-	{
+	else if (savegameinfo[saveSlotSelected-1].flags & SAVE_GAME_COMPLETE_BIT) {  // Completed
 		M_LoadGameLevelSelect(0);
 	}
 	else
@@ -8809,6 +8808,7 @@ static void M_ReadSavegameInfo(UINT32 slot)
 	UINT8 *end_p; // buffer end point, don't read past here
 	UINT8 *sav_p;
 	INT32 fake; // Dummy variable
+	INT16 mapnum;
 	char temp[sizeof(timeattackfolder)];
 	char vcheck[VERSIONSIZE];
 #ifdef NEWSKINSAVES
@@ -8843,19 +8843,44 @@ static void M_ReadSavegameInfo(UINT32 slot)
 	CHECKPOS
 	fake = READINT16(sav_p);
 
-	if (((fake-1) & 8191) >= NUMMAPS) BADSAVE
+#ifdef NEWMAPSAVES
+	if (fake == NEWMAPSAVES)
+	{
+		char mapname[MAX_MAP_NAME_SIZE+1];
 
-	if(!mapheaderinfo[(fake-1) & 8191])
+		READSTRINGN(sav_p, mapname, MAX_MAP_NAME_SIZE);
+
+		savegameinfo[slot].flags = READUINT8(sav_p);
+
+		mapnum = G_GetMapNumber(mapname);
+		if (mapnum == 0)
+			BADSAVE
+	}
+	else
+#endif
+	{
+		if (((fake-1) & 8191) >= NUMBASEMAPS) BADSAVE
+
+		mapnum = (fake-1) & 8191;
+		mapnum++;
+
+		if (fake & 8192)
+			savegameinfo[slot].flags = SAVE_GAME_COMPLETE_BIT;
+		else
+			savegameinfo[slot].flags = 0;
+	}
+
+	if(!mapheaderinfo[mapnum-1])
 		savegameinfo[slot].levelname[0] = '\0';
-	else if (V_ThinStringWidth(mapheaderinfo[(fake-1) & 8191]->lvlttl, 0) <= 78)
-		strlcpy(savegameinfo[slot].levelname, mapheaderinfo[(fake-1) & 8191]->lvlttl, 22);
+	else if (V_ThinStringWidth(mapheaderinfo[mapnum-1]->lvlttl, 0) <= 78)
+		strlcpy(savegameinfo[slot].levelname, mapheaderinfo[mapnum-1]->lvlttl, 22);
 	else
 	{
-		strlcpy(savegameinfo[slot].levelname, mapheaderinfo[(fake-1) & 8191]->lvlttl, 15);
+		strlcpy(savegameinfo[slot].levelname, mapheaderinfo[mapnum-1]->lvlttl, 15);
 		strcat(savegameinfo[slot].levelname, "...");
 	}
 
-	savegameinfo[slot].gamemap = fake;
+	savegameinfo[slot].gamemap = mapnum;
 
 	CHECKPOS
 	savegameinfo[slot].numemeralds = READUINT16(sav_p)-357; // emeralds
@@ -9672,7 +9697,8 @@ static void M_ChoosePlayer(INT32 choice)
 
 static INT32 statsLocation;
 static INT32 statsMax;
-static INT16 statsMapList[NUMMAPS+1];
+static INT16 *statsMapList = NULL;
+static size_t statsMapLength = 0;
 
 static void M_Statistics(INT32 choice)
 {
@@ -9680,9 +9706,17 @@ static void M_Statistics(INT32 choice)
 
 	(void)choice;
 
-	memset(statsMapList, 0, sizeof(statsMapList));
+	size_t num_maps = (size_t)(numgamemaps+1);
 
-	for (i = 0; i < NUMMAPS; i++)
+	if (statsMapLength != num_maps)
+	{
+		statsMapLength = num_maps;
+		statsMapList = Z_Realloc(statsMapList, statsMapLength*sizeof(INT16), PU_STATIC, NULL);
+	}
+
+	memset(statsMapList, 0, statsMapLength*sizeof(INT16));
+
+	for (i = 0; i < numgamemaps; i++)
 	{
 		if (!mapheaderinfo[i] || mapheaderinfo[i]->lvlttl[0] == '\0')
 			continue;
@@ -9818,7 +9852,7 @@ static void M_DrawLevelStats(void)
 	                         G_TicsToMinutes(data->totalplaytime, false),
 	                         G_TicsToSeconds(data->totalplaytime)));
 
-	for (i = 0; i < NUMMAPS; i++)
+	for (i = 0; i < numgamemaps; i++)
 	{
 		boolean mapunfinished = false;
 
@@ -10029,10 +10063,10 @@ void M_DrawTimeAttackMenu(void)
 		M_DrawLevelPlatterHeader(32-lsheadingheight/2, cv_nextmap.string, true, false);
 
 		//  A 160x100 image of the level as entry MAPxxP
-		lumpnum = W_CheckNumForName(va("%sP", G_BuildMapName(cv_nextmap.value)));
+		lumpnum = W_CheckNumForLongName(G_GetMapThumbnail(cv_nextmap.value));
 
 		if (lumpnum != LUMPERROR)
-			PictureOfLevel = W_CachePatchName(va("%sP", G_BuildMapName(cv_nextmap.value)), PU_PATCH);
+			PictureOfLevel = W_CachePatchLongName(G_GetMapThumbnail(cv_nextmap.value), PU_PATCH);
 		else
 			PictureOfLevel = W_CachePatchName("BLANKLVL", PU_PATCH);
 
@@ -10294,10 +10328,10 @@ void M_DrawNightsAttackMenu(void)
 		M_DrawLevelPlatterHeader(32-lsheadingheight/2, cv_nextmap.string, true, false);
 
 		//  A 160x100 image of the level as entry MAPxxP
-		lumpnum = W_CheckNumForName(va("%sP", G_BuildMapName(cv_nextmap.value)));
+		lumpnum = W_CheckNumForLongName(G_GetMapThumbnail(cv_nextmap.value));
 
 		if (lumpnum != LUMPERROR)
-			PictureOfLevel = W_CachePatchName(va("%sP", G_BuildMapName(cv_nextmap.value)), PU_PATCH);
+			PictureOfLevel = W_CachePatchLongName(G_GetMapThumbnail(cv_nextmap.value), PU_PATCH);
 		else
 			PictureOfLevel = W_CachePatchName("BLANKLVL", PU_PATCH);
 
@@ -10462,7 +10496,8 @@ static void M_NightsAttack(INT32 choice)
 static void M_ChooseNightsAttack(INT32 choice)
 {
 	char *gpath;
-	const size_t glen = strlen("replay")+1+strlen(timeattackfolder)+1+strlen("MAPXX")+1;
+	const char *mapname = G_BuildMapName(cv_nextmap.value);
+	const size_t glen = strlen("replay")+1+strlen(timeattackfolder)+1+strlen(mapname)+1;
 	char nameofdemo[256];
 	(void)choice;
 	emeralds = 0;
@@ -10476,7 +10511,7 @@ static void M_ChooseNightsAttack(INT32 choice)
 	if ((gpath = malloc(glen)) == NULL)
 		I_Error("Out of memory for replay filepath\n");
 
-	sprintf(gpath,"replay"PATHSEP"%s"PATHSEP"%s", timeattackfolder, G_BuildMapName(cv_nextmap.value));
+	sprintf(gpath,"replay"PATHSEP"%s"PATHSEP"%s", timeattackfolder, mapname);
 	snprintf(nameofdemo, sizeof nameofdemo, "%s-%s-last", gpath, skins[cv_chooseskin.value-1]->name);
 
 	if (!cv_autorecord.value)
@@ -10491,7 +10526,8 @@ static void M_ChooseNightsAttack(INT32 choice)
 static void M_ChooseTimeAttack(INT32 choice)
 {
 	char *gpath;
-	const size_t glen = strlen("replay")+1+strlen(timeattackfolder)+1+strlen("MAPXX")+1;
+	const char *mapname = G_BuildMapName(cv_nextmap.value);
+	const size_t glen = strlen("replay")+1+strlen(timeattackfolder)+1+strlen(mapname)+1;
 	char nameofdemo[256];
 	(void)choice;
 	emeralds = 0;
@@ -10505,7 +10541,7 @@ static void M_ChooseTimeAttack(INT32 choice)
 	if ((gpath = malloc(glen)) == NULL)
 		I_Error("Out of memory for replay filepath\n");
 
-	sprintf(gpath,"replay"PATHSEP"%s"PATHSEP"%s", timeattackfolder, G_BuildMapName(cv_nextmap.value));
+	sprintf(gpath,"replay"PATHSEP"%s"PATHSEP"%s", timeattackfolder, mapname);
 	snprintf(nameofdemo, sizeof nameofdemo, "%s-%s-last", gpath, skins[cv_chooseskin.value-1]->name);
 
 	if (!cv_autorecord.value)
@@ -10838,7 +10874,7 @@ static void M_Marathon(INT32 choice)
 
 	SP_MarathonMenu[marathonplayer].status = (skinset == MAXCHARACTERSLOTS) ? IT_KEYHANDLER|IT_STRING : IT_NOTHING|IT_DISABLED;
 
-	while (mapnum < NUMMAPS)
+	while (mapnum < numgamemaps)
 	{
 		if (mapheaderinfo[mapnum])
 		{
@@ -10848,7 +10884,7 @@ static void M_Marathon(INT32 choice)
 		mapnum++;
 	}
 
-	SP_MarathonMenu[marathoncutscenes].status = (mapnum < NUMMAPS) ? IT_CVAR|IT_STRING : IT_NOTHING|IT_DISABLED;
+	SP_MarathonMenu[marathoncutscenes].status = (mapnum < numgamemaps) ? IT_CVAR|IT_STRING : IT_NOTHING|IT_DISABLED;
 
 	M_ChangeMenuMusic("spec8", true);
 
@@ -11733,10 +11769,10 @@ static void M_DrawServerMenu(void)
 		M_DrawLevelPlatterHeader(currentMenu->y + imgheight - 10 - lsheadingheight/2, (const char *)headerstr, true, false);
 
 		//  A 160x100 image of the level as entry MAPxxP
-		lumpnum = W_CheckNumForName(va("%sP", G_BuildMapName(cv_nextmap.value)));
+		lumpnum = W_CheckNumForLongName(G_GetMapThumbnail(cv_nextmap.value));
 
 		if (lumpnum != LUMPERROR)
-			PictureOfLevel = W_CachePatchName(va("%sP", G_BuildMapName(cv_nextmap.value)), PU_PATCH);
+			PictureOfLevel = W_CachePatchLongName(G_GetMapThumbnail(cv_nextmap.value), PU_PATCH);
 		else
 			PictureOfLevel = W_CachePatchName("BLANKLVL", PU_PATCH);
 

@@ -2457,7 +2457,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 			// console player only unless TMM_ALLPLAYERS is set
 			if ((line->args[0] & TMM_ALLPLAYERS) || (mo && mo->player && P_IsLocalPlayer(mo->player)) || titlemapinaction)
 			{
-				boolean musicsame = (!line->stringargs[0] || !line->stringargs[0][0] || !strnicmp(line->stringargs[0], S_MusicName(), 7));
+				boolean musicsame = (!line->stringargs[0] || !line->stringargs[0][0] || !strnicmp(line->stringargs[0], S_MusicName(), MAX_MUSIC_NAME));
 				UINT16 tracknum = (UINT16)max(line->args[6], 0);
 				INT32 position = (INT32)max(line->args[1], 0);
 				UINT32 prefadems = (UINT32)max(line->args[2], 0);
@@ -2500,8 +2500,7 @@ static void P_ProcessLineSpecial(line_t *line, mobj_t *mo, sector_t *callsec)
 						strcpy(mapmusname, "");
 					else
 					{
-						strncpy(mapmusname, line->stringargs[0], 7);
-						mapmusname[6] = 0;
+						strlcpy(mapmusname, line->stringargs[0], MAX_MUSIC_NAME+1);
 					}
 
 					mapmusflags = tracknum & MUSIC_TRACKMASK;
@@ -4567,12 +4566,49 @@ static void P_ProcessExitSector(player_t *player, mtag_t sectag)
 		return;
 	}
 
+	// stringarg[0]: Next map string
+	// stringarg[1]: Next map string (if emerald check is enabled and the player has all emeralds)
+
+	// TODO: 2.3: Remove UDMF nextmap arg[0] and arg[2], and move arg[1] to arg[0].
+
 	// Special goodies depending on emeralds collected
 	if ((lines[lineindex].args[1] & TMEF_EMERALDCHECK) && ALL7EMERALDS(emeralds))
-		nextmapoverride = (INT16)(udmf ? lines[lineindex].args[2] : lines[lineindex].frontsector->ceilingheight>>FRACBITS);
-	else
-		nextmapoverride = (INT16)(udmf ? lines[lineindex].args[0] : lines[lineindex].frontsector->floorheight>>FRACBITS);
-
+	{
+		if (udmf) 
+		{
+			if (lines[lineindex].stringargs[1])
+			{
+				nextmapoverride = (INT16)(G_GetMapNumber(lines[lineindex].stringargs[1]));
+			}
+			else
+			{
+				nextmapoverride = (INT16)(lines[lineindex].args[2]);
+			}
+		}
+		else
+		{
+			nextmapoverride = (INT16)(lines[lineindex].frontsector->ceilingheight>>FRACBITS);
+		}
+	}
+	else // No emeralds
+	{
+		if (udmf) 
+		{
+			if (lines[lineindex].stringargs[0])
+			{
+				nextmapoverride = (INT16)(G_GetMapNumber(lines[lineindex].stringargs[0]));
+			}
+			else
+			{
+				nextmapoverride = (INT16)(lines[lineindex].args[0]);
+			}
+		}
+		else
+		{
+			nextmapoverride = (INT16)(lines[lineindex].frontsector->floorheight>>FRACBITS);
+		}
+	}
+	
 	if (lines[lineindex].args[1] & TMEF_SKIPTALLY)
 		mapexitflags |= EXITMAP_SKIPSTATS;
 

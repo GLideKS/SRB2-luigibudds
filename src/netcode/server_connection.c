@@ -115,15 +115,15 @@ static void SV_SendServerInfo(INT32 node, tic_t servertime)
 
 	netbuffer->u.serverinfo.refusereason = GetRefuseReason(node);
 
-	strncpy(netbuffer->u.serverinfo.gametypename, Gametype_Names[gametype],
+	strlcpy(netbuffer->u.serverinfo.gametypename, Gametype_Names[gametype],
 			sizeof(netbuffer->u.serverinfo.gametypename)-1);
 	netbuffer->u.serverinfo.modifiedgame = (UINT8)modifiedgame;
 	netbuffer->u.serverinfo.cheatsenabled = CV_CheatsEnabled();
 	netbuffer->u.serverinfo.flags = (dedicated ? SV_DEDICATED : 0);
-	strncpy(netbuffer->u.serverinfo.servername, cv_servername.string,
+	strlcpy(netbuffer->u.serverinfo.servername, cv_servername.string,
 		sizeof(netbuffer->u.serverinfo.servername)-1);
-	strncpy(netbuffer->u.serverinfo.mapname, G_BuildMapName(gamemap), 7);
 
+	strlcpy(netbuffer->u.serverinfo.mapname, G_BuildMapName(gamemap), sizeof netbuffer->u.serverinfo.mapname);
 	M_Memcpy(netbuffer->u.serverinfo.mapmd5, mapmd5, 16);
 
 	memset(netbuffer->u.serverinfo.maptitle, 0, sizeof netbuffer->u.serverinfo.maptitle);
@@ -143,7 +143,6 @@ static void SV_SendServerInfo(INT32 node, tic_t servertime)
 			read++;
 		}
 		*writ = '\0';
-		//strncpy(netbuffer->u.serverinfo.maptitle, (char *)mapheaderinfo[gamemap-1]->lvlttl, 33);
 	}
 	else
 		strncpy(netbuffer->u.serverinfo.maptitle, "UNKNOWN", 32);
