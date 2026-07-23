@@ -832,7 +832,9 @@ static void P_SpawnMapThings(boolean spawnemblems)
 
 		if (mt->type >= 600 && mt->type <= 611) // item patterns
 			P_SpawnItemPattern(mt, false);
-		else if (mt->type == 1713) // hoops
+		// Check for spawnemblems here so the hoops don't spawn ghost variants for players joining a netgame mid-level
+		// ...It's a long story.
+		else if (mt->type == 1713 && spawnemblems) // hoops
 			P_SpawnHoop(mt);
 		else // Everything else
 			P_SpawnMapThing(mt);
