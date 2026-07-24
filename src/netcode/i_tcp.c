@@ -1115,7 +1115,7 @@ static boolean UDP_Socket(void)
 
 	broadcastaddresses = s;
 
-	extratics = 1; // internet is very high ping
+	doomcom->extratics = 1; // internet is very high ping
 
 	return true;
 }
@@ -1409,18 +1409,18 @@ boolean I_InitTcpNetwork(void)
 		// in-game.
 		// Since Boris has implemented join in-game, there is no actual need for specifying a
 		// particular number here.
-		// FIXME: for dedicated server, numnetnodes needs to be set to 0 upon start
+		// FIXME: for dedicated server, numnodes needs to be set to 0 upon start
 		if (dedicated)
-			numnetnodes = 0;
+			doomcom->numnodes = 0;
 /*		else if (M_IsNextParm())
-			numnetnodes = (INT16)atoi(M_GetNextParm());*/
+			doomcom->numnodes = (INT16)atoi(M_GetNextParm());*/
 		else
-			numnetnodes = 1;
+			doomcom->numnodes = 1;
 
-		if (numnetnodes < 0)
-			numnetnodes = 0;
-		if (numnetnodes > MAXNETNODES)
-			numnetnodes = MAXNETNODES;
+		if (doomcom->numnodes < 0)
+			doomcom->numnodes = 0;
+		if (doomcom->numnodes > MAXNETNODES)
+			doomcom->numnodes = MAXNETNODES;
 
 		// server
 		servernode = 0;

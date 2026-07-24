@@ -725,7 +725,6 @@ static void CL_DrawConnectionStatus(void)
 
 static boolean CL_AskFileList(INT32 firstfile)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	netbuffer->packettype = PT_TELLFILESNEEDED;
 	netbuffer->u.filesneedednum = firstfile;
 
@@ -741,7 +740,6 @@ boolean CL_SendJoin(void)
 {
 	UINT8 localplayers = 1;
 	char const *player2name;
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	if (netgame)
 		CONS_Printf(M_GetText("Sending join request...\n"));
 	netbuffer->packettype = PT_CLIENTJOIN;
@@ -774,7 +772,6 @@ boolean CL_SendJoin(void)
 static void SendAskInfo(INT32 node)
 {
 	const tic_t asktime = I_GetTime();
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	netbuffer->packettype = PT_ASKINFO;
 	netbuffer->u.askinfo.version = VERSION;
 	netbuffer->u.askinfo.time = (tic_t)LONG(asktime);
@@ -1808,7 +1805,7 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 
 void CL_ConnectToServer(void)
 {
-	INT32 pnumnodes, nodewaited = numnetnodes, i;
+	INT32 pnumnodes, nodewaited = doomcom->numnodes, i;
 	tic_t oldtic;
 	tic_t asksent;
 	char tmpsave[256];
@@ -1834,7 +1831,7 @@ void CL_ConnectToServer(void)
 	if (gamestate == GS_INTERMISSION)
 		Y_EndIntermission(); // clean up intermission graphics etc
 
-	DEBFILE(va("waiting %d nodes\n", numnetnodes));
+	DEBFILE(va("waiting %d nodes\n", doomcom->numnodes));
 	G_SetGamestate(GS_WAITINGPLAYERS);
 	wipegamestate = GS_WAITINGPLAYERS;
 
@@ -1891,7 +1888,6 @@ void CL_ConnectToServer(void)
 void PT_ServerInfo(SINT8 node)
 {
 	// compute ping in ms
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	const tic_t ticnow = I_GetTime();
 	const tic_t ticthen = (tic_t)LONG(netbuffer->u.serverinfo.time);
 	const tic_t ticdiff = (ticnow - ticthen)*1000/NEWTICRATE;
@@ -1908,7 +1904,6 @@ void PT_ServerInfo(SINT8 node)
 void PT_PlayerInfo(SINT8 node)
 {
 	(void)node;
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	
 	INT32 i;
 	for (i = 0; i < MAXPLAYERS; i++)
@@ -1928,7 +1923,6 @@ static boolean ServerOnly(SINT8 node)
 
 void PT_MoreFilesNeeded(SINT8 node)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	if (server && serverrunning)
 	{ // But wait I thought I'm the server?
 		Net_CloseConnection(node);
@@ -1947,7 +1941,6 @@ void PT_MoreFilesNeeded(SINT8 node)
 // Negative response of client join request
 void PT_ServerRefuse(SINT8 node)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	if (server && serverrunning)
 	{ // But wait I thought I'm the server?
 		Net_CloseConnection(node);
@@ -1985,8 +1978,6 @@ void PT_ServerRefuse(SINT8 node)
 // Positive response of client join request
 void PT_ServerCFG(SINT8 node)
 {
-	save_t data = DOOMCOM_DATABUF(doomcom);
-	UINT8 gs;
 	if (server && serverrunning && node != servernode)
 	{ // but wait I thought I'm the server?
 		Net_CloseConnection(node);
@@ -1998,28 +1989,22 @@ void PT_ServerCFG(SINT8 node)
 	if (cl_mode != CL_WAITJOINRESPONSE)
 		return;
 
-	serverplayer = P_ReadUINT8(&data);
-	if (serverplayer >= 0)
-		playernode[(UINT8)serverplayer] = servernode;
-
-	numslots = P_ReadUINT8(&data);
-	if (client)
-		maketic = gametic = neededtic = P_ReadUINT32(&data);
-	else
-		P_ReadUINT32(&data);
-
-	mynode = P_ReadUINT8(&data);
-	gs = P_ReadUINT8(&data);
 	if (client)
 	{
-		G_SetGametype(P_ReadUINT8(&data));
-		modifiedgame = P_ReadUINT8(&data);
-		if (P_ReadUINT8(&data))
+		maketic = gametic = neededtic = (tic_t)LONG(netbuffer->u.servercfg.gametic);
+		G_SetGametype(netbuffer->u.servercfg.gametype);
+		modifiedgame = netbuffer->u.servercfg.modifiedgame;
+		if (netbuffer->u.servercfg.usedCheats)
 			G_SetUsedCheats(true);
-		P_ReadMem(&data, server_context, 8);
+		memcpy(server_context, netbuffer->u.servercfg.server_context, 8);
 	}
 
 	netnodes[(UINT8)servernode].ingame = true;
+	serverplayer = netbuffer->u.servercfg.serverplayer;
+	doomcom->numslots = SHORT(netbuffer->u.servercfg.totalslotnum);
+	mynode = netbuffer->u.servercfg.clientnode;
+	if (serverplayer >= 0)
+		playernode[(UINT8)serverplayer] = servernode;
 
 	if (netgame)
 		CONS_Printf(M_GetText("Join accepted, waiting for complete game state...\n"));
@@ -2028,7 +2013,8 @@ void PT_ServerCFG(SINT8 node)
 	/// \note Wait. What if a Lua script uses some global custom variables synched with the NetVars hook?
 	///       Shouldn't they be downloaded even at intermission time?
 	///       Also, according to PT_ClientJoin, the server will send the savegame even during intermission...
-	if (gs == GS_LEVEL/* || gs == GS_INTERMISSION*/)
+	if (netbuffer->u.servercfg.gamestate == GS_LEVEL/* ||
+		netbuffer->u.servercfg.gamestate == GS_INTERMISSION*/)
 		cl_mode = CL_DOWNLOADSAVEGAME;
 	else
 		cl_mode = CL_CONNECTED;

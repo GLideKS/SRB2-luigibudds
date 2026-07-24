@@ -168,7 +168,6 @@ enum
   */
 UINT8 *PutFileNeeded(UINT16 firstfile)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	UINT8 count = 0;
 	UINT8 *p_start = netbuffer->packettype == PT_MOREFILESNEEDED ? netbuffer->u.filesneededcfg.files : netbuffer->u.serverinfo.fileneeded;
 	UINT8 *p = p_start;
@@ -364,7 +363,6 @@ void CL_AbortDownloadResume(void)
   */
 boolean CL_SendFileRequest(void)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	char *p;
 	INT64 totalfreespaceneeded = 0, availablefreespace;
 
@@ -432,7 +430,6 @@ boolean CL_SendFileRequest(void)
 // get request filepak and put it on the send queue
 void PT_RequestFile(SINT8 node)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	UINT8 *p = netbuffer->u.textcmd;
 
 	if (client || !cv_downloading.value)
@@ -654,7 +651,6 @@ void AddLuaFileTransfer(const char *filename, const char *mode)
 
 static void SV_PrepareSendLuaFileToNextNode(void)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	UINT8 success = 1;
 
     // Find a client to send the file to
@@ -759,7 +755,6 @@ void SV_AbortLuaFileTransfer(INT32 node)
 
 void CL_PrepareDownloadLuaFile(void)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	// If there is no transfer in the list, this normally means the server
 	// called io.open before us, so we have to wait until we call it too
 	if (!luafiletransfers)
@@ -1011,7 +1006,6 @@ static void SV_EndFileSend(INT32 node)
   */
 void FileSendTicker(void)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	static INT32 currentnode = 0;
 	filetx_pak *p;
 	size_t fragmentsize;
@@ -1162,7 +1156,6 @@ void FileSendTicker(void)
 
 void PT_FileAck(SINT8 node)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	fileack_pak *packet = &netbuffer->u.fileack;
 	filetran_t *trans = &transfer[node];
 
@@ -1217,7 +1210,6 @@ void PT_FileAck(SINT8 node)
 
 void PT_FileReceived(SINT8 node)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	filetx_t *trans = transfer[node].txlist;
 
 	if (server && trans && netbuffer->u.filereceived == trans->fileid)
@@ -1226,7 +1218,6 @@ void PT_FileReceived(SINT8 node)
 
 static void SendAckPacket(fileack_pak *packet, UINT8 fileid)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	size_t packetsize;
 
 	packetsize = sizeof(*packet) + packet->numsegments * sizeof(*packet->segments);
@@ -1306,7 +1297,6 @@ void FileReceiveTicker(void)
 
 static void OpenNewFileForDownload(fileneeded_t *file, const char *filename)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	file->file = fopen(filename, "wb");
 	if (!file->file)
 		I_Error("Can't create file %s: %s", filename, strerror(errno));
@@ -1322,7 +1312,6 @@ static void OpenNewFileForDownload(fileneeded_t *file, const char *filename)
 
 void PT_FileFragment(SINT8 node, INT32 netconsole)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	if (netnodes[node].ingame)
 	{
 		// Only accept PT_FILEFRAGMENT from the server.

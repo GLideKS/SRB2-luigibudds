@@ -156,7 +156,6 @@ void SV_SavedGame(void)
 
 boolean CL_LoadReceivedSavegame(boolean reloading)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	save_t savebuffer;
 	size_t decompressedlen;
 	char tmpsave[256];
@@ -258,7 +257,6 @@ void CL_ReloadReceivedSavegame(void)
 
 void Command_ResendGamestate(void)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	SINT8 playernum;
 
 	if (COM_Argc() == 1)
@@ -305,7 +303,6 @@ void PT_ReceivedGamestate(SINT8 node)
 
 void PT_WillResendGamestate(SINT8 node)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	(void)node;
 
 	char tmpsave[256];

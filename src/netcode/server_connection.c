@@ -95,7 +95,6 @@ GetRefuseReason (INT32 node)
 
 static void SV_SendServerInfo(INT32 node, tic_t servertime)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	UINT8 *p;
 
 	netbuffer->packettype = PT_SERVERINFO;
@@ -174,7 +173,6 @@ static void SV_SendServerInfo(INT32 node, tic_t servertime)
 
 static void SV_SendPlayerInfo(INT32 node)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	netbuffer->packettype = PT_PLAYERINFO;
 
 	for (UINT8 i = 0; i < MAXPLAYERS; i++)
@@ -242,24 +240,23 @@ static void SV_SendPlayerInfo(INT32 node)
   */
 static boolean SV_SendServerConfig(INT32 node)
 {
-	char *data = doomcom->data;
 	boolean waspacketsent;
 
-	DOOMCOM_SETTYPE(data, PT_SERVERCFG);
-	data += 8;
+	netbuffer->packettype = PT_SERVERCFG;
 
-	WRITEUINT8(data, serverplayer);
-	WRITEUINT8(data, numslots);
-	WRITEUINT32(data, gametic);
-	WRITEUINT8(data, node);
-	WRITEUINT8(data, gamestate);
-	WRITEUINT8(data, gametype);
-	WRITEUINT8(data, modifiedgame);
-	WRITEUINT8(data, usedCheats);
-	WRITEMEM(data, server_context, 8);
+	netbuffer->u.servercfg.serverplayer = (UINT8)serverplayer;
+	netbuffer->u.servercfg.totalslotnum = (UINT8)(doomcom->numslots);
+	netbuffer->u.servercfg.gametic = (tic_t)LONG(gametic);
+	netbuffer->u.servercfg.clientnode = (UINT8)node;
+	netbuffer->u.servercfg.gamestate = (UINT8)gamestate;
+	netbuffer->u.servercfg.gametype = (UINT8)gametype;
+	netbuffer->u.servercfg.modifiedgame = (UINT8)modifiedgame;
+	netbuffer->u.servercfg.usedCheats = (UINT8)usedCheats;
+
+	memcpy(netbuffer->u.servercfg.server_context, server_context, 8);
 
 	{
-		const size_t len = data - doomcom->data - 8;
+		const size_t len = sizeof (serverconfig_pak);
 
 #ifdef DEBUGFILE
 		if (debugfile)
@@ -352,7 +349,6 @@ static void SV_AddPlayer(SINT8 node, const char *name)
 
 static void SV_SendRefuse(INT32 node, const char *reason)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	strcpy(netbuffer->u.serverrefuse.reason, reason);
 
 	netbuffer->packettype = PT_SERVERREFUSE;
@@ -363,7 +359,6 @@ static void SV_SendRefuse(INT32 node, const char *reason)
 static const char *
 GetRefuseMessage (SINT8 node, INT32 rejoinernum)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	clientconfig_pak *cc = &netbuffer->u.clientcfg;
 
 	boolean rejoining = (rejoinernum != -1);
@@ -440,7 +435,6 @@ GetRefuseMessage (SINT8 node, INT32 rejoinernum)
   */
 void PT_ClientJoin(SINT8 node)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	char names[MAXSPLITSCREENPLAYERS][MAXPLAYERNAME + 1];
 	INT32 numplayers = netbuffer->u.clientcfg.localplayers;
 	INT32 rejoinernum;
@@ -500,7 +494,6 @@ void PT_AskInfoViaMS(SINT8 node)
 
 void PT_TellFilesNeeded(SINT8 node)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	if (server && serverrunning)
 	{
 		UINT8 *p;
@@ -520,7 +513,6 @@ void PT_TellFilesNeeded(SINT8 node)
 
 void PT_AskInfo(SINT8 node)
 {
-	doomdata_t *netbuffer = DOOMCOM_DATA(doomcom);
 	if (server && serverrunning)
 	{
 		SV_SendServerInfo(node, (tic_t)LONG(netbuffer->u.askinfo.time));

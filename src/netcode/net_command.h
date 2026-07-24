@@ -19,10 +19,17 @@
 // Must be a power of two
 #define TEXTCMD_HASH_SIZE 4
 
+typedef struct textcmdplayer_s
+{
+	INT32 playernum;
+	UINT8 cmd[MAXTEXTCMD];
+	struct textcmdplayer_s *next;
+} textcmdplayer_t;
+
 typedef struct textcmdtic_s
 {
 	tic_t tic;
-	UINT8 *playercmds[MAXPLAYERS];
+	textcmdplayer_t *playercmds[TEXTCMD_HASH_SIZE];
 	struct textcmdtic_s *next;
 } textcmdtic_t;
 
