@@ -1538,10 +1538,11 @@ static menuitem_t OP_BanpyuraOptionsMenu[] =
 	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   87},
 	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          93},
 	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's Delay",       	  &cv_gentlemens,          98},
+	{IT_STRING | IT_CVAR, 		NULL, "Show Addon Info",	       &cv_showaddoninfo,		   103},
 
 #ifdef HWRENDER
-	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			        NULL,		   108},
-	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,          114},
+	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			        NULL,		   113},
+	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,          119},
 #endif
 };
 
