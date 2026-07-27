@@ -126,6 +126,7 @@ extern boolean timedemo_quit;
 extern consvar_t cv_freedemocamera;
 
 extern consvar_t cv_http_enable;
+extern consvar_t cv_showaddoninfo;
 
 typedef enum
 {

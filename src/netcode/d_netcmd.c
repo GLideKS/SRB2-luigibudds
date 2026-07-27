@@ -409,6 +409,7 @@ consvar_t cv_freedemocamera = CVAR_INIT("freedemocamera", "Off", CV_SAVE, CV_OnO
 consvar_t cv_glallowshaders = CVAR_INIT ("gr_allowcustomshaders", "On", CV_NETVAR, CV_OnOff, NULL);
 
 consvar_t cv_http_enable = CVAR_INIT ("http_enable", "On", CV_SAVE, CV_OnOff, NULL);
+consvar_t cv_showaddoninfo = CVAR_INIT ("showaddoninfo", "On", CV_SAVE|CV_CLIENT, CV_OnOff, NULL);
 
 static CV_PossibleValue_t cvarinfo_const_t[] = {{0, "Show All"}, {1, "Hide Origin"}, {2, "Hide Flags"}, {3, "Only Show Values"}, {0, NULL}};
 consvar_t cv_cvarinformation = CVAR_INIT ("cvarinfo", "Show All", CV_SAVE|CV_CLIENT, cvarinfo_const_t, NULL);
@@ -552,6 +553,9 @@ void D_RegisterServerCommands(void)
 	AddMServCommands();
 
 	CV_RegisterVar(&cv_glallowshaders);
+
+	// server info
+	CV_RegisterVar(&cv_showaddoninfo);
 
 	// p_mobj.c
 	CV_RegisterVar(&cv_itemrespawntime);
