@@ -9946,7 +9946,6 @@ void P_ResetCamera(player_t *player, camera_t *thiscam)
 		thiscam->angle = player->mo->angle;
 		thiscam->aiming = 0;
 	}
-	thiscam->relativex = 0;
 
 	thiscam->subsector = R_PointInSubsector(thiscam->x,thiscam->y);
 
@@ -10276,38 +10275,6 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 		y = mo->y - FixedMul(FINESINE((angle>>ANGLETOFINESHIFT) & FINEMASK), distxy);
 	}
 
-#if 0
-	if (twodlevel || (mo->flags2 & MF2_TWOD))
-	{
-		// Camera doesn't ALWAYS need to move, only when running...
-		if (abs(mo->momx) > 10)
-		{
-			// Move the camera all smooth-like, not jerk it around...
-			if (mo->momx > 0)
-			{
-				if (thiscam->relativex < MAXCAMERADIST)
-					thiscam->relativex += 4*FRACUNIT;
-			}
-			else if (mo->momx < 0)
-			{
-				if (thiscam->relativex > -MAXCAMERADIST)
-					thiscam->relativex -= 4*FRACUNIT;
-			}
-		}
-		else // If speed is less than required, start moving the camera back.
-		{
-			if (thiscam->relativex > 0)
-				thiscam->relativex -= 4*FRACUNIT;
-			else if (thiscam->relativex < 0)
-				thiscam->relativex += 4*FRACUNIT;
-		}
-
-		// Add the relative x to the global x
-		x += thiscam->relativex;
-		y += mo->momy << 1;
-	}
-#endif // bad 2D camera code
-
 	pviewheight = FixedMul(41*player->height/48, mo->scale);
 
 	if (sign)
@@ -10460,7 +10427,7 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 					plink = (polymaplink_t *)(plink->link.next);
 				}
 			}
-	}
+		}
 
 		// crushed camera
 		if (myceilingz <= myfloorz + thiscam->height && !resetcalled && !cameranoclip)
@@ -10474,13 +10441,6 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 			&& myceilingz - thiscam->height < z
 			&& !cameranoclip)
 		{
-/*			// no fit
-			if (!resetcalled && !cameranoclip)
-			{
-				P_ResetCamera(player, thiscam);
-				return true;
-			}
-*/
 			z = myceilingz - thiscam->height-FixedMul(11*FRACUNIT, mo->scale);
 			// is the camera fit is there own sector
 		}
@@ -10541,22 +10501,6 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 
 	if (!camstill && !resetcalled && !paused && !cameraexact)
 		thiscam->angle = R_PointToAngle2(thiscam->x, thiscam->y, viewpointx, viewpointy);
-
-/*
-	if (twodlevel || (mo->flags2 & MF2_TWOD))
-		thiscam->angle = angle;
-*/
-	// follow the player
-	/*if (player->playerstate != PST_DEAD && (camspeed) != 0)
-	{
-		if (P_AproxDistance(mo->x - thiscam->x, mo->y - thiscam->y) > (checkdist + P_AproxDistance(mo->momx, mo->momy)) * 4
-			|| abs(mo->z - thiscam->z) > checkdist * 3)
-		{
-			if (!resetcalled)
-				P_ResetCamera(player, thiscam);
-			return true;
-		}
-	}*/
 
 	// compute aming to look the viewed point
 	f1 = viewpointx-thiscam->x;
@@ -10640,18 +10584,7 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 	else
 		mo->flags2 &= ~MF2_SHADOW;
 
-/*	if (!resetcalled && (player->powers[pw_carry] == CR_NIGHTSMODE && player->exiting))
-	{
-		// Don't let the camera match your movement.
-		thiscam->momz = 0;
-
-		// Only let the camera go a little bit upwards.
-		if (mo->eflags & MFE_VERTICALFLIP && thiscam->aiming < ANGLE_315 && thiscam->aiming > ANGLE_180)
-			thiscam->aiming = ANGLE_315;
-		else if (!(mo->eflags & MFE_VERTICALFLIP) && thiscam->aiming > ANGLE_45 && thiscam->aiming < ANGLE_180)
-			thiscam->aiming = ANGLE_45;
-	}
-	else */if (!resetcalled && (player->playerstate == PST_DEAD || player->playerstate == PST_REBORN))
+	if (!resetcalled && (player->playerstate == PST_DEAD || player->playerstate == PST_REBORN))
 	{
 		// Don't let the camera match your movement.
 		thiscam->momz = 0;
