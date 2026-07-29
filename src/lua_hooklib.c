@@ -1100,6 +1100,8 @@ void LUA_HookNetArchive(lua_CFunction archFunc)
 		lua_pushcclosure(gL, archFunc, 2);
 		// stack: tables, archFunc
 
+		// Manually set the hook's variables here since we don't call prepare_hook
+		hook.hook_type = HOOK(NetVars);
 		hook.mobj_type = 0; // Force mobj_type to be 0 so the mobj_type check get skipped
 		init_hook_call(&hook, 0, res_none);
 		call_mapped(&hook, map);
