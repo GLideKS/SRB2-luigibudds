@@ -44,6 +44,7 @@
 #include "../r_translation.h"
 #include "../d_main.h"
 #include "../p_slopes.h"
+#include "../lua_banpyura.h"
 
 // ==========================================================================
 // the hardware driver object
@@ -2888,7 +2889,7 @@ static void HWR_DrawDropShadow(mobj_t *thing, gl_vissprite_t *spr, fixed_t scale
 	shadowVerts[1].z = shadowVerts[2].z = fy - offset;
 	shadowVerts[0].z = shadowVerts[3].z = fy + offset;
 
-	angle_t shadowangle = ANGLE_90 - viewangle;
+	angle_t shadowangle = Banpyura_SpriteShadow_SnapToCamera ? 0 : (Banpyura_SpriteShadow_Angle - viewangle);
 	fixed_t shadowsin = FINESINE(shadowangle>>ANGLETOFINESHIFT);
 	fixed_t shadowcos = FINECOSINE(shadowangle>>ANGLETOFINESHIFT);
 	float gl_shadowsin = FixedToFloat(shadowsin);
