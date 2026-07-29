@@ -81,8 +81,13 @@ static void *LUA_Alloc(void *ud, void *ptr, size_t osize, size_t nsize)
 // This function cannot return. Lua would kill the application anyway if it did.
 FUNCNORETURN static int LUA_Panic(lua_State *L)
 {
-	CONS_Alert(CONS_ERROR,"LUA PANIC! %s\n",lua_tostring(L,-1));
-	I_Error("An unfortunate Lua processing error occurred in the exe itself. This is not a scripting error on your part.");
+	const char *error = lua_tostring(L, -1);
+
+	CONS_Alert(CONS_ERROR, "LUA PANIC! %s\n", error);
+	I_Error("An unfortunate Lua processing error occurred in the exe itself."
+		"This is usually not a scripting error on your part.\n\n%s",
+		error);
+
 #ifndef __GNUC__
 	return -1;
 #endif
