@@ -775,8 +775,6 @@ INT32 GIF_close(void)
 
 	// final terminator.
 	fwrite(";", 1, 1, gif_out);
-	
-	float gif_size = M_GetMovieSize();
 
 	fclose(gif_out);
 	gif_out = NULL;
