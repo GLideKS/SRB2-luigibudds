@@ -142,7 +142,7 @@ static CV_PossibleValue_t menubg_cons_t[] = {
 	{187, "Magenta"}, {199, "Lavender"}, {207, "Rosy"}, {215, "Lilac"},
 	{238, "Brown"}, {251, "Beige"}, {0, NULL}
 };
-static CV_PossibleValue_t shadow_cons_t[] = {{0, "Off"}, {1, "Drop"}, {2, "Sprite"}};
+static CV_PossibleValue_t shadow_cons_t[] = {{0, "Off"}, {1, "Drop"}, {2, "Sprite"}, {0, NULL}};
 
 static void R_SetFov(fixed_t playerfov);
 
