@@ -2514,6 +2514,10 @@ static void R_ProjectPrecipitationSprite(precipmobj_t *thing)
 	// uncapped/interpolation
 	interpmobjstate_t interp = {0};
 
+	// Do this here so the precip sprite doesn't jitter at the beginning of a gametic
+	if (!paused && thing->lastupdatetime < gametic)
+		R_ResetPrecipitationMobjInterpolationState(thing);
+
 	// do interpolation
 	if (R_UsingFrameInterpolation() && !paused)
 	{
@@ -2661,10 +2665,8 @@ static void R_ProjectPrecipitationSprite(precipmobj_t *thing)
 
 weatherthink:
 	// okay... this is a hack, but weather isn't networked, so it should be ok
-	if (thing->lastupdatetime < gametic)
+	if (!paused && thing->lastupdatetime < gametic)
 	{
-		R_ResetPrecipitationMobjInterpolationState(thing);
-
 		if (thing->precipflags & PCF_RAIN)
 			P_RainThinker(thing);
 		else

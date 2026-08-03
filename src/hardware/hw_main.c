@@ -4826,6 +4826,10 @@ static void HWR_ProjectPrecipitationSprite(precipmobj_t *thing)
 	// uncapped/interpolation
 	interpmobjstate_t interp = {0};
 
+	// Do this here so the precip sprite doesn't jitter at the beginning of a gametic
+	if (!paused && thing->lastupdatetime < gametic)
+		R_ResetPrecipitationMobjInterpolationState(thing);
+
 	// do interpolation
 	if (R_UsingFrameInterpolation() && !paused)
 	{
@@ -4917,7 +4921,7 @@ static void HWR_ProjectPrecipitationSprite(precipmobj_t *thing)
 	vis->bbox = false;
 
 	// okay... this is a hack, but weather isn't networked, so it should be ok
-	if (thing->lastupdatetime < gametic)
+	if (!paused && thing->lastupdatetime < gametic)
 	{
 		R_ResetPrecipitationMobjInterpolationState(thing);
 
