@@ -12,5 +12,5 @@
 #include "lua_script.h"
 #include "lua_libs.h"
 
-angle_t Banpyura_SpriteShadow_Angle;
-boolean Banpyura_SpriteShadow_SnapToCamera;
+extern angle_t Banpyura_SpriteShadow_Angle;
+extern boolean Banpyura_SpriteShadow_SnapToCamera;
