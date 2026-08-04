@@ -577,7 +577,7 @@ static int CVarSetFunction
 ){
 	consvar_t *cvar = *(consvar_t **)luaL_checkudata(L, 1, META_CVAR);
 
-	if (!(cvar->flags & CV_ALLOWLUA) && !lua_optboolean(L, 3))
+	if (!(cvar->flags & CV_ALLOWLUA))
 		return luaL_error(L, "Variable '%s' cannot be set from Lua.", cvar->name);
 
 	switch (lua_type(L, 2))
@@ -609,44 +609,10 @@ static int lib_cvAddValue(lua_State *L)
 {
 	consvar_t *cvar = *(consvar_t **)luaL_checkudata(L, 1, META_CVAR);
 
-	if (!(cvar->flags & CV_ALLOWLUA) && !lua_optboolean(L, 3))
+	if (!(cvar->flags & CV_ALLOWLUA))
 		return luaL_error(L, "Variable %s cannot be set from Lua.", cvar->name);
 
 	CV_AddValue(cvar, (INT32)luaL_checknumber(L, 2));
-
-	return 0;
-}
-
-// romoney5 TODO: expose as userdata
-static int lib_cvGetPossibleValue(lua_State *L)
-{
-	consvar_t *cvar = *((consvar_t **)luaL_checkudata(L, 1, META_CVAR));
-	INT32 num = luaL_checkinteger(L, 2);
-	if (!cvar)
-		return LUA_ErrInvalid(L, "consvar_t");
-
-	// make sure it's valid
-	for (INT32 i = 0; i < num; i++)
-		if (cvar->PossibleValue[i].strvalue == NULL)
-			return 0;
-
-	CV_PossibleValue_t pv = cvar->PossibleValue[num];
-
-	lua_pushinteger(L, pv.value);
-	lua_pushstring(L, pv.strvalue);
-
-	return 2;
-}
-
-// romoney5 TODO: expose as userdata
-static int lib_cvSetFlags(lua_State *L)
-{
-	consvar_t *cvar = *((consvar_t **)luaL_checkudata(L, 1, META_CVAR));
-	INT32 flags = luaL_checkinteger(L, 2);
-	if (!cvar)
-		return LUA_ErrInvalid(L, "consvar_t");
-
-	cvar->flags = flags;
 
 	return 0;
 }
@@ -695,8 +661,6 @@ static luaL_Reg lib[] = {
 	{"CV_StealthSet", lib_cvStealthSet},
 	{"CV_AddValue", lib_cvAddValue},
 	{"CONS_Printf", lib_consPrintf},
-	{"CV_GetPossibleValue", lib_cvGetPossibleValue},
-	{"CV_SetFlags", lib_cvSetFlags},
 	{NULL, NULL}
 };
 
