@@ -4923,8 +4923,6 @@ static void HWR_ProjectPrecipitationSprite(precipmobj_t *thing)
 	// okay... this is a hack, but weather isn't networked, so it should be ok
 	if (!paused && thing->lastupdatetime < gametic)
 	{
-		R_ResetPrecipitationMobjInterpolationState(thing);
-
 		if (thing->precipflags & PCF_RAIN)
 			P_RainThinker(thing);
 		else
