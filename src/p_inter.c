@@ -3464,34 +3464,37 @@ static void P_SuperDamage(player_t *player, mobj_t *inflictor, mobj_t *source, I
 	else
 		P_SetObjectMomZ(player->mo, FixedDiv(69*FRACUNIT,10*FRACUNIT), false);
 
-	ang = R_PointToAngle2(inflictor->x,	inflictor->y, player->mo->x, player->mo->y);
-
-	// explosion and rail rings send you farther back, making it more difficult
-	// to recover
-	if (inflictor->flags2 & MF2_SCATTER && source)
+	if (!P_MobjWasRemoved(inflictor))
 	{
-		fixed_t dist = P_GetMobjDistance3D(source, player->mo);
+		ang = R_PointToAngle2(inflictor->x,	inflictor->y, player->mo->x, player->mo->y);
 
-		dist = FixedMul(128*FRACUNIT, inflictor->scale) - dist/4;
+		// explosion and rail rings send you farther back, making it more difficult
+		// to recover
+		if (inflictor->flags2 & MF2_SCATTER && source)
+		{
+			fixed_t dist = P_GetMobjDistance3D(source, player->mo);
 
-		if (dist < FixedMul(4*FRACUNIT, inflictor->scale))
-			dist = FixedMul(4*FRACUNIT, inflictor->scale);
+			dist = FixedMul(128*FRACUNIT, inflictor->scale) - dist/4;
 
-		fallbackspeed = dist;
-	}
-	else if (inflictor->flags2 & MF2_EXPLOSION)
-	{
-		if (inflictor->flags2 & MF2_RAILRING)
-			fallbackspeed = FixedMul(28*FRACUNIT, inflictor->scale); // 7x
+			if (dist < FixedMul(4*FRACUNIT, inflictor->scale))
+				dist = FixedMul(4*FRACUNIT, inflictor->scale);
+
+			fallbackspeed = dist;
+		}
+		else if (inflictor->flags2 & MF2_EXPLOSION)
+		{
+			if (inflictor->flags2 & MF2_RAILRING)
+				fallbackspeed = FixedMul(28*FRACUNIT, inflictor->scale); // 7x
+			else
+				fallbackspeed = FixedMul(20*FRACUNIT, inflictor->scale); // 5x
+		}
+		else if (inflictor->flags2 & MF2_RAILRING)
+			fallbackspeed = FixedMul(16*FRACUNIT, inflictor->scale); // 4x
 		else
-			fallbackspeed = FixedMul(20*FRACUNIT, inflictor->scale); // 5x
-	}
-	else if (inflictor->flags2 & MF2_RAILRING)
-		fallbackspeed = FixedMul(16*FRACUNIT, inflictor->scale); // 4x
-	else
-		fallbackspeed = FixedMul(4*FRACUNIT, inflictor->scale); // the usual amount of force
+			fallbackspeed = FixedMul(4*FRACUNIT, inflictor->scale); // the usual amount of force
 
-	P_InstaThrust(player->mo, ang, fallbackspeed);
+		P_InstaThrust(player->mo, ang, fallbackspeed);
+	}
 
 	P_SetMobjState(player->mo, S_PLAY_STUN);
 
