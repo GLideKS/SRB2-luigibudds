@@ -114,6 +114,66 @@ static void DrawFileProgress(fileneeded_t *file, int y)
 	V_DrawRightAlignedString(BASEVIDWIDTH/2+128, y, V_20TRANS|V_MONOSPACE|MENUCAPS, va("%3.1fK/s ", ((double)getbps)/1024));
 }
 
+static void CL_DrawAddonTypes(void)
+{
+	if (!cv_showaddoninfo.value)
+		return;
+
+	INT32 y = 0;
+
+	INT32 addontypes_downloaded[NUMADDONTYPES] = {0};
+
+	for (INT32 i = 0; i < fileneedednum; ++i)
+	{
+		switch (fileneeded[i].status)
+		{
+			case FS_FOUND:
+			case FS_OPEN:
+				addontypes_downloaded[fileneeded[i].addontype]++;
+			break;
+
+			default:
+			break;
+		}
+	}
+
+	for (addontype_t type = 0; type < NUMADDONTYPES; ++type)
+	{
+		if (addontypes[type] == 0)
+			continue;
+
+		INT32 flags = V_SNAPTOTOP|V_SNAPTOLEFT|MENUCAPS;
+
+		if (addontypes[type] == addontypes_downloaded[type])
+			flags |= MENUCOLOR;
+		else
+			flags |= MENUREDCOLOR;
+
+		const char *typestr = "Misc";
+
+		switch (type)
+		{
+			case ADDON_SCRIPT:
+				typestr = "Script";
+			break;
+
+			case ADDON_MAP:
+				typestr = "Map";
+			break;
+
+			case ADDON_CHARACTER:
+				typestr = "Character";
+			break;
+
+			default:
+			break;
+		}
+
+		V_DrawSmallString(4, 4 + y, flags, va("%s addons", typestr));
+		V_DrawRightAlignedSmallString(100, 4 + y, flags, va("%d/%d", addontypes_downloaded[type], addontypes[type]));
+		y += 6;
+	}
+}
 
 static void CL_DrawServerInfo(void)
 {
@@ -720,6 +780,7 @@ static void CL_DrawConnectionStatus(void)
 			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-24, MENUCOLOR|MENUCAPS,
 				M_GetText("Waiting to download files..."));
 		}
+		CL_DrawAddonTypes();
 	}
 }
 
@@ -1423,6 +1484,7 @@ static boolean CL_ServerConnectionSearchTicker(tic_t *asksent)
 			viewserver_toggle = false;
 			viewserver_scroll = 0;
 			cl_mode = CL_VIEWSERVER;
+			CL_CheckAddonTypes();
 		}
 		else
 		{
@@ -1507,6 +1569,7 @@ static boolean CL_ServerConnectionTicker(const char *tmpsave, tic_t *oldtic, tic
 				viewserver_toggle = false;
 				viewserver_scroll = 0;
 				cl_mode = CL_VIEWSERVER;
+				CL_CheckAddonTypes();
 			}
 			else if (fileneedednum != cl_lastcheckedfilecount || I_GetTime() >= *asksent)
 			{

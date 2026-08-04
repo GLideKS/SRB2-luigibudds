@@ -349,7 +349,7 @@ static void M_EraseData(INT32 choice);
 
 //Banpyura Options
 menu_t OP_BanpyuraOptionsDef, OP_P1BanpyuraOptionsDef, OP_P2BanpyuraOptionsDef;
-static void M_BanpyuraReportIssue();
+static void M_BanpyuraReportIssue(void);
 
 static void M_Addons(INT32 choice);
 static void M_AddonsOptions(INT32 choice);
@@ -1538,9 +1538,12 @@ static menuitem_t OP_BanpyuraOptionsMenu[] =
 	{IT_HEADER, 				NULL, "Network", 			            		NULL,		   87},
 	{IT_STRING | IT_CVAR,		NULL, "Minimum Delay",       		    &cv_mindelay,          93},
 	{IT_STRING | IT_CVAR,		NULL, "Gentlemen's Delay",       	  &cv_gentlemens,          98},
+	{IT_STRING | IT_CVAR, 		NULL, "Show Addon Info",	       &cv_showaddoninfo,		   103},
 
-	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			        NULL,		   108},
-	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,          114},
+#ifdef HWRENDER
+	{IT_HEADER, 				NULL, "Rendering (OpenGL)", 			        NULL,		   113},
+	{IT_STRING|IT_CVAR,         NULL, "Light Dithering",     	   &cv_gllightdither,          119},
+#endif
 };
 
 static menuitem_t OP_P1BanpyuraOptionsMenu[] =
@@ -13283,14 +13286,13 @@ static void M_SetupScreenshotMenu(void)
 // BANPYURA MENU
 // =============
 
-static void M_BanpyuraReportIssue()
+static void M_BanpyuraReportIssue(void)
 {
-#if defined(HAVE_SDL)
-#if SDL_VERSION_ATLEAST(2,0,14)
-	SDL_OpenURL("https://github.com/GLideKS/SRB2-Banpyura/issues");
+	// the issues url is split up into two lines
+#if defined(HAVE_SDL) && SDL_VERSION_ATLEAST(2,0,14)
+	SDL_OpenURL(BANPYURA_ISSUES_1 BANPYURA_ISSUES_2);
 #else
-	M_StartMessage(M_GetText("Open the following in your web browser:\ngithub.com/GLideKS/SRB2-Banpyura/issues\n\n(Press a key)\n"), NULL, MM_NOTHING);
-#endif
+	M_StartMessage(M_GetText("Open the following in your web browser:\n\n" BANPYURA_ISSUES_1 "\n" BANPYURA_ISSUES_2 "\n\n(Press a key)\n"), NULL, MM_NOTHING);
 #endif
 }
 

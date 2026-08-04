@@ -775,8 +775,6 @@ INT32 GIF_close(void)
 
 	// final terminator.
 	fwrite(";", 1, 1, gif_out);
-	
-	float gif_size = GIF_GetSizeMB();
 
 	fclose(gif_out);
 	gif_out = NULL;
@@ -793,18 +791,12 @@ INT32 GIF_close(void)
 		Z_Free(giflzw_hashTable);
 	giflzw_hashTable = NULL;
 
-	CONS_Printf(M_GetText("Animated gif closed; wrote %d frames (%0.2f MB)\n"),
-		gif_frames, gif_size);
-
 	return 1;
 }
 
-float GIF_GetSizeMB(void)
+size_t GIF_GetSize(void)
 {
-	const float kMb = 1024.f * 1024.f;
-	float size = (moviemode == MM_GIF) ? ftell(gif_out) : 0;
-
-	return size / kMb;
+	return ftell(gif_out);
 }
 
 #endif //ifdef HAVE_ANIGIF

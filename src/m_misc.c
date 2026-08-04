@@ -1000,33 +1000,49 @@ static void M_PNGFrame(png_structp png_ptr, png_infop png_info_ptr, png_bytep pn
 	png_uint_32 x, y;
 	png_uint_16 framedelay = (png_uint_16)cv_apng_delay.value;
 
+	// romoney5: fixed apng support for both renderers (probably for the last time)
+	PNG_CONST png_uint_32 row_multiplier = pitch / width; // in opengl this should return 3 because of the three channels
+
+	png_uint_32 real_x = 0; // the amount of written columns
+
+	// size of each row:
+	// the regular row size reported by apng multiplied by the downscale factor twice (for x and y scale)
+	png_uint_32 row_increment = pitch * (downscale * downscale);
+	// i actually have no idea why this works
+	// take the difference between the divided width and regular width, multiply it like before,
+	// and divide by 3 in software
+	row_increment += ((vid.width - (width * downscale)) * (downscale * downscale)) * row_multiplier / 3;
+
 	apng_frames++;
 
 	for (y = 0; y < height; y++)
 	{
-		row_pointers[y] = malloc(pitch * sizeof(png_byte));
-		for (x = 0; x < width; x++)
-			row_pointers[y][x] = png_buf[x * downscale];
-		png_buf += pitch * (downscale * downscale);
+		real_x = 0;
+		row_pointers[y] = png_malloc(png_ptr, pitch * sizeof(png_byte));
+		if (row_pointers[y])
+		{
+			for (x = 0; x < pitch * downscale; x++)
+			{
+				row_pointers[y][real_x] = png_buf[x];
+				real_x++;
+
+				// after all channels are written, skip the next downscaled pixels if applicable
+				if (x % row_multiplier == row_multiplier - 1)
+					x += (downscale - 1) * row_multiplier;
+			}
+			png_buf += row_increment; // move to the next row
+		}
 	}
-		//for (x = 0; x < width; x++)
-		//{
-		//	printf("%d", x);
-		//	row_pointers[y][x] = 0;
-		//}
-	/*	row_pointers[y] = calloc(1, sizeof(png_bytep));
-		png_buf += pitch * 2;
-	}*/
 
 #ifndef PNG_STATIC
 	if (aPNG_write_frame_head)
 #endif
 		aPNG_write_frame_head(apng_ptr, apng_info_ptr, row_pointers,
-			width,     /* width */
-			height,    /* height */
-			0,         /* x offset */
-			0,         /* y offset */
-			framedelay, TICRATE,/* delay numerator and denominator */
+			width,                     /* width */
+			height,                    /* height */
+			0,                         /* x offset */
+			0,                         /* y offset */
+			framedelay, TICRATE,       /* delay numerator and denominator */
 			PNG_DISPOSE_OP_BACKGROUND, /* dispose */
 			PNG_BLEND_OP_SOURCE        /* blend */
 		                     );
@@ -1037,6 +1053,11 @@ static void M_PNGFrame(png_structp png_ptr, png_infop png_info_ptr, png_bytep pn
 	if (aPNG_write_frame_tail)
 #endif
 		aPNG_write_frame_tail(apng_ptr, apng_info_ptr);
+
+	// free the pointers
+	for (y = 0; y < height; y++)
+		if (row_pointers[y])
+			png_free(png_ptr, row_pointers[y]);
 
 	png_free(png_ptr, (png_voidp)row_pointers);
 }
@@ -1051,9 +1072,10 @@ static void M_PNGfix_acTL(png_structp png_ptr, png_infop png_info_ptr,
 #endif
 }
 
-static boolean M_SetupaPNG(png_const_charp filename, png_bytep pal)
+static boolean M_SetupaPNG(png_const_charp filename, const UINT8 *palette)
 {
 	png_uint_16 downscale;
+	PNG_CONST png_byte *pal = (const png_byte *)palette;
 
 	apng_downscale = (!!cv_apng_downscale.value);
 
@@ -1067,7 +1089,7 @@ static boolean M_SetupaPNG(png_const_charp filename, png_bytep pal)
 	}
 
 	apng_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL,
-	 PNG_error, PNG_warn);
+		PNG_error, PNG_warn);
 	if (!apng_ptr)
 	{
 		CONS_Debug(DBG_RENDER, "M_StartMovie: Error on initialize libpng\n");
@@ -1130,7 +1152,7 @@ static boolean M_SetupaPNG(png_const_charp filename, png_bytep pal)
 //                             MOVIE MODE
 // ==========================================================================
 #if NUMSCREENS > 2
-static inline moviemode_t M_StartMovieAPNG(const char *pathname)
+static moviemode_t M_StartMovieAPNG(const char *pathname)
 {
 #ifdef USE_APNG
 	UINT8 *palette = NULL;
@@ -1255,45 +1277,24 @@ void M_SaveFrame(void)
 #if NUMSCREENS > 2
 	// paranoia: should be unnecessary without singletics
 	static tic_t oldtic = 0;
+	float old_size;
 
 	if (oldtic == I_GetTime() && !singletics)
 		return;
 	else
 		oldtic = I_GetTime();
 
+	old_size = M_GetMovieSize();
+
 	switch (moviemode)
 	{
 		case MM_SCREENSHOT:
 			takescreenshot = true;
-			return;
+			break;
 		case MM_GIF:
-			movieframesrecorded++;
-
-			float old_size = GIF_GetSizeMB();
 			GIF_frame();
 
-			// size cap
-			if (cv_gif_maxsize.value)
-			{
-				float cur_size = GIF_GetSizeMB();
-				float diff = (cur_size - old_size) * 8;
-
-				if (cur_size >= (cv_gif_maxsize.value) - diff)
-				{
-					M_StopMovie();
-
-					// re-record
-					if (cv_gif_rolling.value)
-					{
-						M_StartMovie();
-						return;
-					}
-
-					CONS_Alert(CONS_NOTICE, M_GetText("Max movie size reached\n"));
-				}
-			}
-
-			return;
+			break;
 		case MM_APNG:
 #ifdef USE_APNG
 			{
@@ -1303,8 +1304,6 @@ void M_SaveFrame(void)
 					moviemode = MM_OFF;
 					return;
 				}
-
-				movieframesrecorded++;
 
 				if (rendermode == render_soft)
 				{
@@ -1324,16 +1323,33 @@ void M_SaveFrame(void)
 
 				if (apng_frames == PNG_UINT_31_MAX)
 				{
-					CONS_Alert(CONS_NOTICE, M_GetText("Max movie size reached\n"));
 					M_StopMovie();
 				}
 			}
 #else
 			moviemode = MM_OFF;
 #endif
-			return;
+			break;
 		default:
-			return;
+			break;
+	}
+
+	movieframesrecorded++;
+
+	// size cap
+	if (cv_gif_maxsize.value)
+	{
+		float cur_size = M_GetMovieSize();
+		float diff = (cur_size - old_size) * 8;
+
+		if (cur_size >= cv_gif_maxsize.value - diff)
+		{
+			M_StopMovie();
+
+			// re-record
+			if (cv_gif_rolling.value)
+				M_StartMovie();
+		}
 	}
 #endif
 }
@@ -1341,6 +1357,11 @@ void M_SaveFrame(void)
 void M_StopMovie(void)
 {
 #if NUMSCREENS > 2
+
+	// print the message first since we still have access to movie size
+	CONS_Printf(M_GetText("Movie mode disabled; wrote %d frames (%0.2f mb)\n"),
+		M_GetMovieFrames(), M_GetMovieSize());
+
 	switch (moviemode)
 	{
 		case MM_GIF:
@@ -1362,7 +1383,6 @@ void M_StopMovie(void)
 
 			fclose(apng_FILE);
 			apng_FILE = NULL;
-			CONS_Printf("aPNG closed; wrote %u frames\n", (UINT32)apng_frames);
 			apng_frames = 0;
 			break;
 #else
@@ -1374,35 +1394,31 @@ void M_StopMovie(void)
 			return;
 	}
 	moviemode = MM_OFF;
-	CONS_Printf(M_GetText("Movie mode disabled.\n"));
 #endif
 }
 
-INT32 M_RecordedFrames(void)
+INT32 M_GetMovieFrames(void)
 {
 	return movieframesrecorded;
 }
 
-float M_SavedSize(void)
+float M_GetMovieSize(void)
 {
-	if (!moviemode)
-		return 0;
+	const float kMb = 1024.f * 1024.f;
 	
 	switch (moviemode)
 	{	
 		case MM_GIF:
-			return GIF_GetSizeMB();
+			return GIF_GetSize() / kMb;
 		case MM_APNG:
 #ifdef USE_APNG
-		return ftell(apng_FILE);
+		return ftell(apng_FILE) / kMb;
 #else
 		return 0;
 #endif
 		default:
 			return 0;
 	}
-	// bruh
-	return 0;
 }
 
 // ==========================================================================
