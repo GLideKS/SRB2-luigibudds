@@ -40,6 +40,8 @@ automatically.
 	X (BossDeath),/* A_BossDeath */\
 	X (MobjRemoved),/* P_RemoveMobj */\
 	X (BotRespawn),/* B_CheckRespawn */\
+	X (ShouldBlockMobj),/* PIT_CheckThing */\
+	X (ShouldBlockMobjMove),/* PIT_CheckThing */\
 	X (MobjMoveBlocked),/* P_XYMovement (when movement is blocked) */\
 	X (MobjHitFloor),/* P_ZMovement (when movement is blocked by floor) */\
 	X (MobjHitCeiling),/* P_ZMovement (when movement is blocked by ceiling) */\
@@ -161,6 +163,7 @@ int  LUA_HookTouchSpecial(mobj_t *special, mobj_t *toucher);
 int  LUA_HookShouldDamage(mobj_t *target, mobj_t *inflictor, mobj_t *source, INT32 damage, UINT8 damagetype);
 int  LUA_HookMobjDamage(mobj_t *target, mobj_t *inflictor, mobj_t *source, INT32 damage, UINT8 damagetype);
 int  LUA_HookMobjDeath(mobj_t *target, mobj_t *inflictor, mobj_t *source, UINT8 damagetype);
+int  LUA_HookMobjCollide(mobj_t *mobj1, mobj_t *mobj2, int hook_type);
 int  LUA_HookMobjMoveBlocked(mobj_t *, mobj_t *, line_t *);
 int  LUA_HookMobjHitFloor(mobj_t *);
 int  LUA_HookMobjHitCeiling(mobj_t *);

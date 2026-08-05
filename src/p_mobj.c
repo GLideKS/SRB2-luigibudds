@@ -3913,7 +3913,6 @@ void P_RecalcPrecipInSector(sector_t *sector)
 void P_NullPrecipThinker(precipmobj_t *mobj)
 {
 	//(void)mobj;
-	mobj->precipflags &= ~PCF_THUNK;
 	R_ResetPrecipitationMobjInterpolationState(mobj);
 }
 
@@ -3968,6 +3967,7 @@ void P_RainThinker(precipmobj_t *mobj)
 	}
 
 	mobj->z = mobj->floorz;
+	R_ResetPrecipitationMobjInterpolationState(mobj);
 	P_SetPrecipMobjState(mobj, S_SPLASH1);
 }
 
