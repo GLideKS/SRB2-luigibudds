@@ -7968,7 +7968,7 @@ boolean P_LoadLevel(boolean fromnetsave, boolean reloadinggamestate)
 		}
 		G_ClearModeAttackRetryFlag();
 	}
-	else if (rendermode != render_none && G_IsSpecialStage(gamemap))
+	else if (rendermode != render_none && G_IsSpecialStage(gamemap) && !reloadinggamestate)
 	{
 		P_RunSpecialStageWipe();
 		ranspecialwipe = 1;
