@@ -13,6 +13,7 @@
 // made by flaffy for ZE ReBlood Server :p
 //====================================================
 
+#include "lua_httplib.h"
 #include "doomdef.h"
 #include "lua_script.h"
 #include "lua_libs.h"
@@ -78,6 +79,13 @@ static callback_queue_t callback_queue = {NULL, NULL, NULL};
 static void enqueue_callback(lua_State *L, int callback_ref, http_response_t *response, char *error_msg)
 {
 	pending_callback_t *cb = malloc(sizeof(pending_callback_t));
+
+	if (!cb)
+	{
+		I_Error("Out of memory");
+		return;
+	}
+
 	cb->callback_ref = callback_ref;
 	cb->response = response;
 	cb->error_msg = error_msg;
@@ -144,14 +152,31 @@ static size_t header_callback(char *buffer, size_t size, size_t nitems, void *us
 			val_start++;
 		
 		size_t val_len = numbytes - val_start;
-		while (val_len > 0 && (buffer[val_start + val_len - 1] == '\r' || 
-			   buffer[val_start + val_len - 1] == '\n'))
+		while (val_len > 0 && (buffer[val_start + val_len - 1] == '\r' ||
+			buffer[val_start + val_len - 1] == '\n'))
+		{
 			val_len--;
+		}
 		
 		if (val_len > 0) {
-			resp->headers = realloc(resp->headers, sizeof(http_header_t) * (resp->header_count + 1));
+			http_header_t *tmp = realloc(resp->headers, sizeof(http_header_t) * (resp->header_count + 1));
+
+			if (!tmp)
+			{
+				free(resp->headers);
+				I_Error("Out of memory");
+				return 0;
+			}
+			else
+				resp->headers = tmp;
+
 			resp->headers[resp->header_count].key = malloc(key_len + 1);
+			if (!resp->headers[resp->header_count].key)
+				return 0;
+
 			resp->headers[resp->header_count].value = malloc(val_len + 1);
+			if (!resp->headers[resp->header_count].value)
+				return 0;
 			
 			memcpy(resp->headers[resp->header_count].key, buffer, key_len);
 			resp->headers[resp->header_count].key[key_len] = 0;
@@ -363,7 +388,17 @@ static http_request_t* parse_request_options(lua_State *L, int index)
 		lua_pushnil(L);
 		while (lua_next(L, -2) != 0) {
 			if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
-				req->headers = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+				http_header_t *tmp = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+
+				if (!tmp)
+				{
+					free(req->headers);
+					I_Error("Out of memory");
+					return NULL;
+				}
+				else
+					req->headers = tmp;
+
 				req->headers[req->header_count].key = strdup(lua_tostring(L, -2));
 				req->headers[req->header_count].value = strdup(lua_tostring(L, -1));
 				req->header_count++;
@@ -390,7 +425,7 @@ static void http_worker_thread(void *arg)
 static int lib_http_request(lua_State *L)
 {
 #ifndef HAVE_CURL
-	return luaL_error(L, "HTTP support not compiled in");
+	return luaL_error(L, "This build lacks curl support");
 #else
 	luaL_checktype(L, 1, LUA_TTABLE);
 	luaL_checktype(L, 2, LUA_TFUNCTION);
@@ -413,12 +448,19 @@ static int lib_http_request(lua_State *L)
 static int lib_http_get(lua_State *L)
 {
 #ifndef HAVE_CURL
-	return luaL_error(L, "HTTP support not compiled in");
+	return luaL_error(L, "This build lacks curl support");
 #else
 	const char *url = luaL_checkstring(L, 1);
 	luaL_checktype(L, 2, LUA_TFUNCTION);
 	
 	http_request_t *req = calloc(1, sizeof(http_request_t));
+
+	if (!req)
+	{
+		I_Error("Out of memory");
+		return 0;
+	}
+
 	req->url = strdup(url);
 	req->method = strdup("GET");
 	req->timeout = default_timeout;
@@ -430,7 +472,17 @@ static int lib_http_get(lua_State *L)
 		lua_pushnil(L);
 		while (lua_next(L, 3) != 0) {
 			if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
-				req->headers = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+				http_header_t *tmp = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+
+				if (!tmp)
+				{
+					free(req->headers);
+					I_Error("Out of memory");
+					return 0;
+				}
+				else
+					req->headers = tmp;
+
 				req->headers[req->header_count].key = strdup(lua_tostring(L, -2));
 				req->headers[req->header_count].value = strdup(lua_tostring(L, -1));
 				req->header_count++;
@@ -455,13 +507,20 @@ static int lib_http_get(lua_State *L)
 static int lib_http_post(lua_State *L)
 {
 #ifndef HAVE_CURL
-	return luaL_error(L, "HTTP support not compiled in");
+	return luaL_error(L, "This build lacks curl support");
 #else
 	const char *url = luaL_checkstring(L, 1);
 	const char *body = luaL_checkstring(L, 2);
 	luaL_checktype(L, 3, LUA_TFUNCTION);
 	
 	http_request_t *req = calloc(1, sizeof(http_request_t));
+
+	if (!req)
+	{
+		I_Error("Out of memory");
+		return 0;
+	}
+
 	req->url = strdup(url);
 	req->method = strdup("POST");
 	req->body = strdup(body);
@@ -474,7 +533,17 @@ static int lib_http_post(lua_State *L)
 		lua_pushnil(L);
 		while (lua_next(L, 4) != 0) {
 			if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
-				req->headers = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+				http_header_t *tmp = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+
+				if (!tmp)
+				{
+					free(req->headers);
+					I_Error("Out of memory");
+					return 0;
+				}
+				else
+					req->headers = tmp;
+
 				req->headers[req->header_count].key = strdup(lua_tostring(L, -2));
 				req->headers[req->header_count].value = strdup(lua_tostring(L, -1));
 				req->header_count++;
@@ -499,13 +568,20 @@ static int lib_http_post(lua_State *L)
 static int lib_http_put(lua_State *L)
 {
 #ifndef HAVE_CURL
-	return luaL_error(L, "HTTP support not compiled in");
+	return luaL_error(L, "This build lacks curl support");
 #else
 	const char *url = luaL_checkstring(L, 1);
 	const char *body = luaL_checkstring(L, 2);
 	luaL_checktype(L, 3, LUA_TFUNCTION);
 	
 	http_request_t *req = calloc(1, sizeof(http_request_t));
+
+	if (!req)
+	{
+		I_Error("Out of memory");
+		return 0;
+	}
+
 	req->url = strdup(url);
 	req->method = strdup("PUT");
 	req->body = strdup(body);
@@ -518,7 +594,17 @@ static int lib_http_put(lua_State *L)
 		lua_pushnil(L);
 		while (lua_next(L, 4) != 0) {
 			if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
-				req->headers = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+				http_header_t *tmp = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+
+				if (!tmp)
+				{
+					free(req->headers);
+					I_Error("Out of memory");
+					return 0;
+				}
+				else
+					req->headers = tmp;
+
 				req->headers[req->header_count].key = strdup(lua_tostring(L, -2));
 				req->headers[req->header_count].value = strdup(lua_tostring(L, -1));
 				req->header_count++;
@@ -543,12 +629,19 @@ static int lib_http_put(lua_State *L)
 static int lib_http_delete(lua_State *L)
 {
 #ifndef HAVE_CURL
-	return luaL_error(L, "HTTP support not compiled in");
+	return luaL_error(L, "This build lacks curl support");
 #else
 	const char *url = luaL_checkstring(L, 1);
 	luaL_checktype(L, 2, LUA_TFUNCTION);
 	
 	http_request_t *req = calloc(1, sizeof(http_request_t));
+
+	if (!req)
+	{
+		I_Error("Out of memory");
+		return 0;
+	}
+
 	req->url = strdup(url);
 	req->method = strdup("DELETE");
 	req->timeout = default_timeout;
@@ -560,7 +653,17 @@ static int lib_http_delete(lua_State *L)
 		lua_pushnil(L);
 		while (lua_next(L, 3) != 0) {
 			if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
-				req->headers = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+				http_header_t *tmp = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+
+				if (!tmp)
+				{
+					free(req->headers);
+					I_Error("Out of memory");
+					return 0;
+				}
+				else
+					req->headers = tmp;
+
 				req->headers[req->header_count].key = strdup(lua_tostring(L, -2));
 				req->headers[req->header_count].value = strdup(lua_tostring(L, -1));
 				req->header_count++;
@@ -585,13 +688,20 @@ static int lib_http_delete(lua_State *L)
 static int lib_http_patch(lua_State *L)
 {
 #ifndef HAVE_CURL
-	return luaL_error(L, "HTTP support not compiled in");
+	return luaL_error(L, "This build lacks curl support");
 #else
 	const char *url = luaL_checkstring(L, 1);
 	const char *body = luaL_checkstring(L, 2);
 	luaL_checktype(L, 3, LUA_TFUNCTION);
 	
 	http_request_t *req = calloc(1, sizeof(http_request_t));
+
+	if (!req)
+	{
+		I_Error("Out of memory");
+		return 0;
+	}
+
 	req->url = strdup(url);
 	req->method = strdup("PATCH");
 	req->body = strdup(body);
@@ -604,7 +714,17 @@ static int lib_http_patch(lua_State *L)
 		lua_pushnil(L);
 		while (lua_next(L, 4) != 0) {
 			if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
-				req->headers = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+				http_header_t *tmp = realloc(req->headers, sizeof(http_header_t) * (req->header_count + 1));
+
+				if (!tmp)
+				{
+					free(req->headers);
+					I_Error("Out of memory");
+					return 0;
+				}
+				else
+					req->headers = tmp;
+
 				req->headers[req->header_count].key = strdup(lua_tostring(L, -2));
 				req->headers[req->header_count].value = strdup(lua_tostring(L, -1));
 				req->header_count++;
@@ -673,6 +793,12 @@ static int lib_http_encode_base64(lua_State *L)
 	const unsigned char *data = (const unsigned char *)luaL_checklstring(L, 1, &len);
 	size_t out_len = 4 * ((len + 2) / 3);
 	char *encoded = malloc(out_len + 1);
+
+	if (!encoded)
+	{
+		I_Error("Out of memory");
+		return 0;
+	}
 	
 	for (i = 0, j = 0; i < len;) {
 		uint32_t octet_a = i < len ? data[i++] : 0;
@@ -706,13 +832,19 @@ static int lib_http_decode_base64(lua_State *L)
 	if (len > 1 && data[len - 2] == '=') out_len--;
 	
 	unsigned char *decoded = malloc(out_len + 1);
+
+	if (!decoded)
+	{
+		I_Error("Out of memory");
+		return 0;
+	}
 	
 	for (i = 0, j = 0; i < len;) {
-		uint32_t sextet_a = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
-		uint32_t sextet_b = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
-		uint32_t sextet_c = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
-		uint32_t sextet_d = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
-		uint32_t triple = (sextet_a << 3 * 6) + (sextet_b << 2 * 6) + (sextet_c << 1 * 6) + (sextet_d << 0 * 6);
+		size_t sextet_a = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
+		size_t sextet_b = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
+		size_t sextet_c = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
+		size_t sextet_d = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
+		size_t triple = (sextet_a << 3 * 6) + (sextet_b << 2 * 6) + (sextet_c << 1 * 6) + (sextet_d << 0 * 6);
 		
 		if (j < out_len) decoded[j++] = (triple >> 2 * 8) & 0xFF;
 		if (j < out_len) decoded[j++] = (triple >> 1 * 8) & 0xFF;
@@ -838,7 +970,17 @@ static int lib_http_set_default_headers(lua_State *L)
 	lua_pushnil(L);
 	while (lua_next(L, 1) != 0) {
 		if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
-			default_headers = realloc(default_headers, sizeof(http_header_t) * (default_header_count + 1));
+			http_header_t *tmp = realloc(default_headers, sizeof(http_header_t) * (default_header_count + 1));
+
+			if (!tmp)
+			{
+				free(default_headers);
+				I_Error("Out of memory");
+				return 0;
+			}
+			else
+				default_headers = tmp;
+
 			default_headers[default_header_count].key = strdup(lua_tostring(L, -2));
 			default_headers[default_header_count].value = strdup(lua_tostring(L, -1));
 			default_header_count++;
