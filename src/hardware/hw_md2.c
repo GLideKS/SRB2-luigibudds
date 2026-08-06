@@ -1,7 +1,7 @@
 // SONIC ROBO BLAST 2
 //-----------------------------------------------------------------------------
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2024 by Sonic Team Junior.
+// Copyright (C) 1999-2025 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -1477,37 +1477,8 @@ boolean HWR_DrawModel(gl_vissprite_t *spr)
 
 		if (gpatch && hwrPatch && hwrPatch->mipmap->format) // else if meant that if a texture couldn't be loaded, it would just end up using something else's texture
 		{
-			INT32 skinnum = TC_DEFAULT;
+			INT32 skinnum = R_GetTranslationIndexForThing(spr->mobj, spr->mobj->color);
 
-			if ((spr->mobj->flags & (MF_ENEMY|MF_BOSS)) && (spr->mobj->flags2 & MF2_FRET) && !(spr->mobj->flags & MF_GRENADEBOUNCE) && (leveltime & 1)) // Bosses "flash"
-			{
-				if (spr->mobj->type == MT_CYBRAKDEMON || spr->mobj->colorized)
-					skinnum = TC_ALLWHITE;
-				else if (spr->mobj->type == MT_METALSONIC_BATTLE)
-					skinnum = TC_METALSONIC;
-				else
-					skinnum = TC_BOSS;
-			}
-			else if ((skincolornum_t)spr->mobj->color != SKINCOLOR_NONE)
-			{
-				if (spr->mobj->colorized)
-					skinnum = TC_RAINBOW;
-				else if (spr->mobj->player && spr->mobj->player->dashmode >= DASHMODE_THRESHOLD
-					&& (spr->mobj->player->charflags & SF_DASHMODE)
-					&& ((leveltime/2) & 1))
-				{
-					if (spr->mobj->player->charflags & SF_MACHINE)
-						skinnum = TC_DASHMODE;
-					else
-						skinnum = TC_RAINBOW;
-				}
-				else if (spr->mobj->skin && spr->mobj->sprite == SPR_PLAY)
-					skinnum = ((skin_t*)spr->mobj->skin)->skinnum;
-				else
-					skinnum = TC_DEFAULT;
-			}
-
-			// Translation or skin number found
 			HWR_GetBlendedTexture(gpatch, blendgpatch, skinnum, spr->colormap, (skincolornum_t)spr->mobj->color);
 		}
 		else // Sprite
