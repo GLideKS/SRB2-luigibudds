@@ -840,10 +840,10 @@ static int lib_http_decode_base64(lua_State *L)
 	}
 	
 	for (i = 0, j = 0; i < len;) {
-		size_t sextet_a = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
-		size_t sextet_b = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
-		size_t sextet_c = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
-		size_t sextet_d = data[i] == '=' ? 0 & i++ : strchr(base64_chars, data[i++]) - base64_chars;
+		size_t sextet_a = data[i] == '=' ? 0 & i++ : (size_t)(strchr(base64_chars, data[i++]) - base64_chars);
+		size_t sextet_b = data[i] == '=' ? 0 & i++ : (size_t)(strchr(base64_chars, data[i++]) - base64_chars);
+		size_t sextet_c = data[i] == '=' ? 0 & i++ : (size_t)(strchr(base64_chars, data[i++]) - base64_chars);
+		size_t sextet_d = data[i] == '=' ? 0 & i++ : (size_t)(strchr(base64_chars, data[i++]) - base64_chars);
 		size_t triple = (sextet_a << 3 * 6) + (sextet_b << 2 * 6) + (sextet_c << 1 * 6) + (sextet_d << 0 * 6);
 		
 		if (j < out_len) decoded[j++] = (triple >> 2 * 8) & 0xFF;
