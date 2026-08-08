@@ -132,3 +132,4 @@ int LUA_InterceptLib(lua_State *L);
 int LUA_MatrixLib(lua_State *L);
 int LUA_QuaternionLib(lua_State *L);
 int LUA_VectorLib(lua_State *L);
+int LUA_BanpyuraLib(lua_State *L);

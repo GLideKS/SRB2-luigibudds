@@ -878,7 +878,10 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup, boole
 
 	important = !important;
 	if (local)
+    {
 		important = 0;
+        lua_locallyloading++;
+    }
 	//
 	// w-waiiiit!
 	// Let's not add a wad file if the MD5 matches
@@ -998,6 +1001,7 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup, boole
 	lua_lumploading++;
 	LUA_HookVoid(HOOK(AddonLoaded));
 	lua_lumploading--;
+    lua_locallyloading = 0;
 
 	W_InvalidateLumpnumCache();
 	return wadfile->numlumps;

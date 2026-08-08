@@ -47,6 +47,7 @@ void LUA_ClearExtVars(void);
 #endif
 
 extern INT32 lua_lumploading; // is LUA_LoadLump being called?
+extern INT32 lua_locallyloading; // is this wad file being loaded locally?
 
 extern int mobjmovement_ref; // Used by mobj collision hooks
 
