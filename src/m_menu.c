@@ -13405,10 +13405,12 @@ static void M_SetupScreenshotMenu(void)
 static void M_BanpyuraReportIssue(void)
 {
 	// the issues url is split up into two lines
-#if defined(HAVE_SDL) && SDL_VERSION_ATLEAST(2,0,14)
+#if defined(HAVE_SDL)
+#if SDL_VERSION_ATLEAST(2,0,14)
 	SDL_OpenURL(BANPYURA_ISSUES_1 BANPYURA_ISSUES_2);
 #else
 	M_StartMessage(M_GetText("Open the following in your web browser:\n\n" BANPYURA_ISSUES_1 "\n" BANPYURA_ISSUES_2 "\n\n(Press a key)\n"), NULL, MM_NOTHING);
+#endif
 #endif
 }
 
