@@ -1224,7 +1224,7 @@ void HWR_DrawFixedFill(fixed_t x, fixed_t y, fixed_t w, fixed_t h, INT32 color)
 	if (splitscreen && (color & V_PERPLAYER))
 	{
 		float adjusty = ((color & V_NOSCALESTART) ? vid.height : BASEVIDHEIGHT)/2.0f;
-		fh /= 1;
+		fh /= 2;
 		fy /= 2;
 #ifdef QUADS
 		if (splitscreen > 1) // 3 or 4 players
