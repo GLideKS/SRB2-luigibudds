@@ -878,7 +878,7 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup, boole
 
 	important = !important;
 	if (local)
-    {
+	{
 		important = 0;
         lua_locallyloading++;
     }
@@ -1001,7 +1001,7 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup, boole
 	lua_lumploading++;
 	LUA_HookVoid(HOOK(AddonLoaded));
 	lua_lumploading--;
-    lua_locallyloading = 0;
+	lua_locallyloading = 0;
 
 	W_InvalidateLumpnumCache();
 	return wadfile->numlumps;
@@ -1010,7 +1010,7 @@ UINT16 W_InitFile(const char *filename, boolean mainfile, boolean startup, boole
 //
 // Loads a folder as a WAD.
 //
-UINT16 W_InitFolder(const char *path, boolean mainfile, boolean startup)
+UINT16 W_InitFolder(const char *path, boolean mainfile, boolean startup, boolean local)
 {
 	lumpinfo_t *lumpinfo = NULL;
 	wadfile_t *wadfile;
@@ -1040,6 +1040,11 @@ UINT16 W_InitFolder(const char *path, boolean mainfile, boolean startup)
 	}
 
 	important = 1; /// \todo Implement a W_VerifyFolder.
+	if (local)
+	{
+		important = 0;
+		lua_locallyloading++;
+	}
 
 	// Remove path delimiters.
 	p = path + (strlen(path) - 1);
@@ -1135,7 +1140,7 @@ UINT16 W_InitFolder(const char *path, boolean mainfile, boolean startup)
 		return W_InitFileError(path, startup);
 	}
 
-	if (important && !mainfile)
+	if (important && !mainfile && !local)
 		G_SetGameModified(true);
 
 	wadfile = Z_Malloc(sizeof (*wadfile), PU_STATIC, NULL);
@@ -1172,6 +1177,7 @@ UINT16 W_InitFolder(const char *path, boolean mainfile, boolean startup)
 	lua_lumploading++;
 	LUA_HookVoid(HOOK(AddonLoaded));
 	lua_lumploading--;
+	lua_locallyloading = 0;
 
 	W_InvalidateLumpnumCache();
 
@@ -1200,7 +1206,7 @@ void W_InitMultipleFiles(addfilelist_t *list)
 		//CONS_Debug(DBG_SETUP, "Loading %s\n", fn);
 
 		if (pathsep == '\\' || pathsep == '/')
-			W_InitFolder(fn, mainfile, true);
+			W_InitFolder(fn, mainfile, true, false);
 		else
 			W_InitFile(fn, mainfile, true, false);
 	}
