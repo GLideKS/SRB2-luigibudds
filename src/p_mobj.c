@@ -12047,7 +12047,6 @@ static boolean P_SpawnNonMobjMapThing(mapthing_t *mthing)
 		if (numdmstarts < MAX_DM_STARTS)
 		{
 			deathmatchstarts[numdmstarts] = mthing;
-			mthing->type = 0;
 			numdmstarts++;
 		}
 		return true;
@@ -12057,7 +12056,6 @@ static boolean P_SpawnNonMobjMapThing(mapthing_t *mthing)
 		if (numredctfstarts < MAXPLAYERS)
 		{
 			redctfstarts[numredctfstarts] = mthing;
-			mthing->type = 0;
 			numredctfstarts++;
 		}
 		return true;
@@ -12067,7 +12065,6 @@ static boolean P_SpawnNonMobjMapThing(mapthing_t *mthing)
 		if (numbluectfstarts < MAXPLAYERS)
 		{
 			bluectfstarts[numbluectfstarts] = mthing;
-			mthing->type = 0;
 			numbluectfstarts++;
 		}
 		return true;
