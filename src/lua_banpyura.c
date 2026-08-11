@@ -10,6 +10,7 @@
 /// \brief Custom Lua functions for SRB2 Banpyura
 
 #include "p_local.h"
+#include "doomstat.h"
 #include "lua_script.h"
 #include "lua_libs.h"
 
@@ -99,6 +100,20 @@ static int lib_CV_ForceSet(lua_State *L)
 }
 // actually, why is it called luaL_typerror and not luaL_typeerror?
 
+// Banpyura.Luamenu_SetMultiplayer(bool is_multiplayer, bool is_netgame)
+// this is needed to start servers
+static int lib_Luamenu_SetMultiplayer(lua_State *L)
+{
+	boolean is_multiplayer = lua_optboolean(L, 1);
+	boolean is_netgame = lua_optboolean(L, 2);
+	
+	multiplayer = is_multiplayer;
+	splitscreen = !is_netgame;
+	netgame = is_netgame;
+
+	return 0;
+}
+
 
 static luaL_Reg Banpyura[] = {
 	{"SpriteShadow_SetAngle", lib_SpriteShadow_SetAngle},
@@ -106,6 +121,8 @@ static luaL_Reg Banpyura[] = {
 	{"CV_GetPossibleValue", lib_CV_GetPossibleValue},
 	{"CV_ForceAddValue", lib_CV_ForceAddValue},
 	{"CV_ForceSet", lib_CV_ForceSet},
+
+	{"Luamenu_SetMultiplayer", lib_Luamenu_SetMultiplayer},
 
 	{NULL, NULL}
 };
