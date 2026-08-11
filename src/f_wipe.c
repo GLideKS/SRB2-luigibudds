@@ -432,8 +432,8 @@ static void F_DoColormapWipe(fademask_t *fademask, UINT8 *colormap)
   */
 void F_WipeStartScreen(void)
 {
-#ifndef NOWIPE
 	renderisnewtic = true; // hack to allow the HUD hooks to run for 1 tic before the wipe starts with interp active
+#ifndef NOWIPE
 #ifdef HWRENDER
 	if(rendermode != render_soft)
 	{
