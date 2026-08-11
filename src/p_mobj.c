@@ -698,25 +698,31 @@ SINT8 P_MobjFlip(mobj_t *mobj)
 //
 // P_WeaponOrPanel
 //
-// Returns true if weapon ring/panel; otherwise returns false
+// Returns true if weapon ring or panel; otherwise returns false
 //
-boolean P_WeaponOrPanel(mobjtype_t type)
+inline boolean P_WeaponOrPanel(mobjtype_t type)
 {
-	if (type == MT_BOUNCERING
-	|| type == MT_AUTOMATICRING
-	|| type == MT_INFINITYRING
-	|| type == MT_RAILRING
-	|| type == MT_EXPLOSIONRING
-	|| type == MT_SCATTERRING
-	|| type == MT_GRENADERING
-	|| type == MT_BOUNCEPICKUP
-	|| type == MT_RAILPICKUP
-	|| type == MT_AUTOPICKUP
-	|| type == MT_EXPLODEPICKUP
-	|| type == MT_SCATTERPICKUP
-	|| type == MT_GRENADEPICKUP)
-		return true;
-
+	switch (type)
+	{
+		case MT_BOUNCEPICKUP:
+		case MT_RAILPICKUP:
+		case MT_AUTOPICKUP:
+		case MT_EXPLODEPICKUP:
+		case MT_SCATTERPICKUP:
+		case MT_GRENADEPICKUP:
+		case MT_BOUNCERING:
+		case MT_AUTOMATICRING:
+		case MT_INFINITYRING:
+		case MT_RAILRING:
+		case MT_EXPLOSIONRING:
+		case MT_SCATTERRING:
+		case MT_GRENADERING:
+			return true;
+			break;
+		default:
+			break;
+			
+	}
 	return false;
 }
 
@@ -10206,9 +10212,6 @@ void P_MobjThinker(mobj_t *mobj)
 	if (mobj->flags & MF_NOTHINK)
 		return;
 
-	if ((mobj->flags & MF_BOSS) && mobj->spawnpoint && (bossdisabled & (1<<mobj->spawnpoint->args[0])))
-		return;
-
 	// Remove dead target/tracer.
 	if (mobj->target && P_MobjWasRemoved(mobj->target))
 		P_SetTarget(&mobj->target, NULL);
@@ -10233,32 +10236,32 @@ void P_MobjThinker(mobj_t *mobj)
 	if (mobj->scale != mobj->destscale)
 		P_MobjScaleThink(mobj); // Slowly scale up/down to reach your destscale.
 
-	if ((mobj->type == MT_GHOST || mobj->type == MT_THOK) && mobj->fuse > 0) // Not guaranteed to be MF_SCENERY or not MF_SCENERY!
-	{
-		if (mobj->flags2 & MF2_BOSSNOTRAP) // "fast" flag
-		{
-			if ((signed)((mobj->frame & FF_TRANSMASK) >> FF_TRANSSHIFT) < (NUMTRANSMAPS-1) - (2*mobj->fuse)/3)
-				// fade out when nearing the end of fuse...
-				mobj->frame = (mobj->frame & ~FF_TRANSMASK) | (((NUMTRANSMAPS-1) - (2*mobj->fuse)/3) << FF_TRANSSHIFT);
-		}
-		else
-		{
-			if ((signed)((mobj->frame & FF_TRANSMASK) >> FF_TRANSSHIFT) < (NUMTRANSMAPS-1) - mobj->fuse / 2)
-				// fade out when nearing the end of fuse...
-				mobj->frame = (mobj->frame & ~FF_TRANSMASK) | (((NUMTRANSMAPS-1) - mobj->fuse / 2) << FF_TRANSSHIFT);
-		}
-	}
-
-	// Special thinker for scenery objects
-	if (mobj->flags & MF_SCENERY)
-	{
-		P_MobjSceneryThink(mobj);
-		return;
-	}
-
-	// Check for a Lua thinker first
 	if (!mobj->player)
 	{
+		if ((mobj->type == MT_GHOST || mobj->type == MT_THOK) && mobj->fuse > 0) // Not guaranteed to be MF_SCENERY or not MF_SCENERY!
+		{
+			if (mobj->flags2 & MF2_BOSSNOTRAP) // "fast" flag
+			{
+				if ((signed)((mobj->frame & FF_TRANSMASK) >> FF_TRANSSHIFT) < (NUMTRANSMAPS-1) - (2*mobj->fuse)/3)
+					// fade out when nearing the end of fuse...
+					mobj->frame = (mobj->frame & ~FF_TRANSMASK) | (((NUMTRANSMAPS-1) - (2*mobj->fuse)/3) << FF_TRANSSHIFT);
+			}
+			else
+			{
+				if ((signed)((mobj->frame & FF_TRANSMASK) >> FF_TRANSSHIFT) < (NUMTRANSMAPS-1) - mobj->fuse / 2)
+					// fade out when nearing the end of fuse...
+					mobj->frame = (mobj->frame & ~FF_TRANSMASK) | (((NUMTRANSMAPS-1) - mobj->fuse / 2) << FF_TRANSSHIFT);
+			}
+		}
+
+		// Special thinker for scenery objects
+		if (mobj->flags & MF_SCENERY)
+		{
+			P_MobjSceneryThink(mobj);
+			return;
+		}
+
+		// Check for a Lua thinker first
 		if (LUA_HookMobj(mobj, MOBJ_HOOK(MobjThinker)) || P_MobjWasRemoved(mobj))
 			return;
 	}
@@ -10279,6 +10282,9 @@ void P_MobjThinker(mobj_t *mobj)
 	}
 	else if (mobj->flags & MF_BOSS)
 	{
+		if (mobj->spawnpoint && (bossdisabled & (1<<mobj->spawnpoint->args[0])))
+			return;
+			
 		if (!P_MobjBossThink(mobj))
 			return;
 	}
@@ -10286,6 +10292,21 @@ void P_MobjThinker(mobj_t *mobj)
 	{
 		if (!P_MobjDeadThink(mobj))
 			return;
+
+		// check for a weapon panel
+		switch (mobj->type)
+		{
+			case MT_BOUNCEPICKUP:
+			case MT_RAILPICKUP:
+			case MT_AUTOPICKUP:
+			case MT_EXPLODEPICKUP:
+			case MT_SCATTERPICKUP:
+			case MT_GRENADEPICKUP:
+				mobj->alpha = min(FRACUNIT, mobj->fuse<<10);
+				break;
+			default:
+				break;	
+		}
 	}
 	else
 	{
@@ -10341,16 +10362,8 @@ void P_MobjThinker(mobj_t *mobj)
 	}
 
 	// Sliding physics for slidey mobjs!
-	if (mobj->type == MT_FLINGRING
-		|| mobj->type == MT_FLINGCOIN
-		|| mobj->type == MT_FLINGBLUESPHERE
-		|| mobj->type == MT_FLINGNIGHTSCHIP
-		|| P_WeaponOrPanel(mobj->type)
-		|| mobj->type == MT_FLINGEMERALD
-		|| mobj->type == MT_BIGTUMBLEWEED
-		|| mobj->type == MT_LITTLETUMBLEWEED
-		|| mobj->type == MT_CANNONBALLDECOR
-		|| mobj->type == MT_FALLINGROCK) {
+	if (mobj->flags & MF_APPLYSLOPE)
+	{
 		P_TryMove(mobj, mobj->x, mobj->y, true); // Sets mo->standingslope correctly
 		if (P_MobjWasRemoved(mobj))
 			return;
@@ -10382,36 +10395,6 @@ void P_MobjThinker(mobj_t *mobj)
 
 	// Can end up here if a player dies.
 	P_CycleMobjState(mobj);
-
-	if (P_MobjWasRemoved(mobj))
-		return;
-
-	switch (mobj->type)
-	{
-		case MT_BOUNCEPICKUP:
-		case MT_RAILPICKUP:
-		case MT_AUTOPICKUP:
-		case MT_EXPLODEPICKUP:
-		case MT_SCATTERPICKUP:
-		case MT_GRENADEPICKUP:
-			if (mobj->health == 0) // Fading tile
-			{
-				// TODO: Maybe use mobj->alpha instead of messing with frame flags
-				INT32 value = mobj->info->damage/10;
-				value = mobj->fuse/value;
-				value = 10-value;
-				value--;
-
-				if (value <= 0)
-					value = 1;
-
-				mobj->frame &= ~FF_TRANSMASK;
-				mobj->frame |= value << FF_TRANSSHIFT;
-			}
-			break;
-		default:
-			break;
-	}
 }
 
 // Quick, optimized function for the Rail Rings
@@ -12064,7 +12047,6 @@ static boolean P_SpawnNonMobjMapThing(mapthing_t *mthing)
 		if (numdmstarts < MAX_DM_STARTS)
 		{
 			deathmatchstarts[numdmstarts] = mthing;
-			mthing->type = 0;
 			numdmstarts++;
 		}
 		return true;
@@ -12074,7 +12056,6 @@ static boolean P_SpawnNonMobjMapThing(mapthing_t *mthing)
 		if (numredctfstarts < MAXPLAYERS)
 		{
 			redctfstarts[numredctfstarts] = mthing;
-			mthing->type = 0;
 			numredctfstarts++;
 		}
 		return true;
@@ -12084,7 +12065,6 @@ static boolean P_SpawnNonMobjMapThing(mapthing_t *mthing)
 		if (numbluectfstarts < MAXPLAYERS)
 		{
 			bluectfstarts[numbluectfstarts] = mthing;
-			mthing->type = 0;
 			numbluectfstarts++;
 		}
 		return true;
