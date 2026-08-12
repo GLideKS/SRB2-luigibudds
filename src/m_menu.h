@@ -183,8 +183,6 @@ extern UINT32 prevMenuId;
 extern UINT32 activeMenuId;
 
 void M_InitMenuPresTables(void);
-UINT8 M_GetYoungestChildMenu(void);
-void M_ChangeMenuMusic(const char *defaultmusname, boolean defaultmuslooping);
 void M_SetMenuCurBackground(const char *defaultname);
 void M_SetMenuCurFadeValue(UINT8 defaultvalue);
 void M_SetMenuCurTitlePics(void);
@@ -351,7 +349,6 @@ typedef struct menu_s
 	boolean      (*quitroutine)(void); // called before quit a menu return true if we can
 } menu_t;
 
-void M_SetupNextMenu(menu_t *menudef);
 void M_ClearMenus(boolean callexitmenufunc);
 
 // Maybe this goes here????? Who knows.
@@ -443,7 +440,6 @@ extern consvar_t cv_showfocuslost;
 extern consvar_t cv_newgametype, cv_nextmap, cv_chooseskin, cv_serversort;
 extern CV_PossibleValue_t gametype_cons_t[];
 
-extern INT16 startmap;
 extern INT32 ultimate_selectable;
 extern INT16 char_on, startchar;
 
@@ -492,97 +488,5 @@ UINT16 M_GetColorIndex(UINT16 color);
 menucolor_t* M_GetColorFromIndex(UINT16 index);
 void M_InitPlayerSetupColors(void);
 void M_FreePlayerSetupColors(void);
-
-// These defines make it a little easier to make menus
-#define DEFAULTMENUSTYLE(id, header, source, prev, x, y)\
-{\
-	id,\
-	header,\
-	sizeof(source)/sizeof(menuitem_t),\
-	prev,\
-	source,\
-	M_DrawGenericMenu,\
-	x, y,\
-	0,\
-	NULL\
-}
-
-#define DEFAULTSCROLLMENUSTYLE(id, header, source, prev, x, y)\
-{\
-	id,\
-	header,\
-	sizeof(source)/sizeof(menuitem_t),\
-	prev,\
-	source,\
-	M_DrawGenericScrollMenu,\
-	x, y,\
-	0,\
-	NULL\
-}
-
-#define PAUSEMENUSTYLE(source, x, y)\
-{\
-	MN_SPECIAL,\
-	NULL,\
-	sizeof(source)/sizeof(menuitem_t),\
-	NULL,\
-	source,\
-	M_DrawPauseMenu,\
-	x, y,\
-	0,\
-	NULL\
-}
-
-#define CENTERMENUSTYLE(id, header, source, prev, y)\
-{\
-	id,\
-	header,\
-	sizeof(source)/sizeof(menuitem_t),\
-	prev,\
-	source,\
-	M_DrawCenteredMenu,\
-	BASEVIDWIDTH/2, y,\
-	0,\
-	NULL\
-}
-
-#define MAPPLATTERMENUSTYLE(id, header, source)\
-{\
-	id,\
-	header,\
-	sizeof (source)/sizeof (menuitem_t),\
-	&MainDef,\
-	source,\
-	M_DrawLevelPlatterMenu,\
-	0,0,\
-	0,\
-	NULL\
-}
-
-#define CONTROLMENUSTYLE(id, source, prev)\
-{\
-	id,\
-	"M_CONTRO",\
-	sizeof (source)/sizeof (menuitem_t),\
-	prev,\
-	source,\
-	M_DrawControl,\
-	24, 40,\
-	0,\
-	NULL\
-}
-
-#define IMAGEDEF(source)\
-{\
-	MN_SPECIAL,\
-	NULL,\
-	sizeof (source)/sizeof (menuitem_t),\
-	NULL,\
-	source,\
-	M_DrawImageDef,\
-	0, 0,\
-	0,\
-	NULL\
-}
 
 #endif //__X_MENU__
