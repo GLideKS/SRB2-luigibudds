@@ -80,6 +80,7 @@ lzf.c
 b_bot.c
 u_list.c
 snake.c
+discord.c
 lua_script.c
 lua_baselib.c
 lua_mathlib.c

@@ -106,3 +106,14 @@ lib:=../libs/miniupnpc
 MINIUPNPC_opts:=-I$(lib)/include -DMINIUPNP_STATICLIB
 MINIUPNPC_libs:=-L$(lib)/mingw$(32) -lminiupnpc -lws2_32 -liphlpapi
 $(eval $(call _set,MINIUPNPC))
+
+ifdef HAVE_DISCORDRPC
+ifdef MINGW64
+	CPPFLAGS+=-I../libs/discord-rpc/win64-dynamic/include
+	LDFLAGS+=-L../libs/discord-rpc/win64-dynamic/lib
+else
+	CPPFLAGS+=-I../libs/discord-rpc/win32-dynamic/include
+	LDFLAGS+=-L../libs/discord-rpc/win32-dynamic/lib
+endif
+	LIBS+=-ldiscord-rpc
+endif
