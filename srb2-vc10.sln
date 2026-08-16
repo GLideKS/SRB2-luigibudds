@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.136
+# Visual Studio Version 18
+VisualStudioVersion = 18.9.12105.275 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Srb2DD", "src\win32\Srb2win-vc10.vcxproj", "{0F554F1D-ED49-4D65-A9A7-F63C57F277BE}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "s_openal", "src\hardware\s_openal\s_openal-vc10.vcxproj", "{E662D0B3-412D-4D55-A5EC-8CBD680DDCBE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Srb2Win", "src\sdl\Srb2SDL-vc10.vcxproj", "{61BA7D3C-F77D-4D31-B718-1177FE482CF2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "discord-rpc-vc", "thirdparty\discord-rpc\discord-rpc-vc\discord-rpc-vc.vcxproj", "{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -115,6 +117,22 @@ Global
 		{61BA7D3C-F77D-4D31-B718-1177FE482CF2}.Release|Win32.Build.0 = Release|Win32
 		{61BA7D3C-F77D-4D31-B718-1177FE482CF2}.Release|x64.ActiveCfg = Release|x64
 		{61BA7D3C-F77D-4D31-B718-1177FE482CF2}.Release|x64.Build.0 = Release|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Debug|ARM.ActiveCfg = Debug|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Debug|ARM.Build.0 = Debug|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Debug|ARM64.ActiveCfg = Debug|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Debug|ARM64.Build.0 = Debug|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Debug|Win32.Build.0 = Debug|Win32
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Debug|x64.ActiveCfg = Debug|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Debug|x64.Build.0 = Debug|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Release|ARM.ActiveCfg = Release|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Release|ARM.Build.0 = Release|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Release|ARM64.ActiveCfg = Release|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Release|ARM64.Build.0 = Release|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Release|Win32.ActiveCfg = Release|Win32
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Release|Win32.Build.0 = Release|Win32
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Release|x64.ActiveCfg = Release|x64
+		{C72E5891-B0CD-4571-A0DC-7791F7CB3FD8}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

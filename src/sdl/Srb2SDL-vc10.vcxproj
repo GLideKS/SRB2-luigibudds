@@ -166,7 +166,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PreprocessorDefinitions>HAVE_CURL;HAVE_THREADS;HAVE_DISCORDRPC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\orbit\Downloads\SRB2Banpyura\libs\discord-rpc\win32-dynamic\include;..\..\libs\curl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\orbit\Downloads\SRB2Banpyura\thirdparty\discord-rpc\include;..\..\libs\curl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <CustomBuild>
       <Command />
@@ -178,8 +178,8 @@
       <Outputs />
     </CustomBuild>
     <Link>
-      <AdditionalDependencies>libcurl.dll.a;libz32.a;discord-rpc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Users\orbit\Downloads\SRB2Banpyura\libs\discord-rpc\win32-dynamic\lib;..\..\libs\zlib\win32;..\..\libs\curl\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libcurl.dll.a;libz32.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\libs\zlib\win32;..\..\libs\curl\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -191,7 +191,7 @@
     <ClCompile>
       <DisableSpecificWarnings>4244;4267;4146;4003</DisableSpecificWarnings>
       <PreprocessorDefinitions>HAVE_CURL;HAVE_THREADS;HAVE_DISCORDRPC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\orbit\Downloads\SRB2Banpyura\libs\discord-rpc\win32-dynamic\include;..\..\libs\curl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\orbit\Downloads\SRB2Banpyura\thirdparty\discord-rpc\include;..\..\libs\curl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
     <CustomBuild>
@@ -204,8 +204,8 @@
       <Outputs />
     </CustomBuild>
     <Link>
-      <AdditionalDependencies>libcurl.dll.a;libz32.a;discord-rpc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Users\orbit\Downloads\SRB2Banpyura\libs\discord-rpc\win32-dynamic\lib;..\..\libs\zlib\win32;..\..\libs\curl\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libcurl.dll.a;libz32.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\libs\zlib\win32;..\..\libs\curl\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -245,6 +245,9 @@
     <ProjectReference Include="..\..\libs\zlib\projects\visualc10\zlib.vcxproj">
       <Project>{73a5729c-7323-41d4-ab48-8a03c9f81603}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\thirdparty\discord-rpc\discord-rpc-vc\discord-rpc-vc.vcxproj">
+      <Project>{c72e5891-b0cd-4571-a0dc-7791f7cb3fd8}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -27,12 +27,11 @@ ifeq (${DEDICATED},1)
 EXENAME?=srb2bd
 endif
 
-HAVE_DISCORDRPC=1
-
 # In common usage.
 ifdef LINUX
 libs+=-lrt
 passthru_opts+=NOTERMIOS
+HAVE_DISCORDRPC=1
 endif
 
 # Tested by Steel, as of release 2.2.8.
@@ -48,14 +47,3 @@ endif
 #		-DSOLARIS -DINADDR_NONE=INADDR_ANY -DBSD_COMP
 #libs+=-L/opt/sfw/lib -lsocket -lnsl
 #endif
-
-ifdef HAVE_DISCORDRPC
-#ifndef MINGW64 # TODO
-	CPPFLAGS+=-I../libs/discord-rpc/linux-dynamic/include
-	LDFLAGS+=-L../libs/discord-rpc/linux-dynamic/lib
-#else
-	#CPPFLAGS+=-I../libs/discord-rpc/win32-dynamic/include
-	#LDFLAGS+=-L../libs/discord-rpc/win32-dynamic/lib
-#endif
-	LIBS+=-ldiscord-rpc
-endif
