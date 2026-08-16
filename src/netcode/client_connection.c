@@ -36,6 +36,8 @@
 #if defined (__GNUC__) || defined (__unix__)
 #include <unistd.h>
 #endif
+#include "../discord.h"
+#include "server_connection.h"
 
 static boolean viewserver_addons = false;
 static boolean viewserver_toggle = false;
@@ -2061,6 +2063,12 @@ void PT_ServerCFG(SINT8 node)
 			G_SetUsedCheats(true);
 		memcpy(server_context, netbuffer->u.servercfg.server_context, 8);
 	}
+
+#ifdef HAVE_DISCORDRPC
+	discordInfo.maxPlayers = cv_maxplayers.value; // netbuffer->u.servercfg.maxplayer;
+	discordInfo.joinsAllowed = cv_allownewplayer.value; // netbuffer->u.servercfg.allownewplayer;
+	discordInfo.everyoneCanInvite = cv_discordinvites.value; // netbuffer->u.servercfg.discordinvites;
+#endif
 
 	netnodes[(UINT8)servernode].ingame = true;
 	serverplayer = netbuffer->u.servercfg.serverplayer;

@@ -17,14 +17,15 @@
 #endif // HAVE_CURL
 
 #include "i_system.h"
-#include "d_clisrv.h"
-#include "d_netcmd.h"
-#include "i_net.h"
+#include "netcode/d_clisrv.h"
+#include "netcode/d_netcmd.h"
+#include "netcode/server_connection.h"
+#include "netcode/i_net.h"
 #include "g_game.h"
 #include "p_tick.h"
 #include "m_menu.h" // gametype_cons_t
 #include "r_things.h" // skins
-#include "mserv.h" // ms_RoomId
+#include "netcode/mserv.h" // ms_RoomId
 #include "z_zone.h"
 #include "byteptr.h"
 
@@ -32,17 +33,17 @@
 #include "doomdef.h"
 
 // Feel free to provide your own, if you care enough to create another Discord app for this :P
-#define DISCORD_APPID "503531144395096085"
+#define DISCORD_APPID "1538381472074043474"
 
 // length of IP strings
 #define IP_SIZE 16
 
-consvar_t cv_discordrp = {"discordrp", "On", CV_SAVE|CV_CALL, CV_OnOff, DRPC_UpdatePresence, 0, NULL, NULL, 0, 0, NULL};
-consvar_t cv_discordstreamer = {"discordstreamer", "Off", CV_SAVE, CV_OnOff, NULL, 0, NULL, NULL, 0, 0, NULL};
-consvar_t cv_discordasks = {"discordasks", "Yes", CV_SAVE|CV_CALL, CV_YesNo, DRPC_UpdatePresence, 0, NULL, NULL, 0, 0, NULL};
+consvar_t cv_discordrp = CVAR_INIT ("discordrp", "On", CV_SAVE|CV_CALL, CV_OnOff, DRPC_UpdatePresence);
+consvar_t cv_discordstreamer = CVAR_INIT ("discordstreamer", "Off", CV_SAVE, CV_OnOff, NULL);
+consvar_t cv_discordasks = CVAR_INIT ("discordasks", "Yes", CV_SAVE|CV_CALL, CV_YesNo, DRPC_UpdatePresence);
 
 static CV_PossibleValue_t discordinvites_cons_t[] = {{0, "Admins Only"}, {1, "Everyone"}, {0, NULL}};
-consvar_t cv_discordinvites = {"discordinvites", "Everyone", CV_SAVE|CV_CALL, discordinvites_cons_t, DRPC_SendDiscordInfo, 0, NULL, NULL, 0, 0, NULL};
+consvar_t cv_discordinvites = CVAR_INIT ("discordinvites", "Everyone", CV_SAVE|CV_CALL, discordinvites_cons_t, DRPC_SendDiscordInfo);
 
 struct discordInfo_s discordInfo;
 
@@ -113,7 +114,7 @@ static void DRPC_HandleReady(const DiscordUser *user)
 	}
 	else
 	{
-		CONS_Printf("Discord: connected to %s#%s (%s)\n", user->username, user->discriminator, user->userId);
+		CONS_Printf("Discord: connected to %s (%s)\n", user->username, user->userId);
 	}
 }
 
@@ -276,11 +277,11 @@ static void DRPC_HandleJoinRequest(const DiscordUser *requestUser)
 	else
 	{
 		discordRequestList = newRequest;
-		M_RefreshPauseMenu();
+		//M_RefreshPauseMenu();
 	}
 
 	// Made it to the end, request was valid, so play the request sound :)
-	S_StartSound(NULL, sfx_requst);
+	S_StartSound(NULL, sfx_strpst);
 }
 
 /*--------------------------------------------------
@@ -345,6 +346,7 @@ void DRPC_Init(void)
 --------------------------------------------------*/
 void DRPC_SendDiscordInfo(void)
 {
+	/*
 	UINT8 buf[3];
 	UINT8 *p = buf;
 	UINT8 maxplayer;
@@ -359,6 +361,7 @@ void DRPC_SendDiscordInfo(void)
 	WRITEUINT8(p, cv_discordinvites.value);
 
 	SendNetXCmd(XD_DISCORD, &buf, 3);
+	*/
 }
 
 #ifdef HAVE_CURL
@@ -531,6 +534,7 @@ void DRPC_UpdatePresence(void)
 	// Server info
 	if (netgame)
 	{
+		/*
 		switch (ms_RoomId)
 		{
 			case -1: discordPresence.state = "Private"; break; // Private server
@@ -540,6 +544,8 @@ void DRPC_UpdatePresence(void)
 			case 31: discordPresence.state = "OLDC"; break;
 			default: discordPresence.state = "Unknown Room"; break; // HOW
 		}
+		*/
+		discordPresence.state = "Server";
 
 		discordPresence.partyId = server_context; // Thanks, whoever gave us Mumble support, for implementing the EXACT thing Discord wanted for this field!
 		discordPresence.partySize = D_NumPlayers(); // Players in server
@@ -570,30 +576,28 @@ void DRPC_UpdatePresence(void)
 		// Offline info
 		if (Playing())
 			discordPresence.state = "Offline";
-		else if (demo.playback && !demo.title)
+		else if (demoplayback)
 			discordPresence.state = "Watching Replay";
 		else
 			discordPresence.state = "Menu";
 	}
 
 	// Gametype info
-	if ((gamestate == GS_LEVEL || gamestate == GS_INTERMISSION || gamestate == GS_VOTING) && Playing())
+	if ((gamestate == GS_LEVEL || gamestate == GS_INTERMISSION) && Playing())
 	{
 		if (modeattacking)
-			discordPresence.details = "Time Attack";
+			discordPresence.details = "Record Attack";
 		else
 		{
-			snprintf(detailstr, 48, "%s%s%s",
-				gametype_cons_t[gametype].strvalue,
-				(gametype == GT_RACE) ? va(" | %s", kartspeed_cons_t[gamespeed].strvalue) : "",
-				(encoremode == true) ? " | Encore" : ""
+			snprintf(detailstr, 48, "%s",
+				gametype_cons_t[gametype].strvalue
 			);
 			discordPresence.details = detailstr;
 		}
 	}
 
 	if ((gamestate == GS_LEVEL || gamestate == GS_INTERMISSION) // Map info
-		&& !(demo.playback && demo.title))
+		&& !demoplayback)
 	{
 		if ((gamemap >= 1 && gamemap <= 60) // supported race maps
 			|| (gamemap >= 136 && gamemap <= 164)) // supported battle maps
@@ -628,21 +632,16 @@ void DRPC_UpdatePresence(void)
 		if (gamestate == GS_LEVEL && Playing())
 		{
 			const time_t currentTime = time(NULL);
-			const time_t mapTimeStart = currentTime - ((leveltime + (modeattacking ? starttime : 0)) / TICRATE);
+			const time_t mapTimeStart = currentTime - ((leveltime) / TICRATE);
 
 			discordPresence.startTimestamp = mapTimeStart;
 
 			if (timelimitintics > 0)
 			{
-				const time_t mapTimeEnd = mapTimeStart + ((timelimitintics + starttime + 1) / TICRATE);
+				const time_t mapTimeEnd = mapTimeStart + ((timelimitintics + 1) / TICRATE);
 				discordPresence.endTimestamp = mapTimeEnd;
 			}
 		}
-	}
-	else if (gamestate == GS_VOTING)
-	{
-		discordPresence.largeImageKey = (G_BattleGametype() ? "miscredplanet" : "miscblueplanet");
-		discordPresence.largeImageText = "Voting";
 	}
 	else
 	{
@@ -655,43 +654,12 @@ void DRPC_UpdatePresence(void)
 	{
 		// Supported skin names
 		static const char *supportedSkins[] = {
-			// base game
 			"sonic",
 			"tails",
 			"knuckles",
-			"eggman",
-			"metalsonic",
-			// bonus chars
-			"flicky",
-			"motobug",
 			"amy",
-			"mighty",
-			"ray",
-			"espio",
-			"vector",
-			"chao",
-			"gamma",
-			"chaos",
-			"shadow",
-			"rouge",
-			"herochao",
-			"darkchao",
-			"cream",
-			"omega",
-			"blaze",
-			"silver",
-			"wonderboy",
-			"arle",
-			"nights",
-			"sakura",
-			"ulala",
-			"beat",
-			"vyse",
-			"aiai",
-			"kiryu",
-			"aigis",
-			"miku",
-			"doom",
+			"fang",
+			"metalsonic",
 			NULL
 		};
 
@@ -701,7 +669,7 @@ void DRPC_UpdatePresence(void)
 		// Character image
 		while (supportedSkins[checkSkin] != NULL)
 		{
-			if (!strcmp(skins[players[consoleplayer].skin].name, supportedSkins[checkSkin]))
+			if (!strcmp(skins[players[consoleplayer].skin]->name, supportedSkins[checkSkin]))
 			{
 				snprintf(charimg, 21, "char%s", supportedSkins[checkSkin]);
 				discordPresence.smallImageKey = charimg;
@@ -718,7 +686,7 @@ void DRPC_UpdatePresence(void)
 			discordPresence.smallImageKey = "charcustom";
 		}
 
-		snprintf(charname, 28, "Character: %s", skins[players[consoleplayer].skin].realname);
+		snprintf(charname, 28, "Character: %s", skins[players[consoleplayer].skin]->realname);
 		discordPresence.smallImageText = charname; // Character name
 	}
 

@@ -215,6 +215,7 @@ menu_t SPauseDef;
 
 #ifdef HAVE_DISCORDRPC
 menu_t MISC_DiscordRequestsDef;
+static void M_DiscordRequestsMenu(void);
 static void M_HandleDiscordRequests(INT32 choice);
 static void M_DrawDiscordRequests(void);
 #endif
@@ -569,11 +570,8 @@ static menuitem_t MPauseMenu[] =
 	{IT_STRING | IT_CALL,    NULL, "Local Add-ons...",          M_LocalAddons,          8},
 	{IT_STRING | IT_SUBMENU, NULL, "Scramble Teams...",         &MISC_ScrambleTeamDef, 16},
 	{IT_STRING | IT_CALL,    NULL, "Emblem Hints...",           M_EmblemHints,         24},
-	// romoney5 TODO
-	//{IT_STRING | IT_CALL,    NULL, "Switch Gametype/Level...",  M_MapChange,           32},
-#ifdef HAVE_DISCORDRPC
-	{IT_STRING | IT_SUBMENU,  NULL, "Ask To Join Requests...", &MISC_DiscordRequestsDef, 32},
-#endif
+	
+	{IT_STRING | IT_CALL,    NULL, "Switch Gametype/Level...",  M_MapChange,           32},
 
 	{IT_STRING | IT_CALL,    NULL, "Continue",                  M_SelectableClearMenus,48},
 
@@ -1576,6 +1574,9 @@ static menuitem_t OP_BanpyuraOptionsMenu[] =
 	{IT_STRING | IT_CVAR,		NULL, "Uppercase Menus",       			&cv_menucaps,          16},
 	{IT_STRING | IT_CVAR,		NULL, "Menu Text Color",       	       &cv_menucolor,          21},
 	{IT_STRING | IT_CVAR,		NULL, "Menu Background Color",       &cv_menubgcolor,          26},
+#ifdef HAVE_DISCORDRPC
+	{IT_CALL | IT_STRING,  NULL, "Ask To Join Requests...",			M_DiscordRequestsMenu, 32},
+#endif
 
 	{IT_HEADER, 				NULL, "Chat Tweaks", 			            	NULL,		   36},
 	{IT_STRING | IT_CVAR,		NULL, "Horizontal Snap",       	  	   &cv_chatsnapx,          42},
@@ -1815,7 +1816,17 @@ menu_t MISC_ChangeLevelDef =
 menu_t MISC_HelpDef = IMAGEDEF(MISC_HelpMenu);
 
 #ifdef HAVE_DISCORDRPC
+static void M_DiscordRequestsMenu(void)
+{
+	if (discordRequestList)
+		M_SetupNextMenu(&MISC_DiscordRequestsDef);
+	else
+		M_StartMessage(M_GetText("There are no requests.\n\n(Press a key)\n"), NULL, MM_NOTHING);
+}
+
 menu_t MISC_DiscordRequestsDef = {
+	// romoney5 TODO
+	MN_SPECIAL,
 	NULL,
 	sizeof (MISC_DiscordRequestsMenu)/sizeof (menuitem_t),
 	&MPauseDef,
@@ -2381,7 +2392,9 @@ menu_t OP_EraseDataDef = DEFAULTMENUSTYLE(
 	"M_DATA", OP_EraseDataMenu, &OP_DataOptionsDef, 60, 30);
 
 #ifdef HAVE_DISCORDRPC
-menu_t OP_DiscordOptionsDef = DEFAULTMENUSTYLE(NULL, OP_DiscordOptionsMenu, &OP_DataOptionsDef, 30, 30);
+menu_t OP_DiscordOptionsDef = DEFAULTMENUSTYLE(
+	MTREE3(MN_OP_MAIN, MN_OP_BPYURA, MN_OP_ERASEDATA),
+	"M_DATA", OP_DiscordOptionsMenu, &OP_DataOptionsDef, 30, 30);
 #endif
 
 // ==========================================================================
@@ -14528,12 +14541,12 @@ static const char *M_GetDiscordName(discordRequest_t *r)
 	return va("%s#%s", r->username, r->discriminator);
 }
 
-static void M_DrawSticker(INT32 x, INT32 y, INT32 width, INT32 flags, boolean small)
+static void M_DrawSticker(INT32 x, INT32 y, INT32 width, INT32 flags, boolean is_small)
 {
 	patch_t *stickerEnd;
 	INT32 height;
 	
-	if (small == true)
+	if (is_small == true)
 	{
 		stickerEnd = W_CachePatchName("K_STIKE2", PU_CACHE);
 		height = 6;
@@ -14569,12 +14582,12 @@ static void M_DrawDiscordRequests(void)
 	{
 		if (confirmAccept == true)
 		{
-			colormap = R_GetTranslationColormap(TC_DEFAULT, SKINCOLOR_GREEN, GTC_MENUCACHE);
+			colormap = R_GetTranslationColormap(TC_DEFAULT, SKINCOLOR_GREEN, GTC_CACHE);
 			hand = W_CachePatchName("K_LAPH02", PU_CACHE);
 		}
 		else
 		{
-			colormap = R_GetTranslationColormap(TC_DEFAULT, SKINCOLOR_RED, GTC_MENUCACHE);
+			colormap = R_GetTranslationColormap(TC_DEFAULT, SKINCOLOR_RED, GTC_CACHE);
 			hand = W_CachePatchName("K_LAPH03", PU_CACHE);
 		}
 
@@ -14587,7 +14600,7 @@ static void M_DrawDiscordRequests(void)
 	}
 	else
 	{
-		colormap = R_GetTranslationColormap(TC_DEFAULT, SKINCOLOR_GREY, GTC_MENUCACHE);
+		colormap = R_GetTranslationColormap(TC_DEFAULT, SKINCOLOR_GREY, GTC_CACHE);
 	}
 
 	V_DrawFixedPatch(56*FRACUNIT, 150*FRACUNIT, FRACUNIT, 0, W_CachePatchName("K_LAPE01", PU_CACHE), colormap);

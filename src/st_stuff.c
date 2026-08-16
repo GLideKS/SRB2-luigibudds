@@ -2860,7 +2860,7 @@ void ST_AskToJoinEnvelope(void)
 	if ((leveltime % freq) < freq/2)
 		return;
 
-	V_DrawFixedPatch(296*FRACUNIT, 2*FRACUNIT, FRACUNIT, V_SNAPTOTOP|V_SNAPTORIGHT, envelope, NULL);
+	//V_DrawFixedPatch(296*FRACUNIT, 2*FRACUNIT, FRACUNIT, V_SNAPTOTOP|V_SNAPTORIGHT, envelope, NULL);
 	// maybe draw number of requests with V_DrawPingNum ?
 }
 #endif

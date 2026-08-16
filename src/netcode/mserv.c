@@ -25,7 +25,7 @@
 #include "../z_zone.h"
 
 #ifdef HAVE_DISCORDRPC
-#include "discord.h"
+#include "../discord.h"
 #endif
 
 #ifdef MASTERSERVER
