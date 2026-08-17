@@ -570,7 +570,6 @@ static menuitem_t MPauseMenu[] =
 	{IT_STRING | IT_CALL,    NULL, "Local Add-ons...",          M_LocalAddons,          8},
 	{IT_STRING | IT_SUBMENU, NULL, "Scramble Teams...",         &MISC_ScrambleTeamDef, 16},
 	{IT_STRING | IT_CALL,    NULL, "Emblem Hints...",           M_EmblemHints,         24},
-	
 	{IT_STRING | IT_CALL,    NULL, "Switch Gametype/Level...",  M_MapChange,           32},
 
 	{IT_STRING | IT_CALL,    NULL, "Continue",                  M_SelectableClearMenus,48},
@@ -596,9 +595,6 @@ typedef enum
 	mpause_scramble,
 	mpause_hints,
 	mpause_switchmap,
-#ifdef HAVE_DISCORDRPC
-	mpause_discordrequests,
-#endif
 
 	mpause_continue,
 	mpause_psetupsplit,
@@ -5052,7 +5048,7 @@ static void M_DrawPauseMenu(void)
 		if ((leveltime % freq) >= freq/2)
 		{
 			V_DrawFixedPatch(204 * FRACUNIT,
-				(currentMenu->y + MPauseMenu[mpause_discordrequests].alphaKey - 1) * FRACUNIT,
+				(currentMenu->y + MPauseMenu[mpause_continue].alphaKey - 1) * FRACUNIT,
 				FRACUNIT,
 				0,
 				W_CachePatchName("K_REQUE2", PU_CACHE),
@@ -14639,6 +14635,7 @@ static void M_DrawDiscordRequests(void)
 	{
 		DRPC_RemoveRequest(discordRequestList);
 
+		/*
 		if (discordRequestList == NULL)
 		{
 			// No other requests
@@ -14655,6 +14652,7 @@ static void M_DrawDiscordRequests(void)
 
 			return;
 		}
+		*/
 	}
 }
 #endif

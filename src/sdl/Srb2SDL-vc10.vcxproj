@@ -191,7 +191,7 @@
     <ClCompile>
       <DisableSpecificWarnings>4244;4267;4146;4003</DisableSpecificWarnings>
       <PreprocessorDefinitions>HAVE_CURL;HAVE_THREADS;HAVE_DISCORDRPC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\orbit\Downloads\SRB2Banpyura\thirdparty\discord-rpc\include;..\..\libs\curl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\thirdparty\discord-rpc\include;..\..\libs\curl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
     <CustomBuild>
