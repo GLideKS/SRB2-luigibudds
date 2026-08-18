@@ -62,6 +62,7 @@ Icon credits goes to ClovesCloestarSRB2 and his addon [New Springs](https://mb.s
 - Console variable information is more in-depth.
 - - You can choose to hide certain sections via `cvarinfo` ("Show All" by default).
 - See the amount of used freeslots using `freeslots`.
+- Force console input with the `-forceconsole` parameter.
 
 **Most of these options can be found in the menu under Banpyura Options....**
 
