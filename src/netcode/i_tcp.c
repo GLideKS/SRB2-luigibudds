@@ -172,7 +172,7 @@ static mysockaddr_t broadcastaddress[MAXNETNODES+1];
 static size_t broadcastaddresses = 0;
 static boolean nodeconnected[MAXNETNODES+1];
 static mysockaddr_t *banned;
-static const INT32 hole_punch_magic = MSBF_LONG (0x52eb11);
+static const INT32 hole_punch_magic = 0x52eb11; // MSBF_LONG (0x52eb11);
 static UINT8 *bannedmask;
 
 static size_t numbans = 0;
@@ -1282,7 +1282,6 @@ static boolean SOCK_GetAddr(struct sockaddr_in *sin, const char *address, const 
 			{
 				if (runp->ai_addr->sa_family == myfamily[i])
 				{
-					//memcpy(&clientaddress[newnode], runp->ai_addr, runp->ai_addrlen);
 					break;
 				}
 			}
