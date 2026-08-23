@@ -12071,13 +12071,13 @@ static void M_DrawMPMainMenu(void)
 	M_DrawGenericMenu();
 	
 	V_DrawRightAlignedString(BASEVIDWIDTH-x, y+79,
-		((itemOn == 5) ? V_YELLOWMAP : 0), va("(2-%d players)", MAXPLAYERS));
+		((itemOn == 5) ? MENUCOLOR : 0)|MENUCAPS, va("(2-%d players)", MAXPLAYERS));
 
 	V_DrawRightAlignedString(BASEVIDWIDTH-x, y+89,
-		((itemOn == 6) ? V_YELLOWMAP : 0), "(2 players)");
+		((itemOn == 6) ? MENUCOLOR : 0)|MENUCAPS, "(2 players)");
 
 	V_DrawRightAlignedString(BASEVIDWIDTH-x, y+127,
-		((itemOn == 9) ? V_YELLOWMAP : 0), "(splitscreen)");
+		((itemOn == 9) ? MENUCOLOR : 0)|MENUCAPS, "(splitscreen)");
 
 	M_DrawConnectIP();
 }
@@ -13464,9 +13464,9 @@ static void M_DrawJoystick(void)
 
 		if ((setupcontrols_secondaryplayer && (i == compareval2))
 			|| (!setupcontrols_secondaryplayer && (i == compareval)))
-			V_DrawString(OP_JoystickSetDef.x, OP_JoystickSetDef.y+LINEHEIGHT*i-4,V_GREENMAP,joystickInfo[i]);
+			V_DrawString(OP_JoystickSetDef.x, OP_JoystickSetDef.y+LINEHEIGHT*i-4,V_GREENMAP|MENUCAPS,joystickInfo[i]);
 		else
-			V_DrawString(OP_JoystickSetDef.x, OP_JoystickSetDef.y+LINEHEIGHT*i-4,0,joystickInfo[i]);
+			V_DrawString(OP_JoystickSetDef.x, OP_JoystickSetDef.y+LINEHEIGHT*i-4,MENUCAPS,joystickInfo[i]);
 
 		if (i == itemOn)
 		{
