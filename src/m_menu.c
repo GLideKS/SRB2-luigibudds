@@ -11385,19 +11385,11 @@ static void M_DrawRejoinMenu(void)
 	UINT16 i;
 	INT32 x = currentMenu->x;
 	INT32 y = currentMenu->y;
-	UINT8 count = 0;
 	UINT8 index;
-
-	V_DrawFill(x - 2, y + (12+2), BASEVIDWIDTH - (x*2), 24, 159);
-	V_DrawString(x, y + (12+4), V_ALLOWLOWERCASE,
-		"Addresses of servers you join will");
-	V_DrawString(x, y + (22+4), V_ALLOWLOWERCASE,
-		"be saved here.");
-	V_DrawFill(1, y + (22+30 + 2), 318, 1, 0);
 
 	for (i = 2; i < NUMLOGIP + 2; i++)
 		MP_RejoinMenu[i].status = IT_STRING | IT_SPACE;
-	
+
 	// now, iterate through our saved IPs
 	for (index = 0; index < NUMLOGIP; index++)
 	{
@@ -11413,12 +11405,12 @@ static void M_DrawRejoinMenu(void)
 			strlcpy(string_name, joinedIPlist[index][2], MAX_LOGIP);
 		}
 
-		if (joinedIPlist[index][1][0])	// Try drawing server name
+		if (strlen(joinedIPlist[index][1]) > 0)
 		{
 			strlcpy(string_date, joinedIPlist[index][1], MAX_LOGIP);
 		}
 
-		if (joinedIPlist[index][0][0])
+		if (strlen(joinedIPlist[index][0]) > 0)
 		{
 			if (strlen(string_name) <= 0)
 				strlcpy(string_name, joinedIPlist[index][0], MAX_LOGIP);
@@ -11427,14 +11419,7 @@ static void M_DrawRejoinMenu(void)
 		}
 		else if (!namepassed)
 		{
-			V_DrawFill(currentMenu->x - 2,
-				y + (22 + 35),
-				BASEVIDWIDTH - (x*2), 12,
-				V_TRANSLUCENT|((index & 1) ? 29 : 21)
-			);
-			V_DrawString(x, y + (22 + 35), V_GRAYMAP,
-				"---");
-			y += 12;
+			V_DrawString(x, y + 4, V_GRAYMAP|MENUCAPS, "Unavailable");
 			continue;
 		}
 
@@ -11443,13 +11428,7 @@ static void M_DrawRejoinMenu(void)
 		V_DrawRightAlignedSmallString(BASEVIDWIDTH - x, y + 8, MENUCAPS|highlight, string_date);
 		
 		MP_RejoinMenu[index + 2].status = IT_STRING | IT_CALL;
-		count++;
-		y += 12;
 	}
-
-	if (!count)
-		V_DrawString(x, y + (22 + 35), 0,
-			"No servers found.");
 
 	M_DrawGenericMenu();
 }
