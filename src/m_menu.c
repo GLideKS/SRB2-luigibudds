@@ -11387,7 +11387,7 @@ static void M_DrawRejoinMenu(void)
 	INT32 y = currentMenu->y;
 	UINT8 index;
 
-	for (i = 2; i < NUMLOGIP + 2; i++)
+	for (i = 2; i < NUMLOGIP; i++)
 		MP_RejoinMenu[i].status = IT_STRING | IT_SPACE;
 
 	// now, iterate through our saved IPs
