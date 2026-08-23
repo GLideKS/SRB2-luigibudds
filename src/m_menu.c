@@ -11429,7 +11429,6 @@ static void M_DrawRejoinMenu(void)
 		}
 		else if (!namepassed)
 		{
-			V_DrawString(x, y + 4, V_GRAYMAP|MENUCAPS, "Unavailable");
 			continue;
 		}
 
