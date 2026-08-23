@@ -955,17 +955,19 @@ static menuitem_t MP_MainMenu[] =
 static menuitem_t MP_RejoinMenu[] =
 {
 	{IT_HEADER, NULL, "Rejoin a server", NULL, 0},
-	// number of spaces must match NUMLOGIP
-	{IT_STRING|IT_CALL,       NULL, "Refresh",    M_RefreshRejoins,      12 + 30},
-	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          22 + 35},
-	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          34 + 35},
-	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          46 + 35},
-	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          58 + 35},
-	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          70 + 35},
-	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          82 + 35},
-	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          94 + 35},
-	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          106+ 35},
-	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          118+ 35},
+	{IT_STRING|IT_CALL,       NULL, "Refresh",    M_RefreshRejoins,      12},
+
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          22 + 5},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          34 + 5},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          46 + 5},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          58 + 5},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          70 + 5},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          82 + 5},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          94 + 5},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          106+ 5},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          118+ 5},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          130+ 5},
+	{IT_STRING | IT_SPACE, NULL, "",              M_RejoinConnect,          142+ 5},
 };
 
 static menuitem_t MP_ServerMenu[] =
@@ -11394,7 +11396,7 @@ static void M_DrawRejoinMenu(void)
 	INT32 y = currentMenu->y;
 	UINT8 index;
 
-	for (i = 2; i < NUMLOGIP; i++)
+	for (i = 2; i < NUMLOGIP + 2; i++)
 		MP_RejoinMenu[i].status = IT_STRING | IT_SPACE;
 
 	// now, iterate through our saved IPs
