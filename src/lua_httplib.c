@@ -217,7 +217,7 @@ static http_response_t* perform_http_request(http_request_t *req, char **error_m
 	if (default_user_agent)
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, default_user_agent);
 	else
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, "SRB2-Server/2.2");
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "SRB2-Banpyura/" VERSIONSTRING);
 	
 	if (req->follow_redirects) {
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
