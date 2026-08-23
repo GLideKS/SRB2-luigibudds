@@ -11719,7 +11719,7 @@ static void M_ConnectMenuModChecks(INT32 choice)
 	M_ConnectMenu(-1);
 }
 
-void M_RejoinMenu(INT32 choice)
+static void M_RejoinMenu(INT32 choice)
 {
 	(void)choice;
 
