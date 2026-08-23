@@ -11395,6 +11395,9 @@ static void M_DrawRejoinMenu(void)
 	INT32 x = currentMenu->x;
 	INT32 y = currentMenu->y;
 	UINT8 index;
+	char string_ip[MAX_LOGIP] = "\0";
+	char string_date[MAX_LOGIP] = "\0";
+	char string_name[MAX_LOGIP] = "\0";
 
 	for (i = 2; i < NUMLOGIP + 2; i++)
 		MP_RejoinMenu[i].status = IT_STRING | IT_SPACE;
@@ -11402,9 +11405,6 @@ static void M_DrawRejoinMenu(void)
 	// now, iterate through our saved IPs
 	for (index = 0; index < NUMLOGIP; index++)
 	{
-		char string_ip[MAX_LOGIP] = "\0";
-		char string_date[MAX_LOGIP] = "\0";
-		char string_name[MAX_LOGIP] = "\0";
 		boolean namepassed = false;
 		INT32 highlight = (itemOn == index + 2 ? MENUCOLOR : 0);
 		y = currentMenu->y + 24 + (index * SERVERLINEHEIGHT);
