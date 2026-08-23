@@ -9992,7 +9992,6 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 	INT32 camclipping;
 	mobj_t *mo, *sign = NULL;
 	subsector_t *newsubsec;
-	fixed_t f1, f2;
 
 	static fixed_t camsideshift[2] = {0, 0};
 	fixed_t shiftx = 0, shifty = 0;
@@ -10556,9 +10555,7 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 		thiscam->angle = R_PointToAngle2(thiscam->x, thiscam->y, viewpointx, viewpointy);
 
 	// compute aming to look the viewed point
-	f1 = viewpointx-thiscam->x;
-	f2 = viewpointy-thiscam->y;
-	dist = FixedHypot(f1, f2);
+	dist = GetDistance2D(viewpointx, viewpointy, thiscam->x, thiscam->y);
 
 	if (mo->eflags & MFE_VERTICALFLIP)
 		angle = R_PointToAngle2(0, thiscam->z + thiscam->height, dist, (sign ? sign->ceilingz : mo->z + mo->height) - P_GetPlayerHeight(player));
@@ -10613,23 +10610,6 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 
 		thiscam->momx += FixedMul(shiftx, camspeed);
 		thiscam->momy += FixedMul(shifty, camspeed);
-	}
-
-	// compute aming to look the viewed point
-	dist = GetDistance2D(viewpointx, viewpointy, thiscam->x, thiscam->y);
-
-	if (mo->eflags & MFE_VERTICALFLIP)
-		angle = R_PointToAngle2(0, thiscam->z + thiscam->height, dist, (sign ? sign->ceilingz : mo->z + mo->height) - P_GetPlayerHeight(player));
-	else
-		angle = R_PointToAngle2(0, thiscam->z, dist, (sign ? sign->floorz : mo->z) + P_GetPlayerHeight(player));
-	if (player->playerstate != PST_DEAD)
-		angle += (focusaiming < ANGLE_180 ? focusaiming/2 : InvAngle(InvAngle(focusaiming)/2)); // overcomplicated version of '((signed)focusaiming)/2;'
-
-	if (twodlevel || (mo->flags2 & MF2_TWOD) || !camstill) // Keep the view still...
-	{
-		G_ClipAimingPitch((INT32 *)&angle);
-		dist = thiscam->aiming - angle;
-		thiscam->aiming -= (dist>>3);
 	}
 
 	// Make player translucent if camera is too close (only in single player).
@@ -10688,9 +10668,9 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 			thiscam->z = mo->z + pviewheight;
 
 		fixed_t tryangle = (R_PointToAngle2(thiscam->x, thiscam->y, targetx, targety) >> ANGLETOFINESHIFT) & FINEMASK;
-		fixed_t trydist = R_PointToDist2(targetx, targety, thiscam->x, thiscam->y);
+		fixed_t trydist = GetDistance2D(targetx, targety, thiscam->x, thiscam->y);
 		fixed_t tryzangle = (R_PointToAngle2(0, 0, trydist, -(thiscam->z - targetz)) >> ANGLETOFINESHIFT) & FINEMASK;
-		trydist = R_PointToDist2(0, 0, trydist, thiscam->z - targetz);
+		trydist = GetDistance2D(0, 0, trydist, thiscam->z - targetz);
 		
 		fixed_t move_step = mo->scale / 2;
 		fixed_t movex = FixedMul(FINECOSINE(tryangle), move_step);
