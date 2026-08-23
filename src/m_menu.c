@@ -3680,6 +3680,13 @@ boolean M_Responder(event_t *ev)
 				return true;
 			}
 
+			// delete servers from the rejoin menu
+			if (currentMenu == &MP_RejoinDef && itemOn >= 2)
+			{
+				if (M_RemoveJoinedIP(itemOn - 2))
+					S_StartSound(NULL, sfx_shldls);
+			}
+
 			if (routine && ((currentMenu->menuitems[itemOn].status & IT_TYPE) == IT_ARROWS
 				|| (currentMenu->menuitems[itemOn].status & IT_TYPE) == IT_CVAR))
 			{
