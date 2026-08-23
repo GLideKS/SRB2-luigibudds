@@ -45,7 +45,7 @@ float M_GetMovieSize(void);
 #define CONFIGFILENAME "config.cfg"
 
 // The file where we'll save the last IPs we joined
-#define IPLOGFILE "srb2savedips.txt"
+#define IPLOGFILE "savedips.txt"
 #define IPLOGFILESEP "\x90"
 #define NUMLOGIP 11
 #define MAX_LOGIP 255
