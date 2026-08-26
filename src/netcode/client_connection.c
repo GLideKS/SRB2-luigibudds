@@ -34,6 +34,10 @@
 #include "../z_zone.h"
 #include "../doomtype.h"
 #include "../doomstat.h"
+#include "../hu_stuff.h"
+#include "d_net.h"
+#include "../r_main.h"
+#include <time.h>
 #if defined (__GNUC__) || defined (__unix__)
 #include <unistd.h>
 #endif
@@ -1979,6 +1983,31 @@ void CL_ConnectToServer(void)
 	DEBFILE(va("Synchronisation Finished\n"));
 
 	displayplayer = consoleplayer;
+
+	// At this point we've succesfully joined the server, if we joined by IP (ie: a valid joinedIP string), save it!
+	strcpy(tmpsave, cv_servername.string);
+	tmpsave[255] = '\0';
+
+	// No IP? Try to find it then!
+	if (I_GetNodeAddress && !joinedIP[0])
+	{
+		const char* address = I_GetNodeAddress(servernode);
+		strcpy(joinedIP, address);
+	}
+
+	if (joinedIP[0])	// false if we have "" which is \0
+	{
+		time_t t;
+		struct tm *tmp;
+		time(&t);
+		tmp = localtime(&t);
+
+		char date[256];
+		strftime(date, sizeof(date), "%Y/%m/%d %H:%M:%S", tmp);
+
+		M_AddToJoinedIPs(joinedIP, date, tmpsave);
+	}
+	joinedIP[0] = '\0';
 }
 
 /** Called when a PT_SERVERINFO packet is received

@@ -110,3 +110,4 @@ lua_archive.c
 md5.c
 lonesha256.c
 lua_banpyura.c
+lua_httplib.c

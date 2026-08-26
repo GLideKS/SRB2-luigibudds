@@ -177,4 +177,5 @@ vector3_t *LUA_NewVector3(lua_State *L);
 matrix_t *LUA_NewMatrix(lua_State *L);
 quaternion_t *LUA_NewQuaternion(lua_State *L);
 
+int LUA_HTTPLib(lua_State *L);
 #endif/*LUA_SCRIPT_H*/

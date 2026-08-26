@@ -98,6 +98,7 @@
 
 #include "lua_script.h"
 #include "lua_hud.h"
+#include "lua_httplib.h"
 
 // Version numbers for netplay :upside_down_face:
 int    VERSION;
@@ -942,6 +943,7 @@ static void D_RunFrame(void)
 #endif
 
 		LUA_Step();
+		LUA_HTTPProcessCallbacks();
 
 		// Fully completed frame made.
 		finishprecise = I_GetPreciseTime();
@@ -1344,6 +1346,9 @@ void D_SRB2Main(void)
 	strcpy(savegamename, SAVEGAMENAME"%u.ssg");
 	strcpy(liveeventbackup, "live"SAVEGAMENAME".bkp"); // intentionally not ending with .ssg
 
+	// Init the joined IP table for quick rejoining of past games.
+	M_InitJoinedIPArray();
+
 	{
 		const char *userhome = D_Home(); //Alam: path to home
 
@@ -1388,6 +1393,8 @@ void D_SRB2Main(void)
 	// make sure workdir exists
 	I_mkdir(srb2home, 0755);
 
+	M_LoadJoinedIPs();	// load joined ips
+	
 	// Create addons dir
 	snprintf(addonsdir, sizeof addonsdir, "%s%s%s", srb2home, PATHSEP, "addons");
 	I_mkdir(addonsdir, 0755);

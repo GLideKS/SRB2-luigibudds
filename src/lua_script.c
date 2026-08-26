@@ -28,6 +28,7 @@
 #include "p_local.h"
 #include "p_slopes.h" // for P_SlopeById and slopelist
 #include "p_polyobj.h" // polyobj_t, PolyObjects
+#include "lua_httplib.h" //adds the httplib
 #ifdef LUA_ALLOW_BYTECODE
 #include "netcode/d_netfil.h" // for LUA_DumpFile
 #endif
@@ -69,6 +70,7 @@ static lua_CFunction liblist[] = {
 	LUA_MatrixLib, // matrices
 	LUA_QuaternionLib, // quaternions
 	LUA_BanpyuraLib, // banpyura-specific functions
+	LUA_HTTPLib, // http library from srb2 ax
 	NULL
 };
 

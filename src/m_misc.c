@@ -174,6 +174,59 @@ boolean takescreenshot = false; // Take a screenshot this tic
 moviemode_t moviemode = MM_OFF;
 static INT32 movieframesrecorded = 0;
 
+char joinedIPlist[NUMLOGIP][3][MAX_LOGIP];
+char joinedIP[MAX_LOGIP];
+
+// This initializes the above array to have NULL everywhere it should.
+void M_InitJoinedIPArray(void)
+{
+	for (UINT8 index = 0; index < NUMLOGIP; index++)
+		joinedIPlist[index][0][0] = joinedIPlist[index][1][0] = joinedIPlist[index][2][0] = '\0';
+}
+
+// This adds an entry to the above array
+void M_AddToJoinedIPs(char *address, char *date, char *servname)
+{
+	UINT8 index = 0;
+	if ((stricmp(address, "localhost") == 0) || (stricmp(address, "self") == 0))
+		return;
+
+	for (index = 0; index < (NUMLOGIP - 1); index++)
+	{
+		if (strcmp(joinedIPlist[index][0], address) == 0)
+			break;
+	}
+
+	CONS_Printf("Adding %s (%s) to list of joined servers - %s\n", servname, address, date);
+
+	// Start by moving every IP up 1 slot (dropping the last IP in the table)
+	for (; index; index--)
+	{
+		strlcpy(joinedIPlist[index][0], joinedIPlist[index - 1][0], MAX_LOGIP);
+		strlcpy(joinedIPlist[index][1], joinedIPlist[index - 1][1], MAX_LOGIP);
+		strlcpy(joinedIPlist[index][2], joinedIPlist[index - 1][2], MAX_LOGIP);
+	}
+
+	// and add the new IP at the start of the table!
+	strlcpy(joinedIPlist[0][0], address, MAX_LOGIP);
+	strlcpy(joinedIPlist[0][1], date, MAX_LOGIP);
+	strlcpy(joinedIPlist[0][2], servname, MAX_LOGIP);
+	M_SaveJoinedIPs();
+}
+
+boolean M_RemoveJoinedIP(UINT8 index)
+{
+	// Nothing in this slot
+	if (!(joinedIPlist[index][0][0] && joinedIPlist[index][1][0]))
+	{
+		return false;
+	}
+
+	joinedIPlist[index][0][0] = joinedIPlist[index][1][0] = '\0';
+	M_SaveJoinedIPs();
+	return true;
+}
+
 /** Returns the map number for a map identified by the last two characters in
   * its name.
   *
@@ -440,6 +493,73 @@ boolean FIL_CheckExtension(const char *in)
 			return true;
 
 	return false;
+}
+
+void M_SaveJoinedIPs(void)
+{
+	FILE *file = NULL;
+	UINT8 index;
+	const char *filepath = va("%s" PATHSEP "%s", srb2home, IPLOGFILE);
+	if (!*joinedIPlist[0][0])
+		return;
+
+	file = fopen(filepath, "w");
+	if (!file)
+	{
+		CONS_Alert(CONS_WARNING, "Could not save recent IP list into %s\n", IPLOGFILE);
+		return;
+	}
+
+	for (index = 0; index < NUMLOGIP; index++)
+	{
+		if (*joinedIPlist[index][0])
+		{
+			fprintf(file, "%s%s%s%s%s\n", joinedIPlist[index][0], IPLOGFILESEP, joinedIPlist[index][1], IPLOGFILESEP, joinedIPlist[index][2]);
+		}
+	}
+	fclose(file);
+}
+
+void M_LoadJoinedIPs(void)
+{
+	FILE *file = NULL;
+	UINT8 index = 0;
+	char *filepath;
+	char *string;
+	char buffer[2 * (MAX_LOGIP + 1)];
+	filepath = va("%s" PATHSEP "%s", srb2home, IPLOGFILE);
+	file = fopen(filepath, "r");
+	if (file == NULL)
+		return;
+
+	for (index = 0; fgets(buffer, (int)sizeof(buffer), file); index++)
+	{
+		if (index >= NUMLOGIP)
+			break;
+
+		if (!*buffer || (*buffer == '\n'))
+			break;
+
+		for (size_t sub = 0; sub < sizeof(buffer); sub++)
+		{
+			if (buffer[sub] == '\n')
+			{
+				buffer[sub] = '\0';
+				break;
+			}
+		}
+
+		string = strtok(buffer, IPLOGFILESEP);
+		strlcpy(joinedIPlist[index][0], string, MAX_LOGIP);
+		string = strtok(NULL, IPLOGFILESEP);
+		if (string)
+			strlcpy(joinedIPlist[index][1], string, MAX_LOGIP);
+
+		string = strtok(NULL, IPLOGFILESEP);
+		if (string)
+			strlcpy(joinedIPlist[index][2], string, MAX_LOGIP);
+	}
+	fclose(file);
 }
 
 // ==========================================================================
