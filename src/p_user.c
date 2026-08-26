@@ -1271,8 +1271,8 @@ void P_GivePlayerSpheres(player_t *player, INT32 num_spheres)
 	if (!player)
 		return;
 
-	if (player->bot)
-		player = &players[consoleplayer];
+	if ((player->bot == BOT_2PAI || player->bot == BOT_2PHUMAN) && player->botleader)
+		player = player->botleader;
 
 	if (!player->mo)
 		return;
@@ -1298,8 +1298,8 @@ void P_GivePlayerLives(player_t *player, INT32 numlives)
 	if (!player)
 		return;
 
-	if (player->bot)
-		player = &players[consoleplayer];
+	if ((player->bot == BOT_2PAI || player->bot == BOT_2PHUMAN) && player->botleader)
+		player = player->botleader;
 
 	if (gamestate == GS_LEVEL)
 	{

@@ -152,11 +152,11 @@ boolean P_CanPickupItem(player_t *player, boolean weapon)
 	if (!player->mo || player->mo->health <= 0)
 		return false;
 
-	if (player->bot && player->bot != BOT_MPAI)
+	if ((player->bot == BOT_2PAI || player->bot == BOT_2PHUMAN) && player->botleader)
 	{
 		if (weapon)
 			return false;
-		return P_CanPickupItem(&players[consoleplayer], true); // weapon is true to prevent infinite recursion if p1 is bot - doesn't occur in vanilla, but may be relevant for mods
+		return P_CanPickupItem(player->botleader, true); // weapon is true to prevent infinite recursion if p1 is bot - doesn't occur in vanilla, but may be relevant for mods
 	}
 
 	if (player->powers[pw_flashing] > (flashingtics/4)*3 && player->powers[pw_flashing] < UINT16_MAX)
@@ -235,8 +235,8 @@ void P_DoNightsScore(player_t *player)
 		return; // Don't do any fancy shit for failures.
 
 	dummymo = P_SpawnMobj(player->mo->x, player->mo->y, player->mo->z+player->mo->height/2, MT_NIGHTSCORE);
-	if (player->bot && player->bot != BOT_MPAI)
-		player = &players[consoleplayer];
+	if ((player->bot == BOT_2PAI || player->bot == BOT_2PHUMAN) && player->botleader)
+		player = player->botleader;
 
 	if (G_IsSpecialStage(gamemap)) // Global link count? Maybe not a good idea...
 	{
@@ -1463,8 +1463,8 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher, boolean heightcheck)
 					if (players[i].ingame && players[i].powers[pw_carry] == CR_NIGHTSMODE)
 						players[i].drillmeter += TICRATE/2;
 			}
-			else if (player->bot && player->bot != BOT_MPAI)
-				players[consoleplayer].drillmeter += TICRATE/2;
+			else if ((player->bot == BOT_2PAI || player->bot == BOT_2PHUMAN) && player->botleader)
+				player->botleader->drillmeter += TICRATE/2;
 			else
 				player->drillmeter += TICRATE/2;
 
