@@ -43,7 +43,7 @@ Icon credits goes to ClovesCloestarSRB2 and his addon [New Springs](https://mb.s
 - Minimum input delay and Gentleman's delay (Ring Racers)
 - `cam_centertoggle` and `cam2_centertoggle` are not exclusive to the Automatic playstyle.
 - Rejoin server menu with timestamps (Ring Racers)
-- Total file download progress.
+- Added total progress bar while downloading addons from a server.
 
 ### Lua
 
