@@ -118,7 +118,7 @@ static void DrawFileProgress(fileneeded_t *file, int y)
 
 	V_DrawString(BASEVIDWIDTH/2-128, y, V_20TRANS|V_ALLOWLOWERCASE|MENUCAPS, progress_str);
 
-	V_DrawRightAlignedString(BASEVIDWIDTH/2+128, y, V_20TRANS|V_MONOSPACE|MENUCAPS, va("%3.1fK/s ", ((double)getbps)/1024));
+	V_DrawRightAlignedString(BASEVIDWIDTH/2+128, y, V_20TRANS|V_MONOSPACE|MENUCAPS, va("%3.1fKB/s", ((double)getbps)/1024));
 }
 
 static void CL_DrawAddonTypes(void)
@@ -775,7 +775,7 @@ static void CL_DrawConnectionStatus(void)
 			const char *download_str = M_GetText("Downloading \"%s\"");
 #endif
 
-			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-46-24, V_ALLOWLOWERCASE|MENUCOLOR,
+			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-46-24, MENUCOLOR|MENUCAPS,
 				va(download_str, tempname));
 
 			// Rusty: actually lets do this instead
@@ -795,17 +795,17 @@ static void CL_DrawConnectionStatus(void)
 					strlcpy(tempname, http_source, sizeof(tempname));
 				}
 
-				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-46-16, V_ALLOWLOWERCASE|MENUCOLOR,
+				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-46-16, V_ALLOWLOWERCASE|MENUCOLOR|MENUCAPS,
 					va(M_GetText("from %s"), tempname));
 			}
 			else
 			{
-				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-46-16, V_ALLOWLOWERCASE|MENUCOLOR,
+				V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-46-16, V_ALLOWLOWERCASE|MENUCOLOR|MENUCAPS,
 					M_GetText("from the server"));
 			}
 			DrawFileProgress(file, BASEVIDHEIGHT-46);
 
-			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-14, V_ALLOWLOWERCASE|MENUCOLOR, "Total Progress");
+			V_DrawCenteredString(BASEVIDWIDTH/2, BASEVIDHEIGHT-16-14, V_ALLOWLOWERCASE|MENUCOLOR|MENUCAPS, "Total Progress");
 			DrawOverallProgress(BASEVIDHEIGHT-16);
 		}
 		else
