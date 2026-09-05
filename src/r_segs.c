@@ -1464,8 +1464,8 @@ static void R_RenderSegLoop (void)
 		//SoM: Calculate offsets for Thick fake floors.
 		// calculate texture offset
 		angle = (rw_centerangle + xtoviewangle[rw_x])>>ANGLETOFINESHIFT;
-		textureoffset = rw_offset - FixedMul(FINETANGENT(angle), rw_distance);
-		texturecolumn = FixedDiv(textureoffset, rw_invmidtexturescalex);
+		textureoffset = rw_offset - FixedMul(FINETANGENT(angle & TANMASK), rw_distance);
+		texturecolumn = FixedMul(textureoffset, rw_midtexturescalex);
 
 		// texturecolumn and lighting are independent of wall tiers
 		if (segtextured)
@@ -1565,7 +1565,7 @@ static void R_RenderSegLoop (void)
 				if (mid >= floorclip[rw_x])
 					mid = floorclip[rw_x]-1;
 
-				toptexturecolumn = FixedDiv(textureoffset, rw_invtoptexturescalex);
+				toptexturecolumn = FixedMul(textureoffset, rw_toptexturescalex);
 
 				if (mid >= yl) // back ceiling lower than front ceiling ?
 				{
@@ -1612,7 +1612,7 @@ static void R_RenderSegLoop (void)
 				if (mid <= ceilingclip[rw_x])
 					mid = ceilingclip[rw_x]+1;
 
-				bottomtexturecolumn = FixedDiv(textureoffset, rw_invbottomtexturescalex);
+				bottomtexturecolumn = FixedMul(textureoffset, rw_bottomtexturescalex);
 
 				if (mid <= yh) // back floor higher than front floor ?
 				{

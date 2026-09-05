@@ -1485,7 +1485,7 @@ static void HWR_ProcessSeg(void)
 			texturevpeg += gl_sidedef->rowoffset + gl_sidedef->offsety_mid;
 
 			wallVerts[3].t = wallVerts[2].t = texturevpeg * grTex->scaleY;
-			wallVerts[0].t = wallVerts[1].t = (texturevpeg + gl_frontsector->ceilingheight - gl_frontsector->floorheight) * grTex->scaleY;
+			wallVerts[0].t = wallVerts[1].t = (texturevpeg + (gl_frontsector->ceilingheight - gl_frontsector->floorheight) * yscale) * grTex->scaleY;
 			wallVerts[0].s = wallVerts[3].s = ((cliplow * xscale) + gl_sidedef->textureoffset + gl_sidedef->offsetx_mid) * grTex->scaleX;
 			wallVerts[2].s = wallVerts[1].s = ((cliphigh * xscale) + gl_sidedef->textureoffset + gl_sidedef->offsetx_mid) * grTex->scaleX;
 

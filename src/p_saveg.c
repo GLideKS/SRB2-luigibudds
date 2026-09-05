@@ -2527,6 +2527,10 @@ static void SaveMobjThinker(save_t *save_p, const thinker_t *th, const UINT8 typ
 		P_WriteFixed(save_p, mobj->gravity);
 
 	P_WriteUINT32(save_p, mobj->mobjnum);
+
+	P_WriteUINT8(save_p, mobj == hunt1);
+	P_WriteUINT8(save_p, mobj == hunt2);
+	P_WriteUINT8(save_p, mobj == hunt3);
 }
 
 static void SaveNoEnemiesThinker(save_t *save_p, const thinker_t *th, const UINT8 type)
@@ -3636,6 +3640,13 @@ static thinker_t* LoadMobjThinker(save_t *save_p, actionf_p1 thinker)
 	mobj->info = (mobjinfo_t *)next; // temporarily, set when leave this function
 
 	R_AddMobjInterpolator(mobj);
+
+	if (P_ReadUINT8(save_p))
+		hunt1 = mobj;
+	if (P_ReadUINT8(save_p))
+		hunt2 = mobj;
+	if (P_ReadUINT8(save_p))
+		hunt3 = mobj;
 
 	return &mobj->thinker;
 }
